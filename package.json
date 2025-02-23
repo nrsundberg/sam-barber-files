@@ -1,6 +1,7 @@
 {
   "name": "music-fan-site",
   "private": true,
+  "packageManager": "bun@latest",
   "type": "module",
   "scripts": {
     "build": "react-router build",
@@ -9,15 +10,22 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@aws-sdk/s3-request-presigner": "^3.750.0",
+    "@heroui/react": "^2.7.2",
     "@react-router/node": "^7.2.0",
     "@react-router/serve": "^7.2.0",
+    "bun": "^1.2.3",
+    "framer-motion": "^12.4.7",
     "isbot": "^5.1.17",
+    "prettier": "^3.5.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.2.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.2.0",
+    "@types/bun": "^1.2.3",
     "@types/node": "^20",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",

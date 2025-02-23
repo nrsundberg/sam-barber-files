@@ -1,4 +1,19 @@
+import { Link } from "react-router";
 import type { Route } from "./+types/home";
+
+export function meta() {
+  return [
+    { title: "Hidden Tracks" },
+    {
+      property: "og:title",
+      content: "Hidden Tracks",
+    },
+    {
+      name: "description",
+      content: "Where fans find what they need to know.",
+    },
+  ];
+}
 
 export function loader() {
   return { name: "React Router" };
@@ -14,6 +29,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       >
         React Router Docs
       </a>
+      <Link to={"downloadTest"} reloadDocument>
+        Click me
+      </Link>
     </div>
   );
 }
