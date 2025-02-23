@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Folder {
+  id           String   @id @default(dbgenerated())
+  name         String
+  folderNumber Int
+  objects      Object[]
+}
+
+model Object {
+  id          String     @id @default(dbgenerated())
+  fileName    String
+  createdDate DateTime
+  // In Bytes
+  size        BigInt
+  kind        ObjectKind
+  s3fileKey   String
+  folder      Folder     @relation(fields: [folderId], references: [id])
+  folderId    String
+}
+
+enum ObjectKind {
+  FOLDER
+  AUDIO
+  VIDEO
+}

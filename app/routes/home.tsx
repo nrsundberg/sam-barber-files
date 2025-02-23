@@ -29,9 +29,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       >
         React Router Docs
       </a>
-      <Link to={"downloadTest"} reloadDocument>
-        Click me
-      </Link>
+      <Link to={"downloadTest"}>Click me</Link>
     </div>
   );
 }
