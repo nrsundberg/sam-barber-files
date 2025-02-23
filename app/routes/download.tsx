@@ -1,6 +1,7 @@
 import { getPresignedDownloadUrl } from "~/s3.server";
-import type { Route } from "../+types/root";
+import type { Route } from "./+types/download";
 
+// TODO resource route that will serve as the download function for the S3 Content
 export async function loader({ request }: Route.LoaderArgs) {
   // const url = new URL(request.url);
   // const fileKey = url.searchParams.get("fileKey");
@@ -17,6 +18,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { presignedUrl };
 }
 
+// TODO delete this component
+// This is only a temporary placeholder
 export default function DownloadFile({ loaderData }: Route.ComponentProps) {
   const { presignedUrl } = loaderData;
 

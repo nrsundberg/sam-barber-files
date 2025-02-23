@@ -13,6 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// TODO will need to add some layout structure or model maybe keying off id from the Folder
 model Folder {
   id           String   @id @default(dbgenerated())
   name         String

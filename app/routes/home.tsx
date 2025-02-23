@@ -15,20 +15,16 @@ export function meta() {
   ];
 }
 
+// TODO: Load in folders with contents under in specified layout
 export function loader() {
-  return { name: "React Router" };
+  return { name: "Example Loader" };
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export default function ({ loaderData }: Route.ComponentProps) {
   return (
     <div className="text-center p-4">
       <h1 className="text-2xl">Hello, {loaderData.name}</h1>
-      <a
-        className="block mt-2 text-blue-500 underline hover:text-blue-600"
-        href="https://reactrouter.com/docs"
-      >
-        React Router Docs
-      </a>
+      // TODO change this page to the actual rendering in current route "folder"
       <Link to={"downloadTest"}>Click me</Link>
     </div>
   );
