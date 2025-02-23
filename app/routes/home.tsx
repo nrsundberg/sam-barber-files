@@ -77,7 +77,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         {folders.map((folder) => (
           <AccordionItem
             key={folder.id}
-            value={folder.name}
+            textValue={folder.name}
             // TODO fix this in am to make this show the file of the folder
             // TODO add the created time as a  color on hovers
             title={
@@ -93,7 +93,14 @@ export default function ({ loaderData }: Route.ComponentProps) {
                 </div>
               </div>
             }
-            startContent={<Folder />}
+            startContent={
+              <div className="grid grid-cols-2 gap-1 w-[50px]">
+                <p className="text-sm text-gray-400 text-right ">
+                  {folder.folderNumber}
+                </p>
+                <Folder />
+              </div>
+            }
           >
             {
               <div className="mt-2 border-t border-b border-gray-700 overflow-hidden">
