@@ -15,10 +15,17 @@ datasource db {
 
 // TODO will need to add some layout structure or model maybe keying off id from the Folder
 model Folder {
-  id           String   @id @default(uuid())
-  name         String
-  folderNumber Int
-  objects      Object[]
+  id              String   @id @default(uuid())
+  name            String
+  folderNumber    Int
+  createdDate     DateTime
+  objects         Object[]
+  // NOTE will not directly support this initially unless we want subfolders but the framework is here
+  // A Folder can be directly inside one parent
+  parentFolderId  String?  @unique
+  parentFolder    Folder?  @relation("ParentFolder", fields: [parentFolderId], references: [id])
+  // A parent Folder can have multiple children folders
+  childrenFolders Folder[] @relation("ParentFolder")
 }
 
 model Object {
@@ -26,7 +33,7 @@ model Object {
   fileName    String
   createdDate DateTime
   // In Bytes
-  size        BigInt
+  size        Int
   kind        ObjectKind
   // NOTE for not the sefileKey is the same as Id
   s3fileKey   String
@@ -35,7 +42,7 @@ model Object {
 }
 
 enum ObjectKind {
-  FOLDER
   AUDIO
   VIDEO
+  PHOTO
 }

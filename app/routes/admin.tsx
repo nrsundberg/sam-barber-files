@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Card,
   CardBody,
+  DatePicker,
   Input,
   Select,
   SelectItem,
@@ -12,10 +13,13 @@ import { Upload, FolderPlus } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, Form } from "react-router";
+import { data, Form, useFetcher } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { uploadToS3 } from "~/s3.server";
+import { convertToUTCDateTime, formatFileSize } from "~/utils";
+import { getLocalTimeZone, now, parseDateTime } from "@internationalized/date";
+import { fromUnixTime, getUnixTime } from "date-fns";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
@@ -27,18 +31,20 @@ export function meta() {
 // Loader to bring in existing folders
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
-  return await prisma.folder.findMany();
+  return await prisma.folder.findMany({ include: { objects: true } });
 }
 
 const folderCreateSchema = zfd.formData({
   name: z.string(),
   folderNumber: z.coerce.number(),
+  date: z.string(),
 });
 
 const uploadFileSchema = zfd.formData({
   file: z.instanceof(File),
   folderId: z.string(),
   kind: z.custom<ObjectKind>(),
+  createdDate: z.string(),
 });
 
 // TODO Add auth to this route and app in general
@@ -49,17 +55,21 @@ export async function action({ request }: Route.ActionArgs) {
     case "POST":
       // NOTE: schema requires both name and folderNumber
       // on update we won't need the whole object
-      let { name, folderNumber } = folderCreateSchema.parse(formData);
-
+      let { name, folderNumber, date } = folderCreateSchema.parse(formData);
       await prisma.folder.create({
-        data: { name: name ?? "", folderNumber },
+        data: {
+          name: name ?? "",
+          folderNumber,
+          createdDate: convertToUTCDateTime(date).toISOString(),
+        },
       });
       // TODO this can be the data to update client
-      return true;
+      return { ok: true };
 
     // Upload file -- this could be multiple files?
     case "PATCH":
-      let { file, folderId, kind } = uploadFileSchema.parse(formData);
+      let { file, folderId, kind, createdDate } =
+        uploadFileSchema.parse(formData);
       if (!file || !folderId) {
         return data(
           { error: "File and folder selection are required" },
@@ -70,10 +80,8 @@ export async function action({ request }: Route.ActionArgs) {
       let newObject = await prisma.object.create({
         data: {
           fileName: file.name,
-          // TODO this should be in the form we take on create
-          // This is not an actual date
-          createdDate: new Date(),
-          size: BigInt(file.size),
+          createdDate: convertToUTCDateTime(createdDate).toISOString(),
+          size: file.size,
           kind,
           s3fileKey: "",
           folderId,
@@ -87,13 +95,31 @@ export async function action({ request }: Route.ActionArgs) {
         data: { s3fileKey: newObject.id },
       });
       // Could be a toast
-      return { status: "Uploaded file" };
+      return { ok: true };
   }
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
 export default function ({ loaderData, actionData }: Route.ComponentProps) {
   let folders = loaderData;
+  let fileFetcher = useFetcher({ key: "file-fetcher" });
+  let fileRef = useRef<HTMLFormElement>(null);
+  let folderFetcher = useFetcher({ key: "folder-fetcher" });
+  let folderRef = useRef<HTMLFormElement>(null);
+
+  // This does not seem like the best way to handle form clear on submission...
+  useEffect(() => {
+    if (fileFetcher.state === "idle" && fileFetcher.data?.ok) {
+      fileRef.current?.reset();
+      setFile(null);
+    }
+  }, [fileFetcher.state, fileFetcher.data]);
+
+  useEffect(() => {
+    if (folderFetcher.state === "idle" && folderFetcher.data?.ok) {
+      folderRef.current?.reset();
+    }
+  }, [folderFetcher.state, folderFetcher.data]);
 
   // File state to take
   // TODO this should be a form that triggers an upload and returns the file key through actionData
@@ -109,26 +135,41 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
           <h2 className="text-xl font-bold flex items-center gap-2">
             <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New Folder
           </h2>
-          <Form method="POST" className="mt-4">
+          <folderFetcher.Form
+            ref={folderRef}
+            method="POST"
+            className="flex flex-col mt-4 gap-3"
+          >
             <Input
               name="name"
               label="Folder Name"
-              placeholder="Enter folder name"
-              className="mb-3"
-              required
+              className="max-w-[284px]"
+              isRequired
             />
             <Input
               name="folderNumber"
               type="number"
               label="Folder Number"
-              placeholder="Enter folder number"
-              className="mb-3"
-              required
+              className="max-w-[284px]"
+              isRequired
             />
-            <Button type="submit" color="primary">
+            <DatePicker
+              name="date"
+              hideTimeZone
+              showMonthAndYearPickers
+              defaultValue={now("UTC")}
+              className="max-w-[284px]"
+              label="Folder Created Date"
+            />
+            <Button
+              isLoading={folderFetcher.state !== "idle"}
+              type="submit"
+              className="max-w-[284px]"
+              color="primary"
+            >
               Create Folder
             </Button>
-          </Form>
+          </folderFetcher.Form>
         </CardBody>
       </Card>
 
@@ -141,44 +182,74 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
           {actionData?.error && (
             <p className="text-red-500">{actionData?.error}</p>
           )}
-          <Form method="PATCH" encType="multipart/form-data" className="mt-4">
+          <fileFetcher.Form
+            ref={fileRef}
+            method="PATCH"
+            encType="multipart/form-data"
+            className="flex flex-col mt-4 gap-3"
+          >
             <Select
               name="folderId"
-              label="Select Folder"
               placeholder="Choose a folder"
-              className="mb-3"
-              required
+              className="max-w-[350px]"
+              isRequired
             >
               {folders.map((folder) => (
-                <SelectItem key={folder.id}>{folder.name}</SelectItem>
+                <SelectItem key={folder.id} textValue={folder.name}>
+                  <div className="w-full flex justify-between">
+                    <p>
+                      {folder.name}: {folder.folderNumber}
+                    </p>
+                    <p># Objects in folder: {folder.objects.length}</p>
+                  </div>
+                </SelectItem>
               ))}
             </Select>
 
-            <Select name="kind" label="File Type" className="mb-3" required>
+            <Select
+              name="kind"
+              className="max-w-[284px]"
+              label="File Type"
+              isRequired
+            >
               <SelectItem key="AUDIO">Audio</SelectItem>
               <SelectItem key="VIDEO">Video</SelectItem>
+              <SelectItem key="PHOTO">Photo</SelectItem>
             </Select>
+
+            <DatePicker
+              name="createdDate"
+              hideTimeZone
+              showMonthAndYearPickers
+              defaultValue={now("UTC")}
+              className="max-w-[284px]"
+              label="File Created Date"
+            />
 
             <Input
               type="file"
               name="file"
-              className="mb-3"
-              required
+              isRequired
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
 
             {file && (
-              <Textarea
-                disabled
-                value={`Selected file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`}
-                className="mb-3"
+              <Input
+                label={"File Name"}
+                defaultValue={file.name}
+                className="h-fit"
+                endContent={formatFileSize(file.size)}
               />
             )}
-
-            <Button type="submit" color="success">
+            <Button
+              isLoading={fileFetcher.state !== "idle"}
+              className="max-w-[284px]"
+              type="submit"
+              color="success"
+            >
               Upload File
             </Button>
-          </Form>
+          </fileFetcher.Form>
         </CardBody>
       </Card>
     </div>
