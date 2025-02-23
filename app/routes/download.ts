@@ -34,24 +34,3 @@ export async function loader({ params }: Route.LoaderArgs) {
     return redirect("/");
   }
 }
-
-// TODO delete this component
-// // This is only a temporary placeholder
-// export default function DownloadFile({ loaderData }: Route.ComponentProps) {
-//   const { presignedUrl } = loaderData;
-
-//   const handleDownload = () => {
-//     const a = document.createElement("a");
-//     a.href = presignedUrl;
-//     a.download = "downloaded-file";
-//     document.body.appendChild(a);
-//     a.click();
-//     document.body.removeChild(a);
-//   };
-
-//   return (
-//     <div>
-//       <button onClick={handleDownload}>Download File</button>
-//     </div>
-//   );
-// }
