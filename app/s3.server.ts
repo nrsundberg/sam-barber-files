@@ -57,19 +57,23 @@ export async function getPresignedDownloadUrl(
 export async function uploadToS3(file: File, fileId: string): Promise<boolean> {
   // NOTE: this is not accounting for really large files that need to but uploaded in multipart requests
   // Probably won't have those considering users will want to download but something to take note of
-  let fileBuffer = await file.arrayBuffer();
-  let uploadParams = {
-    Bucket: S3_BUCKET_NAME,
-    Key: fileId,
-    Body: Buffer.from(fileBuffer),
-    ContentType: file.type,
-  };
+  try {
+    let fileBuffer = await file.arrayBuffer();
+    let uploadParams = {
+      Bucket: S3_BUCKET_NAME,
+      Key: fileId,
+      Body: Buffer.from(fileBuffer),
+      ContentType: file.type,
+    };
 
-  let s3Response = await s3Client.send(new PutObjectCommand(uploadParams));
-  if (s3Response.$metadata.httpStatusCode !== 200) {
-    // If this fails will want to return error to user
+    let s3Response = await s3Client.send(new PutObjectCommand(uploadParams));
+    if (s3Response.$metadata.httpStatusCode !== 200) {
+      // If this fails will want to return error to user
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`Could not upload file with error: ${e}`);
     return false;
   }
-
-  return true;
 }

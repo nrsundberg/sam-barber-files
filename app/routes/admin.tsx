@@ -86,7 +86,7 @@ export async function action({ request }: Route.ActionArgs) {
         },
       });
 
-      const s3File = await uploadToS3(file, newObject.id);
+      await uploadToS3(file, newObject.id);
       await prisma.object.update({
         where: { id: newObject.id },
         // NOTE for not the sefileKey is the same as Id
@@ -127,129 +127,134 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
     <div className="p-6 bg-black min-h-screen text-white">
       <h1 className="text-3xl font-bold">Admin Panel</h1>
 
-      {/* Folder Creation Form */}
-      <Card className="bg-gray-900 mt-6 p-4">
-        <CardBody>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New Folder
-          </h2>
-          <folderFetcher.Form
-            ref={folderRef}
-            method="POST"
-            className="flex flex-col mt-4 gap-3"
-          >
-            <Input
-              name="name"
-              label="Folder Name"
-              className="max-w-[284px]"
-              isRequired
-            />
-            <Input
-              name="folderNumber"
-              type="number"
-              label="Folder Number"
-              className="max-w-[284px]"
-              isRequired
-            />
-            <DatePicker
-              name="date"
-              hideTimeZone
-              showMonthAndYearPickers
-              defaultValue={now("UTC")}
-              className="max-w-[284px]"
-              label="Folder Created Date"
-            />
-            <Button
-              isLoading={folderFetcher.state !== "idle"}
-              type="submit"
-              className="max-w-[284px]"
-              color="primary"
+      <div className="flex flex-col md:grid md:grid-cols-2 md:gap-2">
+        {/* Folder Creation Form */}
+        <Card className="bg-gray-700 mt-6 p-4">
+          <CardBody>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
+              Folder
+            </h2>
+            <folderFetcher.Form
+              ref={folderRef}
+              method="POST"
+              className="flex flex-col mt-4 gap-3"
             >
-              Create Folder
-            </Button>
-          </folderFetcher.Form>
-        </CardBody>
-      </Card>
-
-      {/* Upload Form */}
-      <Card className="bg-gray-900 mt-6 p-4">
-        <CardBody>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Upload className="w-5 h-5 text-green-400" /> Upload File
-          </h2>
-          {actionData?.error && (
-            <p className="text-red-500">{actionData?.error}</p>
-          )}
-          <fileFetcher.Form
-            ref={fileRef}
-            method="PATCH"
-            encType="multipart/form-data"
-            className="flex flex-col mt-4 gap-3"
-          >
-            <Select
-              name="folderId"
-              placeholder="Choose a folder"
-              className="max-w-[350px]"
-              isRequired
-            >
-              {folders.map((folder) => (
-                <SelectItem key={folder.id} textValue={folder.name}>
-                  <div className="w-full flex justify-between">
-                    <p>
-                      {folder.name}: {folder.folderNumber}
-                    </p>
-                    <p># Objects in folder: {folder.objects.length}</p>
-                  </div>
-                </SelectItem>
-              ))}
-            </Select>
-
-            <Select
-              name="kind"
-              className="max-w-[284px]"
-              label="File Type"
-              isRequired
-            >
-              <SelectItem key="AUDIO">Audio</SelectItem>
-              <SelectItem key="VIDEO">Video</SelectItem>
-              <SelectItem key="PHOTO">Photo</SelectItem>
-            </Select>
-
-            <DatePicker
-              name="createdDate"
-              hideTimeZone
-              showMonthAndYearPickers
-              defaultValue={now("UTC")}
-              className="max-w-[284px]"
-              label="File Created Date"
-            />
-
-            <Input
-              type="file"
-              name="file"
-              isRequired
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-
-            {file && (
               <Input
-                label={"File Name"}
-                defaultValue={file.name}
-                className="h-fit"
-                endContent={formatFileSize(file.size)}
+                name="name"
+                label="Folder Name"
+                className="max-w-[284px]"
+                isRequired
               />
-            )}
-            <Button
-              isLoading={fileFetcher.state !== "idle"}
-              className="max-w-[284px]"
-              type="submit"
-              color="success"
+              <Input
+                name="folderNumber"
+                type="number"
+                label="Folder Number"
+                className="max-w-[284px]"
+                isRequired
+              />
+              <DatePicker
+                name="date"
+                hideTimeZone
+                showMonthAndYearPickers
+                defaultValue={now("UTC")}
+                className="max-w-[284px]"
+                label="Folder Created Date"
+              />
+              <Button
+                isLoading={folderFetcher.state !== "idle"}
+                type="submit"
+                className="max-w-[284px]"
+                color="primary"
+              >
+                Create Folder
+              </Button>
+            </folderFetcher.Form>
+          </CardBody>
+        </Card>
+
+        {/* Upload Form */}
+        <Card className="bg-gray-700 mt-6 p-4">
+          <CardBody>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Upload className="w-5 h-5 text-green-400" /> Upload File
+            </h2>
+            {/* {actionData?.error && ( */}
+            {/* <p className="text-red-500">{actionData?.error}</p> */}
+            {/* )} */}
+            <fileFetcher.Form
+              ref={fileRef}
+              method="PATCH"
+              encType="multipart/form-data"
+              className="flex flex-col mt-4 gap-3"
             >
-              Upload File
-            </Button>
-          </fileFetcher.Form>
-        </CardBody>
-      </Card>
+              <Select
+                name="folderId"
+                placeholder="Choose a folder"
+                className="max-w-[350px]"
+                aria-label="Folder Selector"
+                isRequired
+              >
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} textValue={folder.name}>
+                    <div className="w-full flex justify-between">
+                      <p>
+                        {folder.name}: {folder.folderNumber}
+                      </p>
+                      <p># Objects in folder: {folder.objects.length}</p>
+                    </div>
+                  </SelectItem>
+                ))}
+              </Select>
+
+              <Select
+                name="kind"
+                className="max-w-[284px]"
+                label="File Type"
+                isRequired
+              >
+                <SelectItem key="AUDIO">Audio</SelectItem>
+                <SelectItem key="VIDEO">Video</SelectItem>
+                <SelectItem key="PHOTO">Photo</SelectItem>
+              </Select>
+
+              <DatePicker
+                name="createdDate"
+                hideTimeZone
+                showMonthAndYearPickers
+                defaultValue={now("UTC")}
+                className="max-w-[284px]"
+                label="File Created Date"
+              />
+
+              <Input
+                type="file"
+                name="file"
+                aria-label="File Selector"
+                isRequired
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+
+              {file && (
+                <Input
+                  label={"File Name"}
+                  defaultValue={file.name}
+                  className="h-fit"
+                  endContent={formatFileSize(file.size)}
+                />
+              )}
+              <Button
+                isLoading={fileFetcher.state !== "idle"}
+                className="max-w-[284px]"
+                type="submit"
+                color="success"
+              >
+                Upload File
+              </Button>
+            </fileFetcher.Form>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }
