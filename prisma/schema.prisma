@@ -15,19 +15,20 @@ datasource db {
 
 // TODO will need to add some layout structure or model maybe keying off id from the Folder
 model Folder {
-  id           String   @id @default(dbgenerated())
+  id           String   @id @default(uuid())
   name         String
   folderNumber Int
   objects      Object[]
 }
 
 model Object {
-  id          String     @id @default(dbgenerated())
+  id          String     @id @default(uuid())
   fileName    String
   createdDate DateTime
   // In Bytes
   size        BigInt
   kind        ObjectKind
+  // NOTE for not the sefileKey is the same as Id
   s3fileKey   String
   folder      Folder     @relation(fields: [folderId], references: [id])
   folderId    String

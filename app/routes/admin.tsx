@@ -11,8 +11,11 @@ import {
 import { Upload, FolderPlus } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
-import type { ObjectKind } from "@prisma/client";
-import { data, Form, redirect } from "react-router";
+import { ObjectKind } from "@prisma/client";
+import { data, Form } from "react-router";
+import { zfd } from "zod-form-data";
+import { z } from "zod";
+import { uploadToS3 } from "~/s3.server";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
@@ -27,56 +30,65 @@ export async function loader({ request }: Route.LoaderArgs) {
   return await prisma.folder.findMany();
 }
 
+const folderCreateSchema = zfd.formData({
+  name: z.string(),
+  folderNumber: z.coerce.number(),
+});
+
+const uploadFileSchema = zfd.formData({
+  file: z.instanceof(File),
+  folderId: z.string(),
+  kind: z.custom<ObjectKind>(),
+});
+
 // TODO Add auth to this route and app in general
 // This action should be locked down
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const actionType = formData.get("actionType");
+  switch (request.method) {
+    case "POST":
+      // NOTE: schema requires both name and folderNumber
+      // on update we won't need the whole object
+      let { name, folderNumber } = folderCreateSchema.parse(formData);
 
-  if (actionType === "createFolder") {
-    // This should be a schema we can parse off
-    const name = formData.get("name")?.toString();
+      await prisma.folder.create({
+        data: { name: name ?? "", folderNumber },
+      });
+      // TODO this can be the data to update client
+      return true;
 
-    const folderNumber = parseInt(
-      formData.get("folderNumber")?.toString() || "0",
-      10
-    );
+    // Upload file -- this could be multiple files?
+    case "PATCH":
+      let { file, folderId, kind } = uploadFileSchema.parse(formData);
+      if (!file || !folderId) {
+        return data(
+          { error: "File and folder selection are required" },
+          { status: 400 }
+        );
+      }
 
-    await prisma.folder.create({
-      data: { name: name ?? "", folderNumber },
-    });
+      let newObject = await prisma.object.create({
+        data: {
+          fileName: file.name,
+          // TODO this should be in the form we take on create
+          // This is not an actual date
+          createdDate: new Date(),
+          size: BigInt(file.size),
+          kind,
+          s3fileKey: "",
+          folderId,
+        },
+      });
+
+      const s3File = await uploadToS3(file, newObject.id);
+      await prisma.object.update({
+        where: { id: newObject.id },
+        // NOTE for not the sefileKey is the same as Id
+        data: { s3fileKey: newObject.id },
+      });
+      // Could be a toast
+      return { status: "Uploaded file" };
   }
-
-  if (actionType === "uploadObject") {
-    const file = formData.get("file") as File;
-    const folderId = formData.get("folderId")?.toString();
-    const kind = formData.get("kind") as ObjectKind;
-
-    if (!file || !folderId)
-      return data(
-        { error: "File and folder selection are required" },
-        { status: 400 }
-      );
-
-    // Mock S3 Upload (Replace with real S3 logic)
-    const s3fileKey = `uploads/${file.name}`;
-
-    await prisma.object.create({
-      data: {
-        fileName: file.name,
-        // TODO this should be in the form we take on create
-        // This is not an actual date
-        createdDate: new Date(),
-        size: BigInt(file.size),
-        kind,
-        s3fileKey,
-        folderId,
-      },
-    });
-
-    return redirect("/admin");
-  }
-
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
@@ -97,8 +109,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
           <h2 className="text-xl font-bold flex items-center gap-2">
             <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New Folder
           </h2>
-          <Form method="post" className="mt-4">
-            <input type="hidden" name="actionType" value="createFolder" />
+          <Form method="POST" className="mt-4">
             <Input
               name="name"
               label="Folder Name"
@@ -128,11 +139,9 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
             <Upload className="w-5 h-5 text-green-400" /> Upload File
           </h2>
           {actionData?.error && (
-            <p className="text-red-500">{actionData.error}</p>
+            <p className="text-red-500">{actionData?.error}</p>
           )}
-          <Form method="post" encType="multipart/form-data" className="mt-4">
-            <input type="hidden" name="actionType" value="uploadObject" />
-
+          <Form method="PATCH" encType="multipart/form-data" className="mt-4">
             <Select
               name="folderId"
               label="Select Folder"

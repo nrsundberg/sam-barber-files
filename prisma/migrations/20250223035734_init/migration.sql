@@ -4,6 +4,7 @@ CREATE TYPE "ObjectKind" AS ENUM ('FOLDER', 'AUDIO', 'VIDEO');
 -- CreateTable
 CREATE TABLE "Folder" (
     "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "folderNumber" INTEGER NOT NULL,
 
     CONSTRAINT "Folder_pkey" PRIMARY KEY ("id")
