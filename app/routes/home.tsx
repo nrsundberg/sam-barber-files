@@ -1,10 +1,25 @@
 import type { Route } from "./+types/home";
 import { format } from "date-fns";
-import { Accordion, AccordionItem, Button, Tooltip } from "@heroui/react";
+import {
+  Accordion,
+  AccordionItem,
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Tooltip,
+  useDisclosure,
+  useDraggable,
+} from "@heroui/react";
 import prisma from "~/db.server";
 import { Download, Folder, Music, Video } from "lucide-react";
 import { Link } from "react-router";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
+import { useRef, type DOMAttributes, type Ref } from "react";
+import MuxPlayer from "@mux/mux-player-react";
+import "@mux/mux-player/themes/minimal";
 
 export function meta() {
   return [
@@ -29,6 +44,10 @@ export async function loader({ params }: Route.LoaderArgs) {
 
 export default function ({ loaderData }: Route.ComponentProps) {
   const { folders } = loaderData;
+
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const targetRef = useRef<HTMLElement>(null);
+  const { moveProps } = useDraggable({ targetRef, isDisabled: !isOpen });
 
   return (
     <div className="py-6 bg-black min-h-screen text-white">
@@ -78,8 +97,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
           <AccordionItem
             key={folder.id}
             textValue={folder.name}
-            // TODO fix this in am to make this show the file of the folder
-            // TODO add the created time as a  color on hovers
             title={
               <div className="w-full flex justify-between">
                 <p>{folder.name}</p>
@@ -115,7 +132,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
                       {object.kind === "AUDIO" ? (
                         <Music className="text-blue-400 w-6 h-6" />
                       ) : (
-                        // TODO put thumbnail here
                         <Video className="text-green-400 w-6 h-6" />
                       )}
                       <span className="text-white group-hover:text-[#D17885]">
@@ -137,7 +153,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
                             isIconOnly
                             variant="shadow"
                             as={Link}
-                            to={`/download/${object.s3fileKey}`} // Add a proper download route
+                            to={`/download/${object.s3fileKey}`}
                             reloadDocument
                             className="bg-sb-banner hover:bg-green-200 text-white hover:text-black"
                           >
@@ -148,31 +164,71 @@ export default function ({ loaderData }: Route.ComponentProps) {
                     </div>
                   </div>
                 ))}
-                {/* Popup of thumbnail and image */}
-                {/* <div className="mt-8 grid grid-cols-4 gap-4">
-                  {folder.objects
-                    .filter((obj) => obj.kind === "VIDEO")
-                    .map((video) => (
-                      <Card key={video.id} className="bg-gray-900 rounded-lg">
-                        <CardBody className="p-2">
-                          <Image
-                            isZoomed
-                            src={`https://your-s3-bucket-url.com/${video.s3fileKey}`}
-                            alt={video.fileName}
-                            className="rounded-lg"
-                          />
-                          <div className="mt-2 text-center text-sm">
-                            {video.fileName}
-                          </div>
-                        </CardBody>
-                      </Card>
-                    ))}
-                </div> */}
+                <Button onPress={onOpen}>Open viewer</Button>
+                <VideoModal
+                  objects={folder.objects}
+                  isOpen={isOpen}
+                  targetRef={targetRef}
+                  onOpenChange={onOpenChange}
+                  moveProps={moveProps}
+                />
               </div>
             }
           </AccordionItem>
         ))}
       </Accordion>
     </div>
+  );
+}
+
+function VideoModal({
+  objects,
+  isOpen,
+  targetRef,
+  onOpenChange,
+  moveProps,
+}: {
+  objects: Object[];
+  isOpen: boolean;
+  targetRef: Ref<HTMLElement>;
+  onOpenChange: (isOpen: boolean) => void;
+  moveProps: DOMAttributes<any>;
+}) {
+  return (
+    <Modal
+      ref={targetRef}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      size="2xl"
+    >
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader {...moveProps} className="flex flex-col gap-1">
+              Modal Title
+            </ModalHeader>
+            <ModalBody>
+              <MuxPlayer
+                playbackId="a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M"
+                theme="minimal"
+                metadata={{
+                  video_id: "video-id-54321",
+                  video_title: "Test video title",
+                  viewer_user_id: "user-id-007",
+                }}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="light" onPress={onClose}>
+                Close
+              </Button>
+              <Button color="primary" onPress={onClose}>
+                Action
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
   );
 }

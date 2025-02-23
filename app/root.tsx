@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { HeroUIProvider } from "@heroui/react";
+import "@vidstack/react/player/styles/base.css";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

@@ -13,6 +13,8 @@
     "@aws-sdk/s3-request-presigner": "^3.750.0",
     "@heroui/react": "^2.7.2",
     "@internationalized/date": "^3.7.0",
+    "@mux/mux-player-react": "^3.3.0",
+    "@mux/mux-uploader-react": "^1.1.2",
     "@prisma/client": "^6.4.1",
     "@react-router/node": "^7.2.0",
     "@react-router/serve": "^7.2.0",
