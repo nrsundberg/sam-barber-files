@@ -1,5 +1,6 @@
 import {
   isRouteErrorResponse,
+  Link,
   Links,
   Meta,
   Outlet,
@@ -9,7 +10,12 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { HeroUIProvider } from "@heroui/react";
+import {
+  HeroUIProvider,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+} from "@heroui/react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +27,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <Navbar maxWidth="full" isBordered isBlurred>
+          <NavbarBrand>
+            <Link to="/">
+              <img src="/logo.jpg" alt="Logo" width={50} height={50} />
+            </Link>
+          </NavbarBrand>
+        </Navbar>
         {children}
         <ScrollRestoration />
         <Scripts />

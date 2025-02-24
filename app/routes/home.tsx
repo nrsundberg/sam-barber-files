@@ -9,6 +9,8 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Navbar,
+  NavbarBrand,
   Tooltip,
   useDisclosure,
   useDraggable,
@@ -50,7 +52,13 @@ export default function ({ loaderData }: Route.ComponentProps) {
   const { moveProps } = useDraggable({ targetRef, isDisabled: !isOpen });
 
   return (
-    <div className="py-6 bg-black min-h-screen text-white">
+    <div className="min-h-screen mt-1">
+      <div className="w-full flex justify-end">
+        <div className="w-[370px] grid grid-cols-[150px_150px_90px] text-gray-400 text-sm text-center mr-[32px]">
+          <p className="text-center">UPLOADED</p>
+          <p className="text-center">SIZE</p>
+        </div>
+      </div>
       <Accordion
         showDivider={false}
         isCompact
@@ -100,11 +108,11 @@ export default function ({ loaderData }: Route.ComponentProps) {
             title={
               <div className="w-full flex justify-between">
                 <p>{folder.name}</p>
-                <div className="w-[300px] flex justify-between text-gray-400 text-sm mr-[60px]">
-                  <p>
+                <div className="w-[370px] grid grid-cols-[150px_150px_90px] text-gray-400 text-sm text-center">
+                  <p className="self-center">
                     {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
                   </p>
-                  <p className="text-gray-300">
+                  <p className="self-center">
                     {formatFileSize(getTotalFolderSize(folder.objects))}
                   </p>
                 </div>
@@ -112,7 +120,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
             }
             startContent={
               <div className="grid grid-cols-2 gap-1 w-[50px]">
-                <p className="text-sm text-gray-400 text-right ">
+                <p className="text-sm text-gray-400 text-right">
                   {folder.folderNumber}
                 </p>
                 <Folder />
@@ -138,16 +146,17 @@ export default function ({ loaderData }: Route.ComponentProps) {
                         {object.fileName}
                       </span>
                     </div>
-                    <div className="w-[360px] flex items-center justify-between text-sm">
-                      <p>
+                    <div className="w-[400px] grid grid-cols-[150px_150px_100px] text-sm text-center">
+                      <p className="self-center">
                         {format(
                           new Date(object.createdDate),
                           "MM.dd.yyyy hh:mm a"
                         )}
                       </p>
-                      <p>{formatFileSize(object.size)}</p>
-
-                      <div className="w-[60px] flex justify-end pr-1">
+                      <p className="self-center">
+                        {formatFileSize(object.size)}
+                      </p>
+                      <div className="flex justify-end pr-1">
                         <Tooltip content="Download">
                           <Button
                             isIconOnly
@@ -208,15 +217,16 @@ function VideoModal({
               Modal Title
             </ModalHeader>
             <ModalBody>
-              <MuxPlayer
-                playbackId="a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M"
-                theme="minimal"
-                metadata={{
-                  video_id: "video-id-54321",
-                  video_title: "Test video title",
-                  viewer_user_id: "user-id-007",
-                }}
-              />
+              <video src="http://localhost:9001/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL211c2ljLXNpdGUvNF9TdHVudCUyMExhbmd1YWdlJTIwMTVzZWMlMjAxMDA3MTMlMjA0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUZDNDBTWUxNWDNWRDZVUFhVWlNEJTJGMjAyNTAyMjQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMjI0VDAxMjIyMVomWC1BbXotRXhwaXJlcz00MzIwMCZYLUFtei1TZWN1cml0eS1Ub2tlbj1leUpoYkdjaU9pSklVelV4TWlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaFkyTmxjM05MWlhraU9pSkdRelF3VTFsTVRWZ3pWa1EyVlZCWVZWcFRSQ0lzSW1WNGNDSTZNVGMwTURNNU16SXhOaXdpY0dGeVpXNTBJam9pWkdWMlZYTmxjaUo5Lk9jbXpWWWcza1ZLejBLc2xUY1NocjJUMnpuLWVDd2dvZEhjTXVQTkx1cjRqNkh4ZWYtWlgwTVhfUGFwanVjYmYtdGlqZVI3TDNGTXB6QXVISG1VcGRRJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9OGFiOWM5ZWU4OWUwZDA2NWNjYTdkZTA1MmU3MmVhOGM1OWU3OWRmODA2Yzg0ZWZmMTAyZWQ2MWU5YTk5NTIwNg" />
+              {/* // <MuxPlayer
+              //   playbackId="a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M"
+              //   theme="minimal"
+              //   metadata={{
+              //     video_id: "video-id-54321",
+              //     video_title: "Test video title",
+              //     viewer_user_id: "user-id-007",
+              //   }}
+              // /> */}
             </ModalBody>
             <ModalFooter>
               <Button color="danger" variant="light" onPress={onClose}>
