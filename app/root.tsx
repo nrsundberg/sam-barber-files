@@ -1,4 +1,5 @@
 import {
+  data,
   isRouteErrorResponse,
   Link,
   Links,
@@ -10,12 +11,23 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import {
-  HeroUIProvider,
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-} from "@heroui/react";
+import { HeroUIProvider, Navbar, NavbarBrand } from "@heroui/react";
+import { getToast } from "remix-toast";
+import { useEffect } from "react";
+import { ToastContainer, toast as notify } from "react-toastify";
+import toastStyles from "react-toastify/ReactToastify.css?url";
+
+// Add the toast stylesheet
+export const links: Route.LinksFunction = () => [
+  { rel: "stylesheet", href: toastStyles },
+];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  // Extracts the toast from the request
+  const { toast, headers } = await getToast(request);
+  // Important to pass in the headers so the toast is cleared properly
+  return data({ toast }, { headers });
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -37,12 +49,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <ScrollRestoration />
         <Scripts />
+        <ToastContainer />
       </body>
     </html>
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
+  const { toast } = loaderData;
+  // Hook to show the toasts
+  useEffect(() => {
+    if (toast) {
+      // notify on a toast message
+      notify(toast.message, { type: toast.type, theme: "dark" });
+    }
+  }, [toast]);
+
   return (
     <HeroUIProvider>
       <Outlet />

@@ -19,6 +19,8 @@ import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
 import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
 import { accountId, client } from "~/client.server";
+import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
+import { redirectWithError } from "remix-toast";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -32,6 +34,12 @@ export function meta() {
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
   // await fetchCloudflare("", "");
+
+  const { getUser, headers } = await getKindeSession(request);
+  const user = await getUser();
+  if (user === null) {
+    return redirectWithError("/", "You are not authorized to view this page.");
+  }
 
   // console.log(video);
   // // uid from cloudflare

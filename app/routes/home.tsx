@@ -18,8 +18,6 @@ import { Download, Folder, Music, Video } from "lucide-react";
 import { Link } from "react-router";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
 import { useRef, type DOMAttributes, type Ref } from "react";
-import MuxPlayer from "@mux/mux-player-react";
-import "@mux/mux-player/themes/minimal";
 import { Stream } from "@cloudflare/stream-react";
 
 export function meta() {
