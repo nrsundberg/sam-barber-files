@@ -29,17 +29,17 @@ model Folder {
 }
 
 model Object {
-  id          String     @id @default(uuid())
-  fileName    String
-  createdDate DateTime
+  id           String     @id @default(uuid())
+  fileName     String
+  createdDate  DateTime
   // In Bytes
-  size        Int
-  kind        ObjectKind
+  size         Int
+  kind         ObjectKind
   // NOTE for not the sefileKey is the same as Id
-  s3fileKey   String
+  s3fileKey    String
   cloudFlareId String
-  folder      Folder     @relation(fields: [folderId], references: [id])
-  folderId    String
+  folder       Folder     @relation(fields: [folderId], references: [id])
+  folderId     String
 }
 
 enum ObjectKind {

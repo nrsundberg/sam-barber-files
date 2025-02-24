@@ -9,13 +9,14 @@ const S3_ENDPOINT = process.env.S3_ENDPOINT;
 const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY;
 const S3_SECRET_KEY = process.env.S3_SECRET_KEY;
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const S3_REGION = process.env.S3_REGION;
 
 if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
   throw new Error("Missing S3 environment variables");
 }
 
 export const s3Client = new S3Client({
-  region: "us-east-1", // Modify as needed
+  region: S3_REGION,
   endpoint: S3_ENDPOINT,
   // TODO these will be off in prod and connect through domain?
   credentials: {

@@ -58,6 +58,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
       </div>
       <Accordion
         showDivider={false}
+        selectionMode="multiple"
         isCompact
         motionProps={{
           variants: {

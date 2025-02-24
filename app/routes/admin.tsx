@@ -20,7 +20,7 @@ import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
 import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
-import { redirectWithError } from "remix-toast";
+import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -77,16 +77,16 @@ export async function action({ request }: Route.ActionArgs) {
         },
       });
       // TODO this can be the data to update client
-      return { ok: true };
+      return dataWithSuccess({ ok: true }, "Created Folder");
 
     // Upload file -- this could be multiple files?
     case "PATCH":
       let { file, folderId, kind, createdDate } =
         uploadFileSchema.parse(formData);
       if (!file || !folderId) {
-        return data(
+        return dataWithError(
           { error: "File and folder selection are required" },
-          { status: 400 }
+          "File and folder are required"
         );
       }
 
@@ -123,9 +123,13 @@ export async function action({ request }: Route.ActionArgs) {
             data: { s3fileKey: newObject.id },
           });
         }
+      } else {
+        return dataWithError(
+          { error: "Couldn't upload" },
+          "File could not be uploaded"
+        );
       }
-      // Could be a toast
-      return { ok: true };
+      return dataWithSuccess({ ok: true }, "Uploaded File");
   }
   return data({ error: "Invalid action" }, { status: 400 });
 }

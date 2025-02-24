@@ -20,6 +20,7 @@ CREATE TABLE "Object" (
     "size" INTEGER NOT NULL,
     "kind" "ObjectKind" NOT NULL,
     "s3fileKey" TEXT NOT NULL,
+    "cloudFlareId" TEXT NOT NULL,
     "folderId" TEXT NOT NULL,
 
     CONSTRAINT "Object_pkey" PRIMARY KEY ("id")
