@@ -11,11 +11,12 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { HeroUIProvider, Navbar, NavbarBrand } from "@heroui/react";
+import { HeroUIProvider, Navbar, NavbarBrand, NavbarItem } from "@heroui/react";
 import { getToast } from "remix-toast";
 import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
+import ScrollToTopButton from "./components/ScrollToTop";
 
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
@@ -39,12 +40,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Navbar maxWidth="full" isBordered isBlurred>
+        <Navbar
+          maxWidth="full"
+          isBordered
+          isBlurred
+          className="bg-slate-50 text-black"
+        >
           <NavbarBrand>
-            <Link to="/">
-              <img src="/logo.jpg" alt="Logo" width={50} height={50} />
+            <Link to="/" className="font-bold text-2xl">
+              SAM BARBER FILES
             </Link>
           </NavbarBrand>
+          <NavbarItem>
+            <ScrollToTopButton />
+          </NavbarItem>
         </Navbar>
         {children}
         <ScrollRestoration />
