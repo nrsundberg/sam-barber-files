@@ -9,8 +9,6 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Navbar,
-  NavbarBrand,
   Tooltip,
   useDisclosure,
   useDraggable,
@@ -22,6 +20,7 @@ import { formatFileSize, getTotalFolderSize } from "~/utils";
 import { useRef, type DOMAttributes, type Ref } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import "@mux/mux-player/themes/minimal";
+import { Stream } from "@cloudflare/stream-react";
 
 export function meta() {
   return [
@@ -104,6 +103,8 @@ export default function ({ loaderData }: Route.ComponentProps) {
         {folders.map((folder) => (
           <AccordionItem
             key={folder.id}
+            className=" hover:bg-gray-800 transition duration-300 text-gray-400
+                      hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885]"
             textValue={folder.name}
             title={
               <div className="w-full flex justify-between">
@@ -217,24 +218,7 @@ function VideoModal({
               Modal Title
             </ModalHeader>
             <ModalBody>
-              <video width="400" controls>
-                <source
-                  src="https://music-site-dev.s3.us-east-2.amazonaws.com/4_Stunt+Language+15sec+100713+4+(2).mp4"
-                  type="video/mp4"
-                />
-              </video>
-              {/* <video src="s3://music-site-dev/4_Stunt Language 15sec 100713 4 (2).mp4" /> */}
-              {/* <video src="https://music-site-dev.s3.us-east-2.amazonaws.com/4_Stunt%20Language%2015sec%20100713%204%20%282%29.mp4?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEOr%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMiJIMEYCIQDP8MdG%2BZMB1bje3uNtA6S0%2BgOiwZ79JUgBzQ9BU9MmEQIhAKkiFhl%2FhEtrXEOlIVVr%2Fopr4lhZtm994wpo7BuozWoaKvkCCCMQABoMMzk2NjA4ODExOTc0IgxxIrEY8NLMQUiEhUAq1gLbvO8HxfUHI8iNYebkxIlaaCvPJ5DYXIOdGGSPoj3warSSiI5tFtAcEx%2BhZBZHF0j3rXuCs3RawBrqlv26X0bLSW1JkT%2Fq4TvBdHgd%2BWjVXCPHPNJnm6HkIr55foEnOwP4lgygZj2T4Y37cgOZJEJYyRZkiIE56EKVdP1sPHTr5F936po8G6pr2gYej6iZOG7kN14i8yEuTseIfkHmbebpmbpJimSM6dq%2Fl%2BzavLkE1pxu%2BpZrKbGZsrW3Orqs%2BCf77Irb1ZzO2XrrsMPsr2yiCa%2Bjvr3en940DHs6fsHzp459lmmqp6lORKB3vlxdYLzeEW49l9vPTEBVBvUrIjV3mgOLAFkfxBW7B6%2F4qqZ9I81Lcqe2V6%2FobkHIE7E3PealmY8uejsfrzQvsQfh%2BjzOnub8OxF6MK4hpgrvmVgHL%2BnqH4JIO4rZzyFhoDjTmrw%2B8UbqGMAw1dzuvQY6jgJiUOQbHVZKv%2B9XNyo2HdbmmzB%2BJCjj9T2gEzN4GMWEf5lWfHJrIy89UuIh2TWx5o0CW8qyy6KH2ph45s%2BVKas%2BeRXpVCDTMolRQaaXkaXgzGeU4gwOJ%2BcePS%2Bk7gTL%2F28mP5X78mHUoRNIs25id%2BtPuSZ0jYq%2Fi8rxI0CD%2FRL7Bu3GD5YyRh1WfZNM9W7u%2BW%2B0RAPJJQpCTtjuRNOgXeO%2BxmzaDAFB6zKTXHCzftkRYTjFUL0R1721KbZIozTjb2NJgaU85iRxDux0Jxr2q7BMAMAhyzZxS2aEvpW8RZlIUFWgdImC5qxKuXM6fZOcTn7rR1l7sW3RJ6hfAe9f5EqAOZAu%2BTte1yGuKS76Rmk%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAVYV52GPDDXKRWIRS%2F20250224%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20250224T013832Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b4221e165b772c36a47893688678117b5b2f378d9fc4ae9652f8a5190b8267f4" /> */}
-              {/* <video src="http://localhost:9001/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL211c2ljLXNpdGUvNF9TdHVudCUyMExhbmd1YWdlJTIwMTVzZWMlMjAxMDA3MTMlMjA0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUZDNDBTWUxNWDNWRDZVUFhVWlNEJTJGMjAyNTAyMjQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMjI0VDAxMjIyMVomWC1BbXotRXhwaXJlcz00MzIwMCZYLUFtei1TZWN1cml0eS1Ub2tlbj1leUpoYkdjaU9pSklVelV4TWlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaFkyTmxjM05MWlhraU9pSkdRelF3VTFsTVRWZ3pWa1EyVlZCWVZWcFRSQ0lzSW1WNGNDSTZNVGMwTURNNU16SXhOaXdpY0dGeVpXNTBJam9pWkdWMlZYTmxjaUo5Lk9jbXpWWWcza1ZLejBLc2xUY1NocjJUMnpuLWVDd2dvZEhjTXVQTkx1cjRqNkh4ZWYtWlgwTVhfUGFwanVjYmYtdGlqZVI3TDNGTXB6QXVISG1VcGRRJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9OGFiOWM5ZWU4OWUwZDA2NWNjYTdkZTA1MmU3MmVhOGM1OWU3OWRmODA2Yzg0ZWZmMTAyZWQ2MWU5YTk5NTIwNg" /> */}
-              {/* // <MuxPlayer
-              //   playbackId="a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M"
-              //   theme="minimal"
-              //   metadata={{
-              //     video_id: "video-id-54321",
-              //     video_title: "Test video title",
-              //     viewer_user_id: "user-id-007",
-              //   }}
-              // /> */}
+              <Stream controls src={"46a7ee1393114999a0336fe42ee0d21c"} />
             </ModalBody>
             <ModalFooter>
               <Button color="danger" variant="light" onPress={onClose}>
@@ -250,3 +234,36 @@ function VideoModal({
     </Modal>
   );
 }
+
+// {
+//   uid: '46a7ee1393114999a0336fe42ee0d21c',
+//   creator: null,
+//   thumbnail: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/thumbnails/thumbnail.jpg',
+//   thumbnailTimestampPct: 0,
+//   readyToStream: false,
+//   readyToStreamAt: null,
+//   status: { state: 'downloading', errorReasonCode: '', errorReasonText: '' },
+//   meta: {
+//     'downloaded-from': 'https://music-site-dev.s3.us-east-2.amazonaws.com/4_Stunt%20Language%2015sec%20100713%204%20%282%29.mp4?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEOr%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMiJGMEQCIGOJp6OkCK9K3GZJuDh9TwjIheTOqpwnz11L3JDnOwFwAiA48YjxvqD4YtgvX8mBacKI2kv3lj6S6PiL7h0J543tiyr5AggjEAAaDDM5NjYwODgxMTk3NCIMPtyLxCQxsl5z42JIKtYCODhyU4VegUlNYRt7DLeyKli9qstUdQEHoNKwk8ZgKisu%2B27jUIfR592NAXyzswLLAWgVzhQhvYkuSDPGANP7yDvpPpJy182LvGYbt2YJPe6Mlhr01svHUA7CQZc%2FLqv%2BO39i0XGRzF1yt5eGnVVfYoTIP6fcP1sLqJq2mXBr%2BCPjJ5dPCU00eCQB7Pbgapesyqk65m7w%2FCmdm%2B39wV4hkv2OrK88yPxAQXUTzUUKEFWCMeKbFLhZGMVqjwdap5tbkp%2FmVHkPZoDtwVlmkXXwFI%2FquuTt%2B6b12C%2B3iDDsd%2BccVCdNoIolhvPLpO1aQYkjjXyJMjIcf8Xe1mOgL1YWgEJp9LRfYTFrvAegm%2FQN%2FCL3ScvcKxsNfocyBe1ErF7t5Kn0uQvqcXTEeeYtf9iNrGlqlhqXXOMqpDvo%2Bbdu294YD%2BGvZFaDT58F%2Bq3HKbSaUPlgXeVbMNXc7r0GOpACI%2BjAxPOMn6UqCDYtFlNT2Fq8rmlX1KkEqve6H%2BpHdJYriWC1VsyHTYPeMJ2nJNgIO2xywuEnTCNXS34TROgXiTVvXCXa%2F3ImghYNEuguXZqGeNr%2BWS1GjfCc%2FeoI5V4v5%2F5uSk9EWtbhEHMtr7gW6qzgKPZLG3DIvMZWiGGXt2wcK0MhANN4JVQ%2Fj9efpIdQ7epv%2BLjqOMhHgaZUsB1IlZsMceUgv06ZGkXSFt7IRe4hoTu0sq1eTNpxabMV0VjSzuAELAoF3vgKrhmwB6SiFxwV0ot%2FGw%2Bi9TOZLVObKYRpQmF%2Fkx4NMcoHX5PckT5PKETuEZVKG98weBFal1nbRFCGb%2B2NMTjzk8uaxxX6wYQ%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAVYV52GPDEPRZ5ZK3%2F20250224%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20250224T020634Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=5832614758dd6b1ba2bb677f67407f1002ef1453d5c417862fe7e5f33b04cbb9'
+//   },
+//   created: '2025-02-24T02:33:54.456625Z',
+//   modified: '2025-02-24T02:33:54.456625Z',
+//   scheduledDeletion: null,
+//   size: 9272364,
+//   preview: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/watch',
+//   allowedOrigins: [],
+//   requireSignedURLs: false,
+//   uploaded: '2025-02-24T02:33:54.456602Z',
+//   uploadExpiry: null,
+//   maxSizeBytes: null,
+//   maxDurationSeconds: null,
+//   duration: -1,
+//   input: { width: -1, height: -1 },
+//   playback: {
+//     hls: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/manifest/video.m3u8',
+//     dash: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/manifest/video.mpd'
+//   },
+//   watermark: null,
+//   clippedFrom: null,
+//   publicDetails: null
+// }

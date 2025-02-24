@@ -15,9 +15,11 @@ import { ObjectKind } from "@prisma/client";
 import { data, useFetcher } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
-import { uploadToS3 } from "~/s3.server";
+import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
 import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
+import { accountId, client } from "~/client.server";
+// import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
@@ -29,6 +31,11 @@ export function meta() {
 // Loader to bring in existing folders
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
+  // await fetchCloudflare("", "");
+
+  // console.log(video);
+  // // uid from cloudflare
+  // console.log(video.uid);
   return await prisma.folder.findMany({ include: { objects: true } });
 }
 
@@ -82,16 +89,33 @@ export async function action({ request }: Route.ActionArgs) {
           size: file.size,
           kind,
           s3fileKey: "",
+          cloudFlareId: "",
           folderId,
         },
       });
 
-      await uploadToS3(file, newObject.id);
-      await prisma.object.update({
-        where: { id: newObject.id },
-        // NOTE for not the sefileKey is the same as Id
-        data: { s3fileKey: newObject.id },
-      });
+      let uploadedS3 = await uploadToS3(file, newObject.id);
+      if (uploadedS3) {
+        if (process.env.NODE_ENV === "production") {
+          let presignedUrl = await getPresignedDownloadUrl(newObject.id);
+          const video = await client.stream.copy.create({
+            account_id: accountId ?? "",
+            url: presignedUrl,
+            meta: { name: file.name },
+          });
+          await prisma.object.update({
+            where: { id: newObject.id },
+            // NOTE for not the sefileKey is the same as Id
+            data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
+          });
+        } else {
+          await prisma.object.update({
+            where: { id: newObject.id },
+            // NOTE for not the sefileKey is the same as Id
+            data: { s3fileKey: newObject.id },
+          });
+        }
+      }
       // Could be a toast
       return { ok: true };
   }

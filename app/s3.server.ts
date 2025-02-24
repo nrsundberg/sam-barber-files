@@ -17,6 +17,7 @@ if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
 export const s3Client = new S3Client({
   region: "us-east-1", // Modify as needed
   endpoint: S3_ENDPOINT,
+  // TODO these will be off in prod and connect through domain?
   credentials: {
     accessKeyId: S3_ACCESS_KEY,
     secretAccessKey: S3_SECRET_KEY,
