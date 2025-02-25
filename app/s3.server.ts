@@ -5,11 +5,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const S3_ENDPOINT = process.env.S3_ENDPOINT;
-const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY;
-const S3_SECRET_KEY = process.env.S3_SECRET_KEY;
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
-const S3_REGION = process.env.S3_REGION;
+const S3_ENDPOINT = process.env.AWS_ENDPOINT_URL_S3;
+const S3_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID;
+const S3_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+const S3_BUCKET_NAME = process.env.BUCKET_NAME;
+const S3_REGION = process.env.AWS_REGION;
 
 if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
   throw new Error("Missing S3 environment variables");
