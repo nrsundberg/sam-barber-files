@@ -52,7 +52,7 @@ export default function ({
     <div
       key={folder.id}
       ref={parentRef}
-      className={`border-b border-gray-300 z-10 transition-all ${
+      className={`border-b border-gray-500 z-10 transition-all ${
         isSticky ? "fixed top-0 left-0 right-0 shadow-lg" : "relative"
       }`}
     >
