@@ -17,7 +17,7 @@ datasource db {
 model Folder {
   id              String   @id @default(uuid())
   name            String
-  folderNumber    Int
+  folderPosition  Int
   createdDate     DateTime
   objects         Object[]
   // NOTE will not directly support this initially unless we want subfolders but the framework is here
@@ -35,6 +35,7 @@ model Object {
   // In Bytes
   size         Int
   kind         ObjectKind
+  filePosition Int
   // NOTE for not the sefileKey is the same as Id
   s3fileKey    String
   cloudFlareId String

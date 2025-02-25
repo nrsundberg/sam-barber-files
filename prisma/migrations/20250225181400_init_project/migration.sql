@@ -5,7 +5,7 @@ CREATE TYPE "ObjectKind" AS ENUM ('AUDIO', 'VIDEO', 'PHOTO');
 CREATE TABLE "Folder" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "folderNumber" INTEGER NOT NULL,
+    "folderPosition" INTEGER NOT NULL,
     "createdDate" TIMESTAMP(3) NOT NULL,
     "parentFolderId" TEXT,
 
@@ -19,6 +19,7 @@ CREATE TABLE "Object" (
     "createdDate" TIMESTAMP(3) NOT NULL,
     "size" INTEGER NOT NULL,
     "kind" "ObjectKind" NOT NULL,
+    "filePosition" INTEGER NOT NULL,
     "s3fileKey" TEXT NOT NULL,
     "cloudFlareId" TEXT NOT NULL,
     "folderId" TEXT NOT NULL,

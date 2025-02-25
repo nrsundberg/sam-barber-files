@@ -312,32 +312,36 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FOLDERS</h2>
           <Divider />
-          {folders.map((folder) => (
-            <div
-              // ref={(el) => passRef(el, index)}
-              className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
-              onClick={() => navigate(folder.id)}
-            >
-              <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
-                <ChevronLeft
-                  className={`transform transition-transform duration-300 hidden`}
-                />
-                <FolderIcon />
-                {folder.name}
-              </div>
-              <span className="text-gray-400 group-hover:text-sb-restless">
-                {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
-              </span>
-              <span className="text-gray-400 group-hover:text-sb-restless">
-                {formatFileSize(getTotalFolderSize(folder.objects))}
-              </span>
-              <div className="grid justify-center">
-                <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-                  FOLDER
+          {folders.length === 0 ? (
+            <p>NO FOLDERS...</p>
+          ) : (
+            folders.map((folder) => (
+              <div
+                // ref={(el) => passRef(el, index)}
+                className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
+                onClick={() => navigate(folder.id)}
+              >
+                <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
+                  <ChevronLeft
+                    className={`transform transition-transform duration-300 hidden`}
+                  />
+                  <FolderIcon />
+                  {folder.name}
+                </div>
+                <span className="text-gray-400 group-hover:text-sb-restless">
+                  {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
+                </span>
+                <span className="text-gray-400 group-hover:text-sb-restless">
+                  {formatFileSize(getTotalFolderSize(folder.objects))}
+                </span>
+                <div className="grid justify-center">
+                  <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+                    FOLDER
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FILES</h2>
