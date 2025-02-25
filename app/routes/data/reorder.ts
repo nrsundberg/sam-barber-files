@@ -1,5 +1,5 @@
 import prisma from "~/db.server";
-import type { Route } from "./+types/data.reorder";
+import type { Route } from "./+types/reorder";
 
 export async function action({ request }: Route.ActionArgs) {
   let { reorderedFolders } = await request.json();
