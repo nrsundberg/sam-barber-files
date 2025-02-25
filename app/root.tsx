@@ -11,11 +11,19 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { HeroUIProvider, Navbar, NavbarBrand } from "@heroui/react";
+import {
+  HeroUIProvider,
+  Navbar,
+  NavbarBrand,
+  NavbarItem,
+  Tooltip,
+} from "@heroui/react";
 import { getToast } from "remix-toast";
 import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
+import ScrollToTopButton from "./components/ScrollToTop";
+import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
@@ -23,40 +31,16 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Extracts the toast from the request
+  let { getUser } = await getKindeSession(request);
   const { toast, headers } = await getToast(request);
   // Important to pass in the headers so the toast is cleared properly
-  return data({ toast }, { headers });
+  return data({ toast, user: await getUser() }, { headers });
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" className="dark">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <Navbar maxWidth="full" isBordered isBlurred>
-          <NavbarBrand>
-            <Link to="/">
-              <img src="/logo.jpg" alt="Logo" width={50} height={50} />
-            </Link>
-          </NavbarBrand>
-        </Navbar>
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-        <ToastContainer />
-      </body>
-    </html>
-  );
-}
-
+// export function Layout({
 export default function App({ loaderData }: Route.ComponentProps) {
-  const { toast } = loaderData;
+  let { toast, user } = loaderData;
+
   // Hook to show the toasts
   useEffect(() => {
     if (toast) {
@@ -66,9 +50,61 @@ export default function App({ loaderData }: Route.ComponentProps) {
   }, [toast]);
 
   return (
-    <HeroUIProvider>
-      <Outlet />
-    </HeroUIProvider>
+    <html lang="en" className="dark">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <HeroUIProvider>
+          <Navbar
+            maxWidth="full"
+            isBordered
+            isBlurred
+            className="bg-slate-50 text-black"
+          >
+            <NavbarBrand>
+              <Link to="/" className="font-bold text-2xl">
+                SAM BARBER FILES
+              </Link>
+            </NavbarBrand>
+            {user && (
+              <>
+                <NavbarItem>
+                  <Tooltip content={"This only shows for logged in sessions"}>
+                    <Link
+                      to={"/admin"}
+                      className="text-black font-bold border-2 p-2 rounded"
+                    >
+                      Admin Panel
+                    </Link>
+                  </Tooltip>
+                </NavbarItem>
+                <NavbarItem>
+                  <Tooltip content={"This only shows for logged in sessions"}>
+                    <Link
+                      to={"/kinde-auth/logout"}
+                      className="text-black font-bold border-2 p-2 rounded"
+                    >
+                      Logout
+                    </Link>
+                  </Tooltip>
+                </NavbarItem>
+              </>
+            )}
+            <NavbarItem>
+              <ScrollToTopButton />
+            </NavbarItem>
+          </Navbar>
+          <Outlet />
+          <ScrollRestoration />
+          <Scripts />
+          <ToastContainer />
+        </HeroUIProvider>
+      </body>
+    </html>
   );
 }
 

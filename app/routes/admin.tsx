@@ -35,7 +35,7 @@ export function meta() {
 export async function loader({ request }: Route.LoaderArgs) {
   // await fetchCloudflare("", "");
 
-  const { getUser, headers } = await getKindeSession(request);
+  const { getUser } = await getKindeSession(request);
   const user = await getUser();
   if (user === null) {
     return redirectWithError("/", "You are not authorized to view this page.");
