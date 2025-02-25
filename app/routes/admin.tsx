@@ -8,6 +8,7 @@ import {
   Input,
   Select,
   SelectItem,
+  Switch,
 } from "@heroui/react";
 import { ChevronLeft, FolderIcon, FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
@@ -50,11 +51,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   // console.log(video);
   // // uid from cloudflare
   // console.log(video.uid);
-  return await prisma.folder.findMany({ include: { objects: true } });
+  return prisma.folder.findMany({
+    orderBy: { folderPosition: "asc" },
+    include: {
+      objects: { orderBy: { filePosition: "asc" } },
+    },
+  });
 }
 
 const folderCreateSchema = zfd.formData({
   name: z.string(),
+  hidden: z.coerce.boolean(),
   // NOT NEEDED ATM
   // folderNumber: z.coerce.number(),
   date: z.string(),
@@ -62,6 +69,7 @@ const folderCreateSchema = zfd.formData({
 
 const uploadFileSchema = zfd.formData({
   file: z.instanceof(File),
+  hide: z.coerce.boolean(),
   folderId: z.string(),
   kind: z.custom<ObjectKind>(),
   createdDate: z.string(),
@@ -75,12 +83,13 @@ export async function action({ request }: Route.ActionArgs) {
     case "POST":
       // NOTE: schema requires both name and folderNumber
       // on update we won't need the whole object
-      let { name, date } = folderCreateSchema.parse(formData);
+      let { name, hidden, date } = folderCreateSchema.parse(formData);
+      let numberFolders = await prisma.folder.count();
       await prisma.folder.create({
         data: {
           name: name ?? "",
-          // Placeholder is number was ever wanted
-          folderNumber: 1,
+          folderPosition: numberFolders,
+          hidden,
           createdDate: convertToUTCDateTime(date).toISOString(),
         },
       });
@@ -89,7 +98,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Upload file -- this could be multiple files?
     case "PATCH":
-      let { file, folderId, kind, createdDate } =
+      let { file, folderId, kind, hide, createdDate } =
         uploadFileSchema.parse(formData);
       if (!file || !folderId) {
         return dataWithError(
@@ -98,11 +107,17 @@ export async function action({ request }: Route.ActionArgs) {
         );
       }
 
+      let numFiles = await prisma.object.count({
+        where: { folderId: folderId },
+      });
+
       let newObject = await prisma.object.create({
         data: {
           fileName: file.name,
           createdDate: convertToUTCDateTime(createdDate).toISOString(),
           size: file.size,
+          hidden: hide,
+          filePosition: numFiles,
           kind,
           s3fileKey: "",
           cloudFlareId: "",
@@ -178,7 +193,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
       <h2 className={"my-3 text-xl font-semibold"}>UPLOAD & CREATE</h2>
       <div className="flex flex-col md:grid md:grid-cols-2 md:gap-2">
         {/* Folder Creation Form */}
-        <Card className="bg-gray-700 p-4">
+        <Card className="bg-gray-600 p-4">
           <CardBody>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
@@ -203,6 +218,9 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               {/*  className="max-w-[284px]"*/}
               {/*  isRequired*/}
               {/*/>*/}
+              <Switch name={"hidden"}>
+                <p className={"font-bold"}>{"HIDDEN"}</p>
+              </Switch>
               <DatePicker
                 name="date"
                 hideTimeZone
@@ -224,7 +242,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
         </Card>
 
         {/* Upload Form */}
-        <Card className="bg-gray-700 p-4">
+        <Card className="bg-gray-600 p-4">
           <CardBody>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Upload className="w-5 h-5 text-green-400" /> Upload File
@@ -249,7 +267,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                   <SelectItem key={folder.id} textValue={folder.name}>
                     <div className="w-full flex justify-between">
                       <p>
-                        {folder.name}: {folder.folderNumber}
+                        {folder.name}: {folder.folderPosition}
                       </p>
                       <p># Objects in folder: {folder.objects.length}</p>
                     </div>
@@ -276,6 +294,10 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                 className="max-w-[284px]"
                 label="File Created Date"
               />
+
+              <Switch name={"hide"}>
+                <p className={"font-bold"}>{"HIDDEN"}</p>
+              </Switch>
 
               <Input
                 type="file"

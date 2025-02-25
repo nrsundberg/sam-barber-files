@@ -6,6 +6,7 @@ CREATE TABLE "Folder" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "folderPosition" INTEGER NOT NULL,
+    "hidden" BOOLEAN NOT NULL,
     "createdDate" TIMESTAMP(3) NOT NULL,
     "parentFolderId" TEXT,
 
@@ -17,6 +18,7 @@ CREATE TABLE "Object" (
     "id" TEXT NOT NULL,
     "fileName" TEXT NOT NULL,
     "createdDate" TIMESTAMP(3) NOT NULL,
+    "hidden" BOOLEAN NOT NULL,
     "size" INTEGER NOT NULL,
     "kind" "ObjectKind" NOT NULL,
     "filePosition" INTEGER NOT NULL,

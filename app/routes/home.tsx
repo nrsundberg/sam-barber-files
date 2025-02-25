@@ -27,8 +27,13 @@ export function meta() {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  // TODO when introducing hidden or draft folders make sure to filter those here!
-  let folders = await prisma.folder.findMany({ include: { objects: true } });
+  let folders = await prisma.folder.findMany({
+    where: { hidden: false },
+    orderBy: { folderPosition: "asc" },
+    include: {
+      objects: { where: { hidden: false }, orderBy: { filePosition: "asc" } },
+    },
+  });
   return { folders };
 }
 
