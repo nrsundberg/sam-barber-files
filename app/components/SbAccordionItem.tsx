@@ -1,5 +1,5 @@
 import { Button, Tooltip } from "@heroui/react";
-import type { Prisma } from "@prisma/client";
+import type { Object, Prisma } from "@prisma/client";
 import { format } from "date-fns";
 import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -58,7 +58,7 @@ export default function ({
     >
       <button
         ref={(el) => passRef(el, index)}
-        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless"
+        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
         onClick={onClick}
       >
         <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
@@ -70,15 +70,15 @@ export default function ({
           <FolderIcon />
           {folder.name}
         </div>
-        <span className="text-gray-400">
+        <span className="text-gray-400 group-hover:text-sb-restless">
           {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
         </span>
-        <span className="text-gray-400">
+        <span className="text-gray-400 group-hover:text-sb-restless">
           {formatFileSize(getTotalFolderSize(folder.objects))}
         </span>
         <div className="grid justify-center">
-          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit">
-            Folder
+          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+            FOLDER
           </div>
         </div>
       </button>
@@ -89,49 +89,63 @@ export default function ({
       >
         <div className="overflow-hidden">
           {folder.objects.map((object) => (
-            <div
-              //   onClick={onOpen}
-              key={object.id}
-              className={`pl-10 flex items-center justify-between py-2
+            <RowLayout
+              object={object}
+              isLast={index === folder.objects.length - 1}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RowLayout({ object, isLast }: { object: Object; isLast: boolean }) {
+  return (
+    <div
+      //   onClick={onOpen}
+      key={object.id}
+      className={`flex items-center justify-between py-2 border-b border-gray-500
                        hover:bg-gray-800 transition duration-300 text-gray-400
                         hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885] group ${
-                          index === folder.objects.length - 1
-                            ? "last-child"
-                            : ""
+                          isLast ? "last-child" : ""
                         }`}
+    >
+      <div className="w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
+        <div className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless">
+          <ChevronLeft className={"opacity-0"} />
+          {object.kind === "AUDIO" ? (
+            <Music className="text-blue-400 w-6 h-6" />
+          ) : (
+            <Video className="text-green-400 w-6 h-6" />
+          )}
+          {object.fileName}
+        </div>
+        <p className="text-center">
+          {format(new Date(object.createdDate), "MM.dd.yyyy hh:mm a")}
+        </p>
+        <p className="text-center">{formatFileSize(object.size)}</p>
+
+        <div className="grid justify-center">
+          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit group">
+            <span className="group-hover:hidden"> {object.kind}</span>
+            <Tooltip
+              content="Download"
+              className="bg-sb-banner text-sb-restless font-bold"
             >
-              <div className="flex items-center gap-4">
-                {object.kind === "AUDIO" ? (
-                  <Music className="text-blue-400 w-6 h-6" />
-                ) : (
-                  <Video className="text-green-400 w-6 h-6" />
-                )}
-                <span className="text-white group-hover:text-[#D17885]">
-                  {object.fileName}
-                </span>
-              </div>
-              <div className="w-[400px] grid grid-cols-[150px_150px_100px] text-sm text-center">
-                <p className="self-center">
-                  {format(new Date(object.createdDate), "MM.dd.yyyy hh:mm a")}
-                </p>
-                <p className="self-center">{formatFileSize(object.size)}</p>
-                <div className="flex justify-end pr-1">
-                  <Tooltip content="Download">
-                    <Button
-                      isIconOnly
-                      variant="shadow"
-                      as={Link}
-                      to={`/download/${object.s3fileKey}`}
-                      reloadDocument
-                      className="bg-sb-banner hover:bg-green-200 text-white hover:text-black"
-                    >
-                      <Download className="w-5 h-5" />
-                    </Button>
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-          ))}
+              <Button
+                isIconOnly
+                variant="shadow"
+                as={Link}
+                to={`/download/${object.s3fileKey}`}
+                reloadDocument
+                size="sm"
+                className="bg-sb-banner group-hover:text-sb-restless hidden group-hover:inline"
+              >
+                <Download className="w-5 h-5" />
+              </Button>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </div>
