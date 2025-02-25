@@ -90,6 +90,7 @@ export default function ({
         <div className="overflow-hidden">
           {folder.objects.map((object) => (
             <RowLayout
+              key={object.id}
               object={object}
               isLast={index === folder.objects.length - 1}
             />

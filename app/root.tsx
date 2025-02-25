@@ -66,7 +66,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             className="bg-slate-50 text-black"
           >
             <NavbarBrand>
-              <Link to="/" className="font-bold text-2xl">
+              <Link to={"/"} className="font-bold text-2xl">
                 SAM BARBER FILES
               </Link>
             </NavbarBrand>
@@ -101,7 +101,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
           <Outlet />
           <ScrollRestoration />
           <Scripts />
-          <ToastContainer />
+          <ToastContainer stacked />
         </HeroUIProvider>
       </body>
     </html>

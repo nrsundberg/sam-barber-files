@@ -49,7 +49,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 const folderCreateSchema = zfd.formData({
   name: z.string(),
-  folderNumber: z.coerce.number(),
+  // NOT NEEDED ATM
+  // folderNumber: z.coerce.number(),
   date: z.string(),
 });
 
@@ -68,11 +69,12 @@ export async function action({ request }: Route.ActionArgs) {
     case "POST":
       // NOTE: schema requires both name and folderNumber
       // on update we won't need the whole object
-      let { name, folderNumber, date } = folderCreateSchema.parse(formData);
+      let { name, date } = folderCreateSchema.parse(formData);
       await prisma.folder.create({
         data: {
           name: name ?? "",
-          folderNumber,
+          // Placeholder is number was ever wanted
+          folderNumber: 1,
           createdDate: convertToUTCDateTime(date).toISOString(),
         },
       });
@@ -182,13 +184,14 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                 className="max-w-[284px]"
                 isRequired
               />
-              <Input
-                name="folderNumber"
-                type="number"
-                label="Folder Number"
-                className="max-w-[284px]"
-                isRequired
-              />
+              {/*NOT NEEDED FOR NOW*/}
+              {/*<Input*/}
+              {/*  name="folderNumber"*/}
+              {/*  type="number"*/}
+              {/*  label="Folder Number"*/}
+              {/*  className="max-w-[284px]"*/}
+              {/*  isRequired*/}
+              {/*/>*/}
               <DatePicker
                 name="date"
                 hideTimeZone

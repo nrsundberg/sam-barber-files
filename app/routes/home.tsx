@@ -11,7 +11,6 @@ import prisma from "~/db.server";
 import { type DOMAttributes, type Ref } from "react";
 import { Stream } from "@cloudflare/stream-react";
 import SbAccordion from "~/components/SbAccordion";
-import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 
 export function meta() {
   return [
@@ -27,7 +26,7 @@ export function meta() {
   ];
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
+export async function loader({}: Route.LoaderArgs) {
   // TODO when introducing hidden or draft folders make sure to filter those here!
   let folders = await prisma.folder.findMany({ include: { objects: true } });
   return { folders };
