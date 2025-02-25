@@ -101,7 +101,13 @@ export default function ({
   );
 }
 
-function RowLayout({ object, isLast }: { object: Object; isLast: boolean }) {
+export function RowLayout({
+  object,
+  isLast,
+}: {
+  object: Object;
+  isLast: boolean;
+}) {
   return (
     <div
       //   onClick={onOpen}

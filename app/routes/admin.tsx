@@ -4,23 +4,29 @@ import {
   Card,
   CardBody,
   DatePicker,
+  Divider,
   Input,
   Select,
   SelectItem,
 } from "@heroui/react";
-import { Upload, FolderPlus } from "lucide-react";
+import { ChevronLeft, FolderIcon, FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, useFetcher } from "react-router";
+import { data, Outlet, useFetcher, useNavigate, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
-import { convertToUTCDateTime, formatFileSize } from "~/utils";
+import {
+  convertToUTCDateTime,
+  formatFileSize,
+  getTotalFolderSize,
+} from "~/utils";
 import { now } from "@internationalized/date";
 import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
+import { format } from "date-fns";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -88,7 +94,7 @@ export async function action({ request }: Route.ActionArgs) {
       if (!file || !folderId) {
         return dataWithError(
           { error: "File and folder selection are required" },
-          "File and folder are required"
+          "File and folder are required",
         );
       }
 
@@ -128,7 +134,7 @@ export async function action({ request }: Route.ActionArgs) {
       } else {
         return dataWithError(
           { error: "Couldn't upload" },
-          "File could not be uploaded"
+          "File could not be uploaded",
         );
       }
       return dataWithSuccess({ ok: true }, "Uploaded File");
@@ -142,6 +148,9 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
   let fileRef = useRef<HTMLFormElement>(null);
   let folderFetcher = useFetcher({ key: "folder-fetcher" });
   let folderRef = useRef<HTMLFormElement>(null);
+
+  let outlet = useOutlet();
+  let navigate = useNavigate();
 
   // This does not seem like the best way to handle form clear on submission...
   useEffect(() => {
@@ -163,11 +172,13 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
 
   return (
     <div className="p-6 bg-black min-h-screen text-white">
-      <h1 className="text-3xl font-bold">Admin Panel</h1>
+      <h1 className="text-3xl font-bold">ADMIN PANEL</h1>
 
+      <Divider className={"h-1"} />
+      <h2 className={"my-3 text-xl font-semibold"}>UPLOAD & CREATE</h2>
       <div className="flex flex-col md:grid md:grid-cols-2 md:gap-2">
         {/* Folder Creation Form */}
-        <Card className="bg-gray-700 mt-6 p-4">
+        <Card className="bg-gray-700 p-4">
           <CardBody>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
@@ -213,7 +224,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
         </Card>
 
         {/* Upload Form */}
-        <Card className="bg-gray-700 mt-6 p-4">
+        <Card className="bg-gray-700 p-4">
           <CardBody>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Upload className="w-5 h-5 text-green-400" /> Upload File
@@ -293,6 +304,46 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
             </fileFetcher.Form>
           </CardBody>
         </Card>
+      </div>
+
+      <Divider className={"mt-2 h-1"} />
+      <h2 className={"my-3 text-xl font-semibold"}>ORDER</h2>
+      <div className="flex flex-col md:grid md:grid-cols-2 md:gap-5">
+        <div className={"border-1 border-gray-400 rounded p-2"}>
+          <h2 className={"my-1 text-lg font-semibold"}>FOLDERS</h2>
+          <Divider />
+          {folders.map((folder) => (
+            <div
+              // ref={(el) => passRef(el, index)}
+              className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
+              onClick={() => navigate(folder.id)}
+            >
+              <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
+                <ChevronLeft
+                  className={`transform transition-transform duration-300 hidden`}
+                />
+                <FolderIcon />
+                {folder.name}
+              </div>
+              <span className="text-gray-400 group-hover:text-sb-restless">
+                {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
+              </span>
+              <span className="text-gray-400 group-hover:text-sb-restless">
+                {formatFileSize(getTotalFolderSize(folder.objects))}
+              </span>
+              <div className="grid justify-center">
+                <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+                  FOLDER
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className={"border-1 border-gray-400 rounded p-2"}>
+          <h2 className={"my-1 text-lg font-semibold"}>FILES</h2>
+          <Divider />
+          {outlet ? <Outlet /> : <p>SELECT FOLDER...</p>}
+        </div>
       </div>
     </div>
   );
