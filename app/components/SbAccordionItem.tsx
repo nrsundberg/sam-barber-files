@@ -1,16 +1,15 @@
 import { Button, Tooltip } from "@heroui/react";
-import type { Object, Prisma } from "@prisma/client";
+import type { Object } from "@prisma/client";
 import { format } from "date-fns";
 import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
 
 export interface AccordionItemProps {
   index: number;
-  folder: Prisma.FolderGetPayload<{
-    include: { objects: true };
-  }>;
+  folder: FolderWithObjects;
   isOpen: boolean;
   onClick: () => void;
   passRef: (el: any, key: number) => void;

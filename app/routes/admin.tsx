@@ -13,7 +13,7 @@ import {
 import { ChevronLeft, FolderIcon, FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
-import { ObjectKind } from "@prisma/client";
+import { ObjectKind, type Folder } from "@prisma/client";
 import { data, Outlet, useFetcher, useNavigate, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
 import { format } from "date-fns";
+import type { FolderWithObjects } from "~/types";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -103,7 +104,7 @@ export async function action({ request }: Route.ActionArgs) {
       if (!file || !folderId) {
         return dataWithError(
           { error: "File and folder selection are required" },
-          "File and folder are required",
+          "File and folder are required"
         );
       }
 
@@ -149,7 +150,7 @@ export async function action({ request }: Route.ActionArgs) {
       } else {
         return dataWithError(
           { error: "Couldn't upload" },
-          "File could not be uploaded",
+          "File could not be uploaded"
         );
       }
       return dataWithSuccess({ ok: true }, "Uploaded File");
@@ -337,11 +338,13 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
           {folders.length === 0 ? (
             <p>NO FOLDERS...</p>
           ) : (
-            folders.map((folder) => (
+            folders.map((folder: FolderWithObjects) => (
               <div
                 // ref={(el) => passRef(el, index)}
                 className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
-                onClick={() => navigate(folder.id)}
+                onClick={() =>
+                  navigate(folder.id, { preventScrollReset: true })
+                }
               >
                 <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
                   <ChevronLeft
