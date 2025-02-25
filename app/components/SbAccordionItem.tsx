@@ -1,33 +1,63 @@
-import { useState } from "react";
-import {
-  ChevronLeft,
-  Download,
-  Folder as FolderIcon,
-  Music,
-  Video,
-} from "lucide-react";
+import { Button, Tooltip } from "@heroui/react";
 import type { Prisma } from "@prisma/client";
 import { format } from "date-fns";
-import { Button, Tooltip } from "@heroui/react";
+import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
 
 export interface AccordionItemProps {
+  index: number;
   folder: Prisma.FolderGetPayload<{
     include: { objects: true };
   }>;
   isOpen: boolean;
   onClick: () => void;
+  passRef: (el: any, key: number) => void;
 }
 
-export const AccordionItem: React.FC<AccordionItemProps> = ({
+export default function ({
+  index,
   folder,
+  passRef,
   isOpen,
   onClick,
-}) => {
+}: AccordionItemProps) {
+  const parentRef = useRef<HTMLDivElement | null>(null);
+  const [isSticky, setIsSticky] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!parentRef.current) return;
+
+      const parentTop = parentRef.current.getBoundingClientRect().top;
+      const lastChild = parentRef.current.querySelector(".last-child");
+
+      if (lastChild) {
+        const lastChildBottom = lastChild.getBoundingClientRect().bottom;
+
+        if (parentTop <= 0 && lastChildBottom > window.innerHeight) {
+          setIsSticky(true);
+        } else {
+          setIsSticky(false);
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <div className="border-b border-gray-300">
+    <div
+      key={folder.id}
+      ref={parentRef}
+      className={`border-b border-gray-300 z-10 transition-all ${
+        isSticky ? "fixed top-0 left-0 right-0 shadow-lg" : "relative"
+      }`}
+    >
       <button
+        ref={(el) => passRef(el, index)}
         className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless"
         onClick={onClick}
       >
@@ -62,9 +92,13 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
             <div
               //   onClick={onOpen}
               key={object.id}
-              className="pl-10 flex items-center justify-between py-2
-                     hover:bg-gray-800 transition duration-300 text-gray-400
-                      hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885] group"
+              className={`pl-10 flex items-center justify-between py-2
+                       hover:bg-gray-800 transition duration-300 text-gray-400
+                        hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885] group ${
+                          index === folder.objects.length - 1
+                            ? "last-child"
+                            : ""
+                        }`}
             >
               <div className="flex items-center gap-4">
                 {object.kind === "AUDIO" ? (
@@ -98,54 +132,8 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
               </div>
             </div>
           ))}
-          {/* <VideoModal
-                  objects={folder.objects}
-                  isOpen={isOpen}
-                  targetRef={targetRef}
-                  onOpenChange={onOpenChange}
-                  moveProps={moveProps}
-                /> */}
         </div>
       </div>
     </div>
   );
-};
-
-export interface AccordionProps {
-  items: Prisma.FolderGetPayload<{
-    include: { objects: true };
-  }>[];
-  allowMultiple?: boolean;
 }
-
-export const CustomAccordion: React.FC<AccordionProps> = ({
-  items,
-  allowMultiple = false,
-}) => {
-  const [openIndexes, setOpenIndexes] = useState<number[]>([]);
-
-  const toggleItem = (index: number) => {
-    setOpenIndexes((prev) => {
-      if (allowMultiple) {
-        return prev.includes(index)
-          ? prev.filter((i) => i !== index)
-          : [...prev, index];
-      } else {
-        return prev.includes(index) ? [] : [index];
-      }
-    });
-  };
-
-  return (
-    <div className="w-full">
-      {items.map((folder, index) => (
-        <AccordionItem
-          key={index}
-          folder={folder}
-          isOpen={openIndexes.includes(index)}
-          onClick={() => toggleItem(index)}
-        />
-      ))}
-    </div>
-  );
-};

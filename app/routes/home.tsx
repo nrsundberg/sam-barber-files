@@ -10,7 +10,7 @@ import {
 import prisma from "~/db.server";
 import { type DOMAttributes, type Ref } from "react";
 import { Stream } from "@cloudflare/stream-react";
-import { CustomAccordion } from "~/components/CustomAccordion";
+import SbAccordion from "~/components/SbAccordion";
 
 export function meta() {
   return [
@@ -44,50 +44,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <p className="text-center">SIZE</p>
         <p className="text-center">TYPE</p>
       </div>
-      <CustomAccordion items={folders} allowMultiple />
-      {/* <Accordion
-        showDivider={false}
-        selectionMode="multiple"
-        isCompact
-        motionProps={{
-          variants: {
-            enter: {
-              y: 0,
-              opacity: 1,
-              height: "auto",
-              overflowY: "unset",
-              transition: {
-                height: {
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 30,
-                  duration: 1,
-                },
-                opacity: {
-                  easings: "ease",
-                  duration: 1,
-                },
-              },
-            },
-            exit: {
-              y: -10,
-              opacity: 0,
-              height: 0,
-              overflowY: "hidden",
-              transition: {
-                height: {
-                  easings: "ease",
-                  duration: 0.25,
-                },
-                opacity: {
-                  easings: "ease",
-                  duration: 0.3,
-                },
-              },
-            },
-          },
-        }}
-      >*/}
+      <SbAccordion items={folders} allowMultiple />
     </div>
   );
 }
