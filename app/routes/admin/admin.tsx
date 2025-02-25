@@ -340,7 +340,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FILES</h2>
           <Divider />
-          {outlet ? <Outlet /> : <p>SELECT FOLDER...</p>}
+          {outlet ? <Outlet /> : <p>DOUBLE CLICK FOLDER...</p>}
         </div>
       </div>
     </div>

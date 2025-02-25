@@ -1,11 +1,11 @@
 import { Button, Tooltip } from "@heroui/react";
 import type { Object } from "@prisma/client";
-import { format } from "date-fns";
 import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
+import { formatInTimeZone } from "date-fns-tz";
 
 export interface AccordionItemProps {
   index: number;
@@ -70,7 +70,7 @@ export default function ({
           {folder.name}
         </div>
         <span className="text-gray-400 group-hover:text-sb-restless">
-          {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
+          {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </span>
         <span className="text-gray-400 group-hover:text-sb-restless">
           {formatFileSize(getTotalFolderSize(folder.objects))}
@@ -128,7 +128,7 @@ export function RowLayout({
           {object.fileName}
         </div>
         <p className="text-center">
-          {format(new Date(object.createdDate), "MM.dd.yyyy hh:mm a")}
+          {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </p>
         <p className="text-center">{formatFileSize(object.size)}</p>
 

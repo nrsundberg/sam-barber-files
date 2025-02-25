@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ChevronLeft, FolderIcon } from "lucide-react";
 import { useState } from "react";
-import { useFetcher, useNavigate, useSubmit } from "react-router";
+import { useNavigate, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
 import { useSortable } from "@dnd-kit/sortable";
@@ -78,12 +78,12 @@ export function SortableSbAccordionItem({
       {...attributes}
       {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
+      onDoubleClick={() => {
+        navigate(folder.id, { preventScrollReset: true });
+      }}
       className="cursor-move"
     >
-      <div
-        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
-        onClick={() => navigate(folder.id, { preventScrollReset: true })}
-      >
+      <div className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group">
         <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
           <ChevronLeft
             className={`transform transition-transform duration-300 hidden`}
@@ -92,7 +92,7 @@ export function SortableSbAccordionItem({
           {folder.name}
         </div>
         <span className="text-gray-400 group-hover:text-sb-restless">
-          {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
+          {format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
         </span>
         <span className="text-gray-400 group-hover:text-sb-restless">
           {formatFileSize(getTotalFolderSize(folder.objects))}

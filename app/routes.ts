@@ -18,8 +18,10 @@ export default [
   route("kinde-auth/:index", "routes/auth/kinde-auth.tsx"),
 
   // Data and resource routes
-  ...prefix("data", [
+  // Protected by index loader in data route
+  route("data", "routes/data/index.ts", [
     route("reorder", "routes/data/reorder.ts"),
+    route("edit", "routes/data/edit.ts"),
     route("download/:fileId", "routes/data/download.ts"),
   ]),
 ] satisfies RouteConfig;
