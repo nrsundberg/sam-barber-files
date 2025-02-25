@@ -33,6 +33,7 @@
     "zod-form-data": "^2.0.5"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.8",
     "@react-router/dev": "^7.2.0",
     "@types/node": "^20",
     "@types/react": "^19.0.1",
