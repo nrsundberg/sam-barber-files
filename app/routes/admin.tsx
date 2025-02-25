@@ -99,61 +99,66 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Upload file -- this could be multiple files?
     case "PATCH":
-      let { file, folderId, kind, hide, createdDate } =
-        uploadFileSchema.parse(formData);
-      if (!file || !folderId) {
-        return dataWithError(
-          { error: "File and folder selection are required" },
-          "File and folder are required"
-        );
-      }
-
-      let numFiles = await prisma.object.count({
-        where: { folderId: folderId },
-      });
-
-      let newObject = await prisma.object.create({
-        data: {
-          fileName: file.name,
-          createdDate: convertToUTCDateTime(createdDate).toISOString(),
-          size: file.size,
-          hidden: hide,
-          filePosition: numFiles,
-          kind,
-          s3fileKey: "",
-          cloudFlareId: "",
-          folderId,
-        },
-      });
-
-      let uploadedS3 = await uploadToS3(file, newObject.id);
-      if (uploadedS3) {
-        if (process.env.NODE_ENV === "production") {
-          let presignedUrl = await getPresignedDownloadUrl(newObject.id);
-          const video = await client.stream.copy.create({
-            account_id: accountId ?? "",
-            url: presignedUrl,
-            meta: { name: file.name },
-          });
-          await prisma.object.update({
-            where: { id: newObject.id },
-            // NOTE for not the sefileKey is the same as Id
-            data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
-          });
-        } else {
-          await prisma.object.update({
-            where: { id: newObject.id },
-            // NOTE for not the sefileKey is the same as Id
-            data: { s3fileKey: newObject.id },
-          });
+      try {
+        let { file, folderId, kind, hide, createdDate } =
+          uploadFileSchema.parse(formData);
+        if (!file || !folderId) {
+          return dataWithError(
+            { error: "File and folder selection are required" },
+            "File and folder are required"
+          );
         }
-      } else {
-        return dataWithError(
-          { error: "Couldn't upload" },
-          "File could not be uploaded"
-        );
+
+        let numFiles = await prisma.object.count({
+          where: { folderId: folderId },
+        });
+
+        let newObject = await prisma.object.create({
+          data: {
+            fileName: file.name,
+            createdDate: convertToUTCDateTime(createdDate).toISOString(),
+            size: file.size,
+            hidden: hide,
+            filePosition: numFiles,
+            kind,
+            s3fileKey: "",
+            cloudFlareId: "",
+            folderId,
+          },
+        });
+
+        let uploadedS3 = await uploadToS3(file, newObject.id);
+        if (uploadedS3) {
+          if (process.env.NODE_ENV === "production") {
+            let presignedUrl = await getPresignedDownloadUrl(newObject.id);
+            const video = await client.stream.copy.create({
+              account_id: accountId ?? "",
+              url: presignedUrl,
+              meta: { name: file.name },
+            });
+            await prisma.object.update({
+              where: { id: newObject.id },
+              // NOTE for not the sefileKey is the same as Id
+              data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
+            });
+          } else {
+            await prisma.object.update({
+              where: { id: newObject.id },
+              // NOTE for not the sefileKey is the same as Id
+              data: { s3fileKey: newObject.id },
+            });
+          }
+        } else {
+          return dataWithError(
+            { error: "Couldn't upload" },
+            "File could not be uploaded"
+          );
+        }
+        return dataWithSuccess({ ok: true }, "Uploaded File");
+      } catch (e) {
+        console.error(`Could not upload file with error: ${e}`);
+        return data({ error: "Could not load file" }, { status: 400 });
       }
-      return dataWithSuccess({ ok: true }, "Uploaded File");
   }
   return data({ error: "Invalid action" }, { status: 400 });
 }
@@ -260,7 +265,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               <Select
                 name="folderId"
                 placeholder="Choose a folder"
-                className="max-w-[350px]"
+                className="max-w-[400px]"
                 aria-label="Folder Selector"
                 isRequired
               >
@@ -270,7 +275,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                       <p>
                         {folder.name}: {folder.folderPosition}
                       </p>
-                      <p># Objects in folder: {folder.objects.length}</p>
+                      <p># Objects: {folder.objects.length}</p>
                     </div>
                   </SelectItem>
                 ))}
@@ -331,7 +336,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
 
       <Divider className={"mt-2 h-1"} />
       <h2 className={"my-3 text-xl font-semibold"}>ORDER</h2>
-      <div className="flex flex-col md:grid md:grid-cols-2 md:gap-5">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-5">
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FOLDERS</h2>
           <Divider />
