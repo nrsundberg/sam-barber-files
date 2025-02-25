@@ -163,7 +163,7 @@ export async function action({ request }: Route.ActionArgs) {
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
-export default function ({ loaderData, actionData }: Route.ComponentProps) {
+export default function ({ loaderData }: Route.ComponentProps) {
   let folders = loaderData;
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
@@ -253,9 +253,6 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Upload className="w-5 h-5 text-green-400" /> Upload File
             </h2>
-            {/* {actionData?.error && ( */}
-            {/* <p className="text-red-500">{actionData?.error}</p> */}
-            {/* )} */}
             <fileFetcher.Form
               ref={fileRef}
               method="PATCH"
