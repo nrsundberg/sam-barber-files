@@ -10,25 +10,20 @@ import {
   SelectItem,
   Switch,
 } from "@heroui/react";
-import { ChevronLeft, FolderIcon, FolderPlus, Upload } from "lucide-react";
+import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
-import { ObjectKind, type Folder } from "@prisma/client";
-import { data, Outlet, useFetcher, useNavigate, useOutlet } from "react-router";
+import { ObjectKind } from "@prisma/client";
+import { data, Outlet, useFetcher, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
-import {
-  convertToUTCDateTime,
-  formatFileSize,
-  getTotalFolderSize,
-} from "~/utils";
+import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
 import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
-import { format } from "date-fns";
-import type { FolderWithObjects } from "~/types";
+import OrderFolders from "~/components/OrderFolders";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -171,7 +166,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
   let folderRef = useRef<HTMLFormElement>(null);
 
   let outlet = useOutlet();
-  let navigate = useNavigate();
 
   // This does not seem like the best way to handle form clear on submission...
   useEffect(() => {
@@ -340,34 +334,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
           {folders.length === 0 ? (
             <p>NO FOLDERS...</p>
           ) : (
-            folders.map((folder: FolderWithObjects) => (
-              <div
-                // ref={(el) => passRef(el, index)}
-                className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
-                onClick={() =>
-                  navigate(folder.id, { preventScrollReset: true })
-                }
-              >
-                <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
-                  <ChevronLeft
-                    className={`transform transition-transform duration-300 hidden`}
-                  />
-                  <FolderIcon />
-                  {folder.name}
-                </div>
-                <span className="text-gray-400 group-hover:text-sb-restless">
-                  {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
-                </span>
-                <span className="text-gray-400 group-hover:text-sb-restless">
-                  {formatFileSize(getTotalFolderSize(folder.objects))}
-                </span>
-                <div className="grid justify-center">
-                  <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-                    FOLDER
-                  </div>
-                </div>
-              </div>
-            ))
+            <OrderFolders folderList={folders} />
           )}
         </div>
         <div className={"border-1 border-gray-400 rounded p-2"}>

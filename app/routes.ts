@@ -8,4 +8,5 @@ export default [
     route(":folderId", "routes/admin.folder.tsx"),
   ]),
   route("kinde-auth/:index", "routes/kinde-auth.tsx"),
+  route("data/reorder", "routes/data.reorder.ts"),
 ] satisfies RouteConfig;
