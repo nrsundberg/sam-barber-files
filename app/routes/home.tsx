@@ -48,7 +48,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <p className="text-center">SIZE</p>
         <p className="text-center">TYPE</p>
       </div>
-      <SbAccordion items={folders} allowMultiple />
+      <SbAccordion folders={folders} allowMultiple />
     </div>
   );
 }

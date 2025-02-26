@@ -10,24 +10,28 @@ import {
   SelectItem,
   Switch,
 } from "@heroui/react";
-import { ChevronLeft, FolderIcon, FolderPlus, Upload } from "lucide-react";
+import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, Outlet, useFetcher, useNavigate, useOutlet } from "react-router";
+import {
+  data,
+  Form,
+  Outlet,
+  useFetcher,
+  useNavigation,
+  useOutlet,
+  useRevalidator,
+} from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
-import {
-  convertToUTCDateTime,
-  formatFileSize,
-  getTotalFolderSize,
-} from "~/utils";
+import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
 import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
-import { format } from "date-fns";
+import OrderFolders from "~/components/OrderFolders";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -62,8 +66,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 const folderCreateSchema = zfd.formData({
   name: z.string(),
   hidden: z.coerce.boolean(),
-  // NOT NEEDED ATM
-  // folderNumber: z.coerce.number(),
   date: z.string(),
 });
 
@@ -98,74 +100,85 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Upload file -- this could be multiple files?
     case "PATCH":
-      let { file, folderId, kind, hide, createdDate } =
-        uploadFileSchema.parse(formData);
-      if (!file || !folderId) {
-        return dataWithError(
-          { error: "File and folder selection are required" },
-          "File and folder are required",
-        );
-      }
-
-      let numFiles = await prisma.object.count({
-        where: { folderId: folderId },
-      });
-
-      let newObject = await prisma.object.create({
-        data: {
-          fileName: file.name,
-          createdDate: convertToUTCDateTime(createdDate).toISOString(),
-          size: file.size,
-          hidden: hide,
-          filePosition: numFiles,
-          kind,
-          s3fileKey: "",
-          cloudFlareId: "",
-          folderId,
-        },
-      });
-
-      let uploadedS3 = await uploadToS3(file, newObject.id);
-      if (uploadedS3) {
-        if (process.env.NODE_ENV === "production") {
-          let presignedUrl = await getPresignedDownloadUrl(newObject.id);
-          const video = await client.stream.copy.create({
-            account_id: accountId ?? "",
-            url: presignedUrl,
-            meta: { name: file.name },
-          });
-          await prisma.object.update({
-            where: { id: newObject.id },
-            // NOTE for not the sefileKey is the same as Id
-            data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
-          });
-        } else {
-          await prisma.object.update({
-            where: { id: newObject.id },
-            // NOTE for not the sefileKey is the same as Id
-            data: { s3fileKey: newObject.id },
-          });
+      try {
+        let { file, folderId, kind, hide, createdDate } =
+          uploadFileSchema.parse(formData);
+        if (!file || !folderId) {
+          return dataWithError(
+            { error: "File and folder selection are required" },
+            "File and folder are required"
+          );
         }
-      } else {
-        return dataWithError(
-          { error: "Couldn't upload" },
-          "File could not be uploaded",
-        );
+
+        let numFiles = await prisma.object.count({
+          where: { folderId: folderId },
+        });
+
+        let newObject = await prisma.object.create({
+          data: {
+            fileName: file.name,
+            createdDate: convertToUTCDateTime(createdDate).toISOString(),
+            size: file.size,
+            hidden: hide,
+            filePosition: numFiles,
+            kind,
+            s3fileKey: "",
+            cloudFlareId: "",
+            folderId,
+          },
+        });
+
+        let uploadedS3 = await uploadToS3(file, newObject.id);
+        if (uploadedS3) {
+          if (process.env.NODE_ENV === "production") {
+            let presignedUrl = await getPresignedDownloadUrl(newObject.id);
+            const video = await client.stream.copy.create({
+              account_id: accountId ?? "",
+              url: presignedUrl,
+              meta: { name: file.name },
+            });
+            await prisma.object.update({
+              where: { id: newObject.id },
+              // NOTE for not the sefileKey is the same as Id
+              data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
+            });
+          } else {
+            await prisma.object.update({
+              where: { id: newObject.id },
+              // NOTE for not the sefileKey is the same as Id
+              data: { s3fileKey: newObject.id },
+            });
+          }
+        } else {
+          return dataWithError(
+            { error: "Couldn't upload" },
+            "File could not be uploaded"
+          );
+        }
+        return dataWithSuccess({ ok: true }, "Uploaded File");
+      } catch (e) {
+        console.error(`Could not upload file with error: ${e}`);
+        return data({ error: "Could not load file" }, { status: 400 });
       }
-      return dataWithSuccess({ ok: true }, "Uploaded File");
   }
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
-export default function ({ loaderData, actionData }: Route.ComponentProps) {
-  let folders = loaderData;
+export default function ({ loaderData, params }: Route.ComponentProps) {
+  const revalidator = useRevalidator();
+  const navigation = useNavigation();
+  const fetcher = useFetcher({ key: "folder-fetcher" });
+
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
-  let folderFetcher = useFetcher({ key: "folder-fetcher" });
+  let folderFetcher = useFetcher({ key: "folder-create-fetcher" });
   let folderRef = useRef<HTMLFormElement>(null);
+  let folders = loaderData;
+  // HeroUI is dead for this. Switch components don't pass their value through Form
+  let [isFolderHidden, setIsFolderHidden] = useState(false);
+  let [isFileHidden, setIsFileHidden] = useState(false);
 
   let outlet = useOutlet();
-  let navigate = useNavigate();
 
   // This does not seem like the best way to handle form clear on submission...
   useEffect(() => {
@@ -180,6 +193,21 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
       folderRef.current?.reset();
     }
   }, [folderFetcher.state, folderFetcher.data]);
+
+  // Monitor all fetchers for successful operations and revalidate
+  useEffect(() => {
+    // console.log(fetcher);
+    // Check if any fetcher completed a folder operation successfully
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data?.ok &&
+      fetcher.data?.action?.includes("Folder")
+    ) {
+      // console.log("hello");
+      // Revalidate to refresh the data from the server
+      revalidator.revalidate();
+    }
+  }, [fetcher.state, fetcher.data]);
 
   // File state to take
   // TODO this should be a form that triggers an upload and returns the file key through actionData
@@ -199,7 +227,8 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
               Folder
             </h2>
-            <folderFetcher.Form
+            {/* FETCHER UPDATE  */}
+            <Form
               ref={folderRef}
               method="POST"
               className="flex flex-col mt-4 gap-3"
@@ -218,8 +247,15 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               {/*  className="max-w-[284px]"*/}
               {/*  isRequired*/}
               {/*/>*/}
-              <Switch name={"hidden"}>
-                <p className={"font-bold"}>{"HIDDEN"}</p>
+              <Switch
+                name={"hidden"}
+                isSelected={isFolderHidden}
+                onValueChange={setIsFolderHidden}
+                value={isFolderHidden.toString()}
+              >
+                <p className={"font-bold"}>
+                  {isFolderHidden ? "HIDDEN" : "VISIBLE"}
+                </p>
               </Switch>
               <DatePicker
                 name="date"
@@ -237,7 +273,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               >
                 Create Folder
               </Button>
-            </folderFetcher.Form>
+            </Form>
           </CardBody>
         </Card>
 
@@ -247,9 +283,6 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Upload className="w-5 h-5 text-green-400" /> Upload File
             </h2>
-            {/* {actionData?.error && ( */}
-            {/* <p className="text-red-500">{actionData?.error}</p> */}
-            {/* )} */}
             <fileFetcher.Form
               ref={fileRef}
               method="PATCH"
@@ -259,7 +292,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
               <Select
                 name="folderId"
                 placeholder="Choose a folder"
-                className="max-w-[350px]"
+                className="max-w-[400px]"
                 aria-label="Folder Selector"
                 isRequired
               >
@@ -269,7 +302,7 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                       <p>
                         {folder.name}: {folder.folderPosition}
                       </p>
-                      <p># Objects in folder: {folder.objects.length}</p>
+                      <p># Objects: {folder.objects.length}</p>
                     </div>
                   </SelectItem>
                 ))}
@@ -295,8 +328,15 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
                 label="File Created Date"
               />
 
-              <Switch name={"hide"}>
-                <p className={"font-bold"}>{"HIDDEN"}</p>
+              <Switch
+                name={"hide"}
+                isSelected={isFileHidden}
+                onValueChange={setIsFileHidden}
+                value={isFileHidden.toString()}
+              >
+                <p className={"font-bold"}>
+                  {isFileHidden ? "HIDDEN" : "VISIBLE"}
+                </p>
               </Switch>
 
               <Input
@@ -330,45 +370,23 @@ export default function ({ loaderData, actionData }: Route.ComponentProps) {
 
       <Divider className={"mt-2 h-1"} />
       <h2 className={"my-3 text-xl font-semibold"}>ORDER</h2>
-      <div className="flex flex-col md:grid md:grid-cols-2 md:gap-5">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-5">
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FOLDERS</h2>
           <Divider />
           {folders.length === 0 ? (
             <p>NO FOLDERS...</p>
           ) : (
-            folders.map((folder) => (
-              <div
-                // ref={(el) => passRef(el, index)}
-                className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
-                onClick={() => navigate(folder.id)}
-              >
-                <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
-                  <ChevronLeft
-                    className={`transform transition-transform duration-300 hidden`}
-                  />
-                  <FolderIcon />
-                  {folder.name}
-                </div>
-                <span className="text-gray-400 group-hover:text-sb-restless">
-                  {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
-                </span>
-                <span className="text-gray-400 group-hover:text-sb-restless">
-                  {formatFileSize(getTotalFolderSize(folder.objects))}
-                </span>
-                <div className="grid justify-center">
-                  <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-                    FOLDER
-                  </div>
-                </div>
-              </div>
-            ))
+            <OrderFolders
+              folderList={folders}
+              selectedFolder={params.folderId}
+            />
           )}
         </div>
         <div className={"border-1 border-gray-400 rounded p-2"}>
           <h2 className={"my-1 text-lg font-semibold"}>FILES</h2>
           <Divider />
-          {outlet ? <Outlet /> : <p>SELECT FOLDER...</p>}
+          {outlet ? <Outlet /> : <p>DOUBLE CLICK FOLDER...</p>}
         </div>
       </div>
     </div>

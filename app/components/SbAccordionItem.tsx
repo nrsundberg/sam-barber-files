@@ -1,16 +1,15 @@
 import { Button, Tooltip } from "@heroui/react";
-import type { Object, Prisma } from "@prisma/client";
-import { format } from "date-fns";
+import type { Object } from "@prisma/client";
 import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
+import { formatInTimeZone } from "date-fns-tz";
 
 export interface AccordionItemProps {
   index: number;
-  folder: Prisma.FolderGetPayload<{
-    include: { objects: true };
-  }>;
+  folder: FolderWithObjects;
   isOpen: boolean;
   onClick: () => void;
   passRef: (el: any, key: number) => void;
@@ -71,7 +70,7 @@ export default function ({
           {folder.name}
         </div>
         <span className="text-gray-400 group-hover:text-sb-restless">
-          {format(new Date(folder.createdDate), "MM.dd.yyyy hh:mm a")}
+          {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </span>
         <span className="text-gray-400 group-hover:text-sb-restless">
           {formatFileSize(getTotalFolderSize(folder.objects))}
@@ -104,9 +103,11 @@ export default function ({
 export function RowLayout({
   object,
   isLast,
+  dragHandleProps,
 }: {
   object: Object;
   isLast: boolean;
+  dragHandleProps?: any;
 }) {
   return (
     <div
@@ -118,8 +119,13 @@ export function RowLayout({
                           isLast ? "last-child" : ""
                         }`}
     >
-      <div className="w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
-        <div className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless">
+      <div
+        className={`${object.hidden ? "opacity-60" : ""} w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
+      >
+        <div
+          {...dragHandleProps}
+          className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless"
+        >
           <ChevronLeft className={"opacity-0"} />
           {object.kind === "AUDIO" ? (
             <Music className="text-blue-400 w-6 h-6" />
@@ -129,7 +135,7 @@ export function RowLayout({
           {object.fileName}
         </div>
         <p className="text-center">
-          {format(new Date(object.createdDate), "MM.dd.yyyy hh:mm a")}
+          {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </p>
         <p className="text-center">{formatFileSize(object.size)}</p>
 

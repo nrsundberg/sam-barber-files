@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import type { Prisma } from "@prisma/client";
 import SbAccordionItem from "./SbAccordionItem";
+import type { FolderWithObjects } from "~/types";
 
 export interface AccordionProps {
-  items: Prisma.FolderGetPayload<{
-    include: { objects: true };
-  }>[];
+  folders: FolderWithObjects[];
   allowMultiple?: boolean;
 }
 
 const SbAccordion: React.FC<AccordionProps> = ({
-  items,
+  folders,
   allowMultiple = false,
 }) => {
   let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
@@ -39,7 +37,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
     updateHeight(); // Run on mount
     window.addEventListener("resize", updateHeight); // Update on resize
     return () => window.removeEventListener("resize", updateHeight);
-  }, [items]); // Run when items change
+  }, [folders]); // Run when items change
 
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
   let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -79,7 +77,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
 
   return (
     <div className="w-full overflow-y-hidden">
-      {items.map((folder, index) => {
+      {folders.map((folder, index) => {
         return (
           <SbAccordionItem
             key={folder.id}

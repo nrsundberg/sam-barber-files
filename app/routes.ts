@@ -1,11 +1,28 @@
-import { index, route, type RouteConfig } from "@react-router/dev/routes";
+import {
+  index,
+  prefix,
+  route,
+  type RouteConfig,
+} from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
-  route("download/:fileId", "routes/download.ts"),
-  route("login", "routes/login.tsx"),
-  route("admin", "routes/admin.tsx", [
-    route(":folderId", "routes/admin.folder.tsx"),
+
+  // Admin routes -- resricted to user loged in
+  route("admin", "routes/admin/admin.tsx", [
+    route(":folderId", "routes/admin/admin.folder.tsx"),
   ]),
-  route("kinde-auth/:index", "routes/kinde-auth.tsx"),
+
+  // Authentication routes
+  route("login", "routes/auth/login.tsx"),
+  route("kinde-auth/:index", "routes/auth/kinde-auth.tsx"),
+
+  // Data and resource routes
+  // Protected by index loader in data route
+  route("data", "routes/data/index.ts", [
+    route("reorder/:type", "routes/data/reorder.ts"),
+    route("edit/object/:objectId/:actionType", "routes/data/editObject.ts"),
+    route("edit/folder/:folderId/:actionType", "routes/data/editFolder.ts"),
+    route("download/:fileId", "routes/data/download.ts"),
+  ]),
 ] satisfies RouteConfig;
