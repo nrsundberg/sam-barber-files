@@ -6,10 +6,12 @@ import {
   EyeOffIcon,
   FolderIcon,
   Music,
+  Star,
+  TrendingUp,
   Video,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -105,6 +107,7 @@ export default function ({
           {folder.objects.map((object) => (
             <RowLayout
               key={object.id}
+              inAdmin={false}
               object={object}
               isLast={index === folder.objects.length - 1}
             />
@@ -117,13 +120,31 @@ export default function ({
 
 export function RowLayout({
   object,
+  inAdmin,
   isLast,
   dragHandleProps,
 }: {
   object: Object;
+  inAdmin: boolean;
   isLast: boolean;
   dragHandleProps?: any;
 }) {
+  let submit = useSubmit();
+
+  const updateTrendingOrFavorite = (trendingField: boolean) => {
+    let formData = new FormData();
+    formData.set("isTrending", (!object.isTrending).toString());
+    formData.set("isFavorite", (!object.isFavorite).toString());
+
+    return submit(formData, {
+      method: "POST",
+      encType: "multipart/form-data",
+      action: `/data/edit/object/${object.id}/${trendingField ? "trending" : "favorite"}`,
+      navigate: false,
+      preventScrollReset: true,
+    });
+  };
+
   return (
     <div
       //   onClick={onOpen}
@@ -141,7 +162,20 @@ export function RowLayout({
           {...dragHandleProps}
           className="pl-1 md:pl-6 inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold group-hover:text-sb-restless"
         >
-          <ChevronLeft className={"opacity-0"} />
+          {inAdmin ? (
+            <div className={"inline-flex gap-2"}>
+              <TrendingUp
+                className={`${object.isTrending ? "text-green-500" : ""}`}
+                onClickCapture={() => updateTrendingOrFavorite(true)}
+              />
+              <Star
+                className={`${object.isFavorite ? "text-yellow-300" : ""}`}
+                onClickCapture={() => updateTrendingOrFavorite(false)}
+              />
+            </div>
+          ) : (
+            <ChevronLeft className={"opacity-0"} />
+          )}
           {object.kind === "AUDIO" ? (
             <Music className="text-blue-400 w-6 h-6" />
           ) : (
@@ -166,7 +200,6 @@ export function RowLayout({
         </p>
 
         <div className="grid justify-center">
-          {/* <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit group"> */}
           <div className="grid justify-center items-center group-hover:hidden">
             <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
               {object.kind}
@@ -191,7 +224,6 @@ export function RowLayout({
             </Button>
           </Tooltip>
         </div>
-        {/* </div> */}
       </div>
     </div>
   );

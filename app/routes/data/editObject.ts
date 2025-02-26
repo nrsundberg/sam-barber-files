@@ -19,7 +19,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Renamed File", ok: true },
-        "File Renamed"
+        "File Renamed",
       );
 
     case "move":
@@ -42,7 +42,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Changed Date", ok: true },
-        "Date Updated"
+        "Date Updated",
       );
 
     case "toggleHidden":
@@ -54,7 +54,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithInfo(
         { action: "File vis changed", ok: true },
-        hidden ? "File marked as hidden" : "Folder made visible"
+        hidden ? "File marked as hidden" : "Folder made visible",
       );
 
     case "delete":
@@ -63,8 +63,24 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithWarning(
         { action: "Deleted Folder", ok: true },
-        "Folder Deleted"
+        "Folder Deleted",
       );
+
+    case "favorite":
+      const isFavorite = formData.get("isFavorite")?.toString() === "true";
+      await prisma.object.update({
+        where: { id: objectId },
+        data: { isFavorite },
+      });
+      return { action: "Updated favorite", ok: true };
+
+    case "trending":
+      const isTrending = formData.get("isTrending")?.toString() === "true";
+      await prisma.object.update({
+        where: { id: objectId },
+        data: { isTrending },
+      });
+      return { action: "Updated trending", ok: true };
   }
 
   return dataWithInfo({ status: "No Action" }, "No action occured");

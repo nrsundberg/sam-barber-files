@@ -14,16 +14,7 @@ import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import {
-  data,
-  Form,
-  Outlet,
-  useFetcher,
-  useNavigate,
-  useNavigation,
-  useOutlet,
-  useRevalidator,
-} from "react-router";
+import { data, Outlet, useFetcher, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
@@ -78,7 +69,7 @@ const uploadFileSchema = zfd.formData({
   createdDate: z.string(),
 });
 
-// TODO Add auth to this route and app in general
+// TODO Add auth to this route
 // This action should be locked down
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -96,7 +87,6 @@ export async function action({ request }: Route.ActionArgs) {
           createdDate: convertToUTCDateTime(date).toISOString(),
         },
       });
-      // TODO this can be the data to update client
       return dataWithSuccess({ ok: true }, "Created Folder");
 
     // Upload file -- this could be multiple files?
@@ -107,7 +97,7 @@ export async function action({ request }: Route.ActionArgs) {
         if (!file || !folderId) {
           return dataWithError(
             { error: "File and folder selection are required" },
-            "File and folder are required"
+            "File and folder are required",
           );
         }
 
@@ -153,7 +143,7 @@ export async function action({ request }: Route.ActionArgs) {
         } else {
           return dataWithError(
             { error: "Couldn't upload" },
-            "File could not be uploaded"
+            "File could not be uploaded",
           );
         }
         return dataWithSuccess({ ok: true }, "Uploaded File");

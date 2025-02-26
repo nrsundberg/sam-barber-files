@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useRouteLoaderData, useSubmit } from "react-router";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { DndContext, closestCenter } from "@dnd-kit/core";
+import { useRouteLoaderData, useSubmit } from "react-router";
 import {
-  SortableContext,
-  verticalListSortingStrategy,
   arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { closestCenter, DndContext } from "@dnd-kit/core";
 import { RowLayout } from "./SbAccordionItem";
 import type { Object } from "@prisma/client";
 import SbContextMenu from "./SbContextMenu";
@@ -41,7 +41,7 @@ export default function ({ objectList }: { objectList: Object[] }) {
             method: "POST",
             navigate: false,
             encType: "application/json",
-          }
+          },
         );
 
         return updatedObjects;
@@ -77,6 +77,7 @@ export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
       <SbContextMenu object={object} folders={folders}>
         <RowLayout
           object={object}
+          inAdmin={true}
           isLast={false}
           dragHandleProps={{ ...attributes, ...listeners }}
         />

@@ -35,6 +35,8 @@ model Object {
   fileName     String
   createdDate  DateTime
   hidden       Boolean
+  isFavorite   Boolean    @default(false)
+  isTrending   Boolean    @default(false)
   // In Bytes
   size         Int
   kind         ObjectKind
