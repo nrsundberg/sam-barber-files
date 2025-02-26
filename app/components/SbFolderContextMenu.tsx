@@ -1,6 +1,6 @@
 import { Button, DatePicker } from "@heroui/react";
 import { parseAbsolute } from "@internationalized/date";
-import type { Object } from "@prisma/client";
+import type { Folder, Object } from "@prisma/client";
 import React, { useState, useRef, useEffect } from "react";
 import { useFetcher } from "react-router";
 import type { FolderWithObjects } from "~/types";
@@ -10,19 +10,16 @@ const ContextMenu = ({
   x,
   y,
   onClose,
-  object,
-  folders,
+  folder,
 }: {
   x: number;
   y: number;
   onClose: () => void;
-  object: Object;
-  folders: FolderWithObjects[];
+  folder: FolderWithObjects;
 }) => {
   let [isRenaming, setIsRenaming] = useState(false);
-  let [newFileName, setNewFileName] = useState(object.fileName);
+  let [newFolderName, setNewFolderName] = useState(folder.name);
   let [isMoving, setIsMoving] = useState(false);
-  let [selectedFolder, setSelectedFolder] = useState(object.folderId);
   let [isChangingDate, setIsChangingDate] = useState(false);
 
   let fetcher = useFetcher();
@@ -52,14 +49,14 @@ const ContextMenu = ({
           <li className="p-2">
             <fetcher.Form
               method="POST"
-              action={`/data/edit/object/${object.id}/rename`}
+              action={`/data/edit/folder/${folder.id}/rename`}
               className="flex flex-col gap-2"
             >
               <input
                 type="text"
-                name="fileName"
-                value={newFileName}
-                onChange={(e) => setNewFileName(e.target.value)}
+                name="name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
                 className="border border-gray-300 rounded px-2 py-1 text-sm"
                 autoFocus
               />
@@ -69,7 +66,7 @@ const ContextMenu = ({
                   color="warning"
                   onPress={() => {
                     setIsRenaming(false);
-                    setNewFileName(object.fileName);
+                    setNewFolderName(folder.name);
                   }}
                 >
                   Cancel
@@ -94,58 +91,11 @@ const ContextMenu = ({
           </li>
         )}
 
-        {isMoving ? (
-          <li className="p-2">
-            <fetcher.Form
-              method="POST"
-              action={`/data/edit/object/${object.id}/move`}
-              className="flex flex-col gap-2"
-            >
-              <select
-                name="folderId"
-                value={selectedFolder}
-                onChange={(e) => setSelectedFolder(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
-              >
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  color="warning"
-                  onPress={() => setIsMoving(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  color="primary"
-                  size="sm"
-                  isLoading={fetcher.state !== "idle"}
-                >
-                  Move
-                </Button>
-              </div>
-            </fetcher.Form>
-          </li>
-        ) : (
-          <li
-            className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsMoving(true)}
-          >
-            Move to folder
-          </li>
-        )}
-
         {isChangingDate ? (
           <li className="p-2">
             <fetcher.Form
               method="POST"
-              action={`/data/edit/object/${object.id}/changeDate`}
+              action={`/data/edit/folder/${folder.id}/changeDate`}
               className="flex flex-col gap-2"
             >
               <DatePicker
@@ -153,10 +103,10 @@ const ContextMenu = ({
                 hideTimeZone
                 showMonthAndYearPickers
                 defaultValue={parseAbsolute(
-                  object.createdDate.toISOString(),
+                  folder.createdDate.toISOString(),
                   "UTC"
                 )}
-                label="File Created Date"
+                label="Folder Created Date"
               />
 
               <div className="flex justify-end gap-2">
@@ -188,29 +138,25 @@ const ContextMenu = ({
         )}
 
         <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
-          <fetcher.Form
-            method="POST"
-            action={`/data/edit/object/${object.id}/toggleHidden`}
-          >
+          <fetcher.Form method="POST" action={"/data/edit"}>
+            <input type="hidden" name="actionType" value="toggleHidden" />
+            <input type="hidden" name="folderId" value={folder.id} />
             <input
               type="hidden"
               name="hidden"
-              value={(!object.hidden).toString()}
+              value={(!folder.hidden).toString()}
             />
             <button type="submit" className="w-full text-left">
-              {object.hidden ? "Unhide" : "Hide"}
+              {folder.hidden ? "Unhide" : "Hide"}
             </button>
           </fetcher.Form>
         </li>
 
         <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
           {/* // TODO any use in deleting from s3 and video provider? */}
-          <fetcher.Form
-            method="POST"
-            action={`/data/edit/object/${object.id}/delete`}
-          >
+          <fetcher.Form method="POST" action={"/data/edit"}>
             <input type="hidden" name="actionType" value="delete" />
-            <input type="hidden" name="objectId" value={object.id} />
+            <input type="hidden" name="folderId" value={folder.id} />
             <button type="submit" className="w-full text-left text-red-600">
               Delete
             </button>
@@ -224,11 +170,9 @@ const ContextMenu = ({
 // Context Menu Provider that wraps your content
 export const ContextMenuProvider = ({
   children,
-  object,
-  folders,
+  folder,
 }: {
-  object: Object;
-  folders: FolderWithObjects[];
+  folder: FolderWithObjects;
   children: React.ReactNode;
 }) => {
   const [contextMenu, setContextMenu] = useState<{
@@ -256,8 +200,7 @@ export const ContextMenuProvider = ({
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={closeContextMenu}
-          object={object}
-          folders={folders}
+          folder={folder}
         />
       )}
     </div>
@@ -265,20 +208,14 @@ export const ContextMenuProvider = ({
 };
 
 // A component that uses the context menu provider
-const SbContextMenu = ({
-  object,
-  folders,
+const SbFolderContextMenu = ({
+  folder,
   children,
 }: {
-  object: Object;
-  folders: FolderWithObjects[];
+  folder: FolderWithObjects;
   children: React.ReactNode;
 }) => {
-  return (
-    <ContextMenuProvider object={object} folders={folders}>
-      {children}
-    </ContextMenuProvider>
-  );
+  return <ContextMenuProvider folder={folder}>{children}</ContextMenuProvider>;
 };
 
-export default SbContextMenu;
+export default SbFolderContextMenu;

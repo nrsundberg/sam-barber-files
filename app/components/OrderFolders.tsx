@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ChevronLeft, FolderIcon } from "lucide-react";
+import { ChevronLeft, EyeOffIcon, FolderIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
@@ -12,6 +12,8 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import SbContextMenu from "./SbContextMenu";
+import SbFolderContextMenu from "./SbFolderContextMenu";
 
 export default function ({ folderList }: { folderList: FolderWithObjects[] }) {
   let [folders, setFolders] = useState(folderList);
@@ -36,7 +38,7 @@ export default function ({ folderList }: { folderList: FolderWithObjects[] }) {
             })),
           },
           {
-            action: "/data/reorder",
+            action: "/data/reorder/folder",
             method: "POST",
             navigate: false,
             encType: "application/json",
@@ -81,26 +83,48 @@ export function SortableSbAccordionItem({
       onDoubleClick={() => {
         navigate(folder.id, { preventScrollReset: true });
       }}
-      className="cursor-move"
+      className={`cursor-move ${folder.hidden ? "opacity-60" : ""}`}
     >
-      <div className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group">
-        <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
-          <ChevronLeft
-            className={`transform transition-transform duration-300 hidden`}
-          />
-          <FolderIcon />
-          {folder.name}
-        </div>
-        <span className="text-gray-400 group-hover:text-sb-restless">
-          {format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
-        </span>
-        <span className="text-gray-400 group-hover:text-sb-restless">
-          {formatFileSize(getTotalFolderSize(folder.objects))}
-        </span>
-        <div className="grid justify-center">
-          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-            FOLDER
-          </div>
+      <SbFolderContextMenu folder={folder}>
+        <FolderRowLayout
+          name={folder.name}
+          createdDate={format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
+          size={formatFileSize(getTotalFolderSize(folder.objects))}
+          isHidden={folder.hidden}
+        />
+      </SbFolderContextMenu>
+    </div>
+  );
+}
+
+function FolderRowLayout({
+  name,
+  createdDate,
+  isHidden,
+  size,
+}: {
+  name: string;
+  createdDate: string;
+  isHidden: boolean;
+  size: string;
+}) {
+  return (
+    <div className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group">
+      <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
+        <ChevronLeft
+          className={`transform transition-transform duration-300 hidden`}
+        />
+        <FolderIcon />
+        {name}
+      </div>
+      <span className="text-gray-400 group-hover:text-sb-restless">
+        {createdDate}
+      </span>
+      <span className="text-gray-400 group-hover:text-sb-restless">{size}</span>
+      <div className="grid justify-center">
+        <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+          FOLDER
+          {isHidden && <EyeOffIcon className="w-3 h-3" />}
         </div>
       </div>
     </div>

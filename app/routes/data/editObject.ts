@@ -1,18 +1,11 @@
 import prisma from "~/db.server";
-import type { Route } from "./+types/edit";
-import { zfd } from "zod-form-data";
-import { z } from "zod";
+import type { Route } from "./+types/editObject";
 import invariant from "tiny-invariant";
 import { convertToUTCDateTime } from "~/utils";
 
-const editSchema = zfd.formData({
-  actionType: z.string(),
-  objectId: z.string(),
-});
-
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, params }: Route.ActionArgs) {
   let formData = await request.formData();
-  let { actionType, objectId } = editSchema.parse(formData);
+  let { actionType, objectId } = params;
 
   switch (actionType) {
     case "rename":

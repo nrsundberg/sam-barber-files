@@ -1,9 +1,7 @@
 import prisma from "~/db.server";
 import type { Route } from "./+types/admin.folder";
-import { RowLayout } from "~/components/SbAccordionItem";
 import { redirectWithWarning } from "remix-toast";
-import SbContextMenu from "~/components/SbContextMenu";
-import { useRouteLoaderData } from "react-router";
+import OrderFiles from "~/components/OrderFiles";
 
 export async function loader({ params }: Route.LoaderArgs) {
   try {
@@ -16,14 +14,9 @@ export async function loader({ params }: Route.LoaderArgs) {
 
 export default function ({ loaderData }: Route.ComponentProps) {
   let objects = loaderData;
-  let folders = useRouteLoaderData("routes/admin/admin");
 
   if (objects.length == 0) {
     return <p>NO FILES IN FOLDER...</p>;
   }
-  return objects.map((object) => (
-    <SbContextMenu key={object.id} object={object} folders={folders}>
-      <RowLayout object={object} isLast={false} />
-    </SbContextMenu>
-  ));
+  return <OrderFiles objectList={objects} />;
 }

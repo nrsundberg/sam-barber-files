@@ -14,7 +14,7 @@ import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, Outlet, useFetcher, useOutlet } from "react-router";
+import { data, Form, Outlet, useFetcher, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
@@ -24,6 +24,7 @@ import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
 import OrderFolders from "~/components/OrderFolders";
+import type { FolderWithObjects } from "~/types";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -58,8 +59,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 const folderCreateSchema = zfd.formData({
   name: z.string(),
   hidden: z.coerce.boolean(),
-  // NOT NEEDED ATM
-  // folderNumber: z.coerce.number(),
   date: z.string(),
 });
 
@@ -159,11 +158,14 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let folders = loaderData;
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
   let folderFetcher = useFetcher({ key: "folder-fetcher" });
   let folderRef = useRef<HTMLFormElement>(null);
+  let folders = loaderData;
+  // HeroUI is dead for this. Switch components don't pass their value through Form
+  let [isFolderHidden, setIsFolderHidden] = useState(false);
+  let [isFileHidden, setIsFileHidden] = useState(false);
 
   let outlet = useOutlet();
 
@@ -199,7 +201,8 @@ export default function ({ loaderData }: Route.ComponentProps) {
               <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
               Folder
             </h2>
-            <folderFetcher.Form
+            {/* FETCHER UPDATE  */}
+            <Form
               ref={folderRef}
               method="POST"
               className="flex flex-col mt-4 gap-3"
@@ -218,8 +221,15 @@ export default function ({ loaderData }: Route.ComponentProps) {
               {/*  className="max-w-[284px]"*/}
               {/*  isRequired*/}
               {/*/>*/}
-              <Switch name={"hidden"}>
-                <p className={"font-bold"}>{"HIDDEN"}</p>
+              <Switch
+                name={"hidden"}
+                isSelected={isFolderHidden}
+                onValueChange={setIsFolderHidden}
+                value={isFolderHidden.toString()}
+              >
+                <p className={"font-bold"}>
+                  {isFolderHidden ? "HIDDEN" : "VISIBLE"}
+                </p>
               </Switch>
               <DatePicker
                 name="date"
@@ -237,7 +247,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               >
                 Create Folder
               </Button>
-            </folderFetcher.Form>
+            </Form>
           </CardBody>
         </Card>
 
@@ -292,8 +302,15 @@ export default function ({ loaderData }: Route.ComponentProps) {
                 label="File Created Date"
               />
 
-              <Switch name={"hide"}>
-                <p className={"font-bold"}>{"HIDDEN"}</p>
+              <Switch
+                name={"hide"}
+                isSelected={isFileHidden}
+                onValueChange={setIsFileHidden}
+                value={isFileHidden.toString()}
+              >
+                <p className={"font-bold"}>
+                  {isFileHidden ? "HIDDEN" : "VISIBLE"}
+                </p>
               </Switch>
 
               <Input

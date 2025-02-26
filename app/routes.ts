@@ -20,8 +20,9 @@ export default [
   // Data and resource routes
   // Protected by index loader in data route
   route("data", "routes/data/index.ts", [
-    route("reorder", "routes/data/reorder.ts"),
-    route("edit", "routes/data/edit.ts"),
+    route("reorder/:type", "routes/data/reorder.ts"),
+    route("edit/object/:objectId/:actionType", "routes/data/editObject.ts"),
+    route("edit/folder/:folderId/:actionType", "routes/data/editFolder.ts"),
     route("download/:fileId", "routes/data/download.ts"),
   ]),
 ] satisfies RouteConfig;
