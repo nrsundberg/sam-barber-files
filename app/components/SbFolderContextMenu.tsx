@@ -1,7 +1,7 @@
 import { Button, DatePicker } from "@heroui/react";
 import { parseAbsolute } from "@internationalized/date";
 import React, { useState, useRef, useEffect } from "react";
-import { Form, useFetcher } from "react-router";
+import { useFetcher } from "react-router";
 import type { FolderWithObjects } from "~/types";
 
 // Context Menu Component
@@ -20,19 +20,13 @@ const ContextMenu = ({
   let [newFolderName, setNewFolderName] = useState(folder.name);
   let [isChangingDate, setIsChangingDate] = useState(false);
 
-  let fetcher = useFetcher();
+  let fetcher = useFetcher({ key: "folder-fetcher" });
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleItemClick = (e: React.MouseEvent, callback: () => void) => {
     e.stopPropagation(); // Stop event propagation
     callback();
   };
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) {
-      onClose();
-    }
-  }, [fetcher.state, fetcher.data]);
 
   useEffect(() => {
     const handleClickOutside = (event: any) => {
@@ -60,6 +54,7 @@ const ContextMenu = ({
               method="POST"
               action={`/data/edit/folder/${folder.id}/rename`}
               className="flex flex-col gap-2"
+              onSubmit={onClose}
             >
               <input
                 type="text"
@@ -106,6 +101,7 @@ const ContextMenu = ({
               method="POST"
               action={`/data/edit/folder/${folder.id}/changeDate`}
               className="flex flex-col gap-2"
+              onSubmit={onClose}
             >
               <DatePicker
                 name="createdDate"
@@ -150,6 +146,7 @@ const ContextMenu = ({
           <fetcher.Form
             method="POST"
             action={`/data/edit/folder/${folder.id}/toggleHidden`}
+            onSubmit={onClose}
           >
             <input
               type="hidden"
@@ -167,6 +164,7 @@ const ContextMenu = ({
           <fetcher.Form
             method="POST"
             action={`/data/edit/folder/${folder.id}/delete`}
+            onSubmit={onClose}
           >
             <button type="submit" className="w-full text-left text-red-600">
               Delete
@@ -190,6 +188,12 @@ export const ContextMenuProvider = ({
     x: number;
     y: number;
   } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      setContextMenu(null);
+    };
+  }, []);
 
   const handleContextMenu = (e: any) => {
     e.preventDefault();
@@ -226,7 +230,11 @@ const SbFolderContextMenu = ({
   folder: FolderWithObjects;
   children: React.ReactNode;
 }) => {
-  return <ContextMenuProvider folder={folder}>{children}</ContextMenuProvider>;
+  return (
+    <ContextMenuProvider key={`context-menu-${folder.id}`} folder={folder}>
+      {children}
+    </ContextMenuProvider>
+  );
 };
 
 export default SbFolderContextMenu;

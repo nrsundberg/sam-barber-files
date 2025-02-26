@@ -34,12 +34,6 @@ const ContextMenu = ({
   };
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) {
-      onClose();
-    }
-  }, [fetcher.state, fetcher.data]);
-
-  useEffect(() => {
     const handleClickOutside = (event: any) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();
@@ -65,6 +59,7 @@ const ContextMenu = ({
               method="POST"
               action={`/data/edit/object/${object.id}/rename`}
               className="flex flex-col gap-2"
+              onSubmit={onClose}
             >
               <input
                 type="text"
@@ -111,6 +106,7 @@ const ContextMenu = ({
               method="POST"
               action={`/data/edit/object/${object.id}/move`}
               className="flex flex-col gap-2"
+              onSubmit={onClose}
             >
               <select
                 name="folderId"
@@ -158,6 +154,7 @@ const ContextMenu = ({
               method="POST"
               action={`/data/edit/object/${object.id}/changeDate`}
               className="flex flex-col gap-2"
+              onSubmit={onClose}
             >
               <DatePicker
                 name="createdDate"
@@ -202,6 +199,7 @@ const ContextMenu = ({
           <fetcher.Form
             method="POST"
             action={`/data/edit/object/${object.id}/toggleHidden`}
+            onSubmit={onClose}
           >
             <input
               type="hidden"
@@ -219,6 +217,7 @@ const ContextMenu = ({
           <fetcher.Form
             method="POST"
             action={`/data/edit/object/${object.id}/delete`}
+            onSubmit={onClose}
           >
             <input type="hidden" name="actionType" value="delete" />
             <input type="hidden" name="objectId" value={object.id} />
@@ -286,7 +285,11 @@ const SbContextMenu = ({
   children: React.ReactNode;
 }) => {
   return (
-    <ContextMenuProvider object={object} folders={folders}>
+    <ContextMenuProvider
+      key={`context-menu-${object.id}`}
+      object={object}
+      folders={folders}
+    >
       {children}
     </ContextMenuProvider>
   );

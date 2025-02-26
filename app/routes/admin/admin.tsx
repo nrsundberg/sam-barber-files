@@ -14,7 +14,15 @@ import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, Form, Outlet, useFetcher, useOutlet } from "react-router";
+import {
+  data,
+  Form,
+  Outlet,
+  useFetcher,
+  useNavigation,
+  useOutlet,
+  useRevalidator,
+} from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
@@ -157,9 +165,13 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ({ loaderData, params }: Route.ComponentProps) {
+  const revalidator = useRevalidator();
+  const navigation = useNavigation();
+  const fetcher = useFetcher({ key: "folder-fetcher" });
+
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
-  let folderFetcher = useFetcher({ key: "folder-fetcher" });
+  let folderFetcher = useFetcher({ key: "folder-create-fetcher" });
   let folderRef = useRef<HTMLFormElement>(null);
   let folders = loaderData;
   // HeroUI is dead for this. Switch components don't pass their value through Form
@@ -181,6 +193,21 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
       folderRef.current?.reset();
     }
   }, [folderFetcher.state, folderFetcher.data]);
+
+  // Monitor all fetchers for successful operations and revalidate
+  useEffect(() => {
+    // console.log(fetcher);
+    // Check if any fetcher completed a folder operation successfully
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data?.ok &&
+      fetcher.data?.action?.includes("Folder")
+    ) {
+      // console.log("hello");
+      // Revalidate to refresh the data from the server
+      revalidator.revalidate();
+    }
+  }, [fetcher.state, fetcher.data]);
 
   // File state to take
   // TODO this should be a form that triggers an upload and returns the file key through actionData

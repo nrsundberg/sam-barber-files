@@ -92,7 +92,7 @@ export function SortableSbAccordionItem({
       onDoubleClick={() => {
         navigate(isSelected ? "./" : folder.id, { preventScrollReset: true });
       }}
-      className={`${folder.hidden ? "opacity-60" : ""} ${isSelected ? "border border-red-400 text-red-400" : ""}`}
+      className={`${isSelected ? "border border-red-400 text-red-400" : ""}`}
     >
       <SbFolderContextMenu folder={folder}>
         <FolderRowLayout
@@ -121,7 +121,9 @@ function FolderRowLayout({
   dragHandleProps?: any;
 }) {
   return (
-    <div className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group">
+    <div
+      className={`${isHidden ? "opacity-60" : ""} w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group`}
+    >
       <div
         {...dragHandleProps}
         className="inline-flex items-center gap-x-2 text-lg font-semibold"

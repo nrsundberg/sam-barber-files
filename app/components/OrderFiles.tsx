@@ -76,7 +76,6 @@ export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
       onDoubleClick={() => {
         navigate(object.id, { preventScrollReset: true });
       }}
-      className={`${object.hidden ? "opacity-60" : ""}`}
     >
       <SbContextMenu object={object} folders={folders}>
         <RowLayout

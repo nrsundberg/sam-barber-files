@@ -119,7 +119,9 @@ export function RowLayout({
                           isLast ? "last-child" : ""
                         }`}
     >
-      <div className="w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
+      <div
+        className={`${object.hidden ? "opacity-60" : ""} w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
+      >
         <div
           {...dragHandleProps}
           className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless"
