@@ -26,7 +26,7 @@ export default function ({ objectList }: { objectList: Object[] }) {
 
         const updatedObjects = arrayMove(prevObjects, oldIndex, newIndex);
 
-        // Send new folder order to Remix action
+        // Send new folder order to action
         submit(
           {
             reorderedObjects: updatedObjects.map((o, i) => ({
