@@ -64,10 +64,10 @@ export default function ({
     >
       <button
         ref={(el) => passRef(el, index)}
-        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group"
+        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-1 md:p-4 hover:bg-sb-banner hover:text-sb-restless group"
         onClick={onClick}
       >
-        <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
+        <div className="inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold">
           <ChevronLeft
             className={`transform transition-transform duration-300 ${
               isOpen ? "-rotate-90" : "rotate-180"
@@ -76,14 +76,22 @@ export default function ({
           <FolderIcon />
           {folder.name}
         </div>
-        <span className="text-gray-400 group-hover:text-sb-restless">
-          {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+        <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+          <p className="text-center hidden md:block">
+            {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+          </p>
+          <p className="text-center text-xs md:hidden">
+            {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy")}
+          </p>
+          <p className="text-center text-xs md:hidden">
+            {formatInTimeZone(folder.createdDate, "UTC", "hh:mm a")}
+          </p>
         </span>
-        <span className="text-gray-400 group-hover:text-sb-restless">
+        <span className="text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
           {formatFileSize(getTotalFolderSize(folder.objects))}
         </span>
-        <div className="grid justify-center">
-          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+        <div className="grid justify-center items-center">
+          <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
             FOLDER
           </div>
         </div>
@@ -127,11 +135,11 @@ export function RowLayout({
                         }`}
     >
       <div
-        className={`${object.hidden ? "opacity-60" : ""} w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
+        className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
       >
         <div
           {...dragHandleProps}
-          className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless"
+          className="pl-1 md:pl-6 inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold group-hover:text-sb-restless"
         >
           <ChevronLeft className={"opacity-0"} />
           {object.kind === "AUDIO" ? (
@@ -141,39 +149,49 @@ export function RowLayout({
           )}
           {object.fileName}
         </div>
-        <p className="text-center">
-          {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+        <div>
+          <p className="text-center text-medium hidden md:block">
+            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+          </p>
+          <p className="text-center text-xs md:hidden">
+            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy")}
+          </p>
+          <p className="text-center text-xs md:hidden">
+            {formatInTimeZone(object.createdDate, "UTC", "hh:mm a")}
+          </p>
+        </div>
+
+        <p className="text-center text-sm md:text-medium">
+          {formatFileSize(object.size)}
         </p>
-        <p className="text-center">{formatFileSize(object.size)}</p>
 
         <div className="grid justify-center">
-          <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit group">
-            <div className="grid justify-center group-hover:hidden">
-              <div className="inline-flex gap-2 bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-                {object.kind}
-                {object.hidden && (
-                  <EyeOffIcon className="w-3 h-3 self-center" />
-                )}
-              </div>
+          {/* <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit group"> */}
+          <div className="grid justify-center items-center group-hover:hidden">
+            <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
+              {object.kind}
+              {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
-            <Tooltip
-              content="Download"
-              className="bg-sb-banner text-sb-restless font-bold"
-            >
-              <Button
-                isIconOnly
-                variant="shadow"
-                as={Link}
-                to={`/download/${object.s3fileKey}`}
-                reloadDocument
-                size="sm"
-                className="bg-sb-banner group-hover:text-sb-restless hidden group-hover:inline"
-              >
-                <Download className="w-5 h-5" />
-              </Button>
-            </Tooltip>
           </div>
+          <Tooltip
+            content="Download"
+            closeDelay={0}
+            className="bg-sb-banner text-sb-restless font-bold"
+          >
+            <Button
+              isIconOnly
+              variant="shadow"
+              as={Link}
+              to={`/download/${object.s3fileKey}`}
+              reloadDocument
+              size="sm"
+              className="bg-sb-banner justify-center group-hover:text-sb-restless hidden group-hover:flex"
+            >
+              <Download className="w-5 h-5" />
+            </Button>
+          </Tooltip>
         </div>
+        {/* </div> */}
       </div>
     </div>
   );

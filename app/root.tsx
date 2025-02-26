@@ -57,7 +57,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="text-md md:text-2xl">
         <HeroUIProvider>
           <Navbar
             maxWidth="full"
@@ -66,7 +66,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             className="bg-slate-50 text-black"
           >
             <NavbarBrand>
-              <Link to={"/"} className="font-bold text-2xl">
+              <Link to={"/"} className="font-bold">
                 SAM BARBER FILES
               </Link>
             </NavbarBrand>
