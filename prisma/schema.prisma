@@ -43,6 +43,7 @@ model Object {
   filePosition Int
   // NOTE for not the sefileKey is the same as Id
   s3fileKey    String
+  posterKey    String?
   cloudFlareId String
   folder       Folder     @relation(fields: [folderId], references: [id])
   folderId     String

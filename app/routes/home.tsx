@@ -8,12 +8,13 @@ import {
   ModalHeader,
 } from "@heroui/react";
 import prisma from "~/db.server";
-import type { Object } from "@prisma/client";
+import { ObjectKind, type Object } from "@prisma/client";
 import { type DOMAttributes, type Ref } from "react";
 import { Stream } from "@cloudflare/stream-react";
 import SbAccordion from "~/components/SbAccordion";
 import { Music, Video } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
+import { object } from "zod";
 
 export function meta() {
   return [
@@ -106,78 +107,30 @@ function ThumbnailObject({ object }: { object: Object }) {
   );
 }
 
-function VideoModal({
+function VideoPopup({
   objects,
-  isOpen,
-  targetRef,
-  onOpenChange,
-  moveProps,
+  currentObjectId,
+  cloudfrontUrl,
 }: {
   objects: Object[];
-  isOpen: boolean;
-  targetRef: Ref<HTMLElement>;
-  onOpenChange: (isOpen: boolean) => void;
-  moveProps: DOMAttributes<any>;
+  currentObjectId: string;
+  cloudfrontUrl: string;
 }) {
-  return (
-    <Modal
-      ref={targetRef}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      size="2xl"
+  let currentObject = objects.find((it) => it.id === currentObjectId);
+  return currentObject?.kind === ObjectKind.AUDIO ? (
+    <audio src={cloudfrontUrl + `/${currentObject?.s3fileKey}`} />
+  ) : (
+    <video
+      width="640"
+      height="1/4lvh"
+      controls
+      poster={cloudfrontUrl + `/${currentObject?.posterKey}`}
     >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader {...moveProps} className="flex flex-col gap-1">
-              Modal Title
-            </ModalHeader>
-            <ModalBody>
-              <Stream controls src={"46a7ee1393114999a0336fe42ee0d21c"} />
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="light" onPress={onClose}>
-                Close
-              </Button>
-              <Button color="primary" onPress={onClose}>
-                Action
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+      <source
+        src={cloudfrontUrl + `/${currentObject?.s3fileKey}`}
+        type="video/mp4"
+      />
+      Your browser does not support the video tag.
+    </video>
   );
 }
-
-// {
-//   uid: '46a7ee1393114999a0336fe42ee0d21c',
-//   creator: null,
-//   thumbnail: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/thumbnails/thumbnail.jpg',
-//   thumbnailTimestampPct: 0,
-//   readyToStream: false,
-//   readyToStreamAt: null,
-//   status: { state: 'downloading', errorReasonCode: '', errorReasonText: '' },
-//   meta: {
-//   },
-//   created: '2025-02-24T02:33:54.456625Z',
-//   modified: '2025-02-24T02:33:54.456625Z',
-//   scheduledDeletion: null,
-//   size: 9272364,
-//   preview: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/watch',
-//   allowedOrigins: [],
-//   requireSignedURLs: false,
-//   uploaded: '2025-02-24T02:33:54.456602Z',
-//   uploadExpiry: null,
-//   maxSizeBytes: null,
-//   maxDurationSeconds: null,
-//   duration: -1,
-//   input: { width: -1, height: -1 },
-//   playback: {
-//     hls: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/manifest/video.m3u8',
-//     dash: 'https://customer-yqckd695h17mnoy3.cloudflarestream.com/46a7ee1393114999a0336fe42ee0d21c/manifest/video.mpd'
-//   },
-//   watermark: null,
-//   clippedFrom: null,
-//   publicDetails: null
-// }

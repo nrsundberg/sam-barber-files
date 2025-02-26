@@ -97,7 +97,7 @@ export async function action({ request }: Route.ActionArgs) {
         if (!file || !folderId) {
           return dataWithError(
             { error: "File and folder selection are required" },
-            "File and folder are required",
+            "File and folder are required"
           );
         }
 
@@ -143,7 +143,7 @@ export async function action({ request }: Route.ActionArgs) {
         } else {
           return dataWithError(
             { error: "Couldn't upload" },
-            "File could not be uploaded",
+            "File could not be uploaded"
           );
         }
         return dataWithSuccess({ ok: true }, "Uploaded File");
