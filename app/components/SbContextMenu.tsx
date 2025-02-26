@@ -34,6 +34,12 @@ const ContextMenu = ({
   };
 
   useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok) {
+      onClose();
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  useEffect(() => {
     const handleClickOutside = (event: any) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();

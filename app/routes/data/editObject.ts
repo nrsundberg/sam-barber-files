@@ -2,6 +2,7 @@ import prisma from "~/db.server";
 import type { Route } from "./+types/editObject";
 import invariant from "tiny-invariant";
 import { convertToUTCDateTime } from "~/utils";
+import { dataWithInfo, dataWithSuccess, dataWithWarning } from "remix-toast";
 
 export async function action({ request, params }: Route.ActionArgs) {
   let formData = await request.formData();
@@ -16,7 +17,10 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: objectId },
         data: { fileName },
       });
-      break;
+      return dataWithSuccess(
+        { action: "Renamed File", ok: true },
+        "File Renamed"
+      );
 
     case "move":
       let folderId = formData.get("folderId")?.toString();
@@ -26,7 +30,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: objectId },
         data: { folderId },
       });
-      break;
+      return dataWithInfo({ action: "File Moved", ok: true }, "File Moved");
 
     case "changeDate":
       let stringDate = formData.get("createdDate")?.toString();
@@ -36,7 +40,10 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: objectId },
         data: { createdDate: convertToUTCDateTime(stringDate).toISOString() },
       });
-      break;
+      return dataWithSuccess(
+        { action: "Changed Date", ok: true },
+        "Date Updated"
+      );
 
     case "toggleHidden":
       const hidden = formData.get("hidden")?.toString() === "true";
@@ -45,14 +52,20 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: objectId },
         data: { hidden },
       });
-      break;
+      return dataWithInfo(
+        { action: "File vis changed", ok: true },
+        hidden ? "File marked as hidden" : "Folder made visible"
+      );
 
     case "delete":
       await prisma.object.delete({
         where: { id: objectId },
       });
-      break;
+      return dataWithWarning(
+        { action: "Deleted Folder", ok: true },
+        "Folder Deleted"
+      );
   }
 
-  return null;
+  return dataWithInfo({ status: "No Action" }, "No action occured");
 }

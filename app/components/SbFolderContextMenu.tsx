@@ -28,11 +28,11 @@ const ContextMenu = ({
     callback();
   };
 
-  // useEffect(() => {
-  //   if (fetcher.state === "idle" && fetcher.data?.ok) {
-  //     onClose();
-  //   }
-  // }, [fetcher.state, fetcher.data]);
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.ok) {
+      onClose();
+    }
+  }, [fetcher.state, fetcher.data]);
 
   useEffect(() => {
     const handleClickOutside = (event: any) => {
@@ -49,7 +49,7 @@ const ContextMenu = ({
 
   return (
     <div
-      className="absolute border border-gray-200 bg-gray-600 shadow-lg rounded-md p-2 z-50"
+      className="absolute border border-gray-200 bg-gray-600 shadow-lg rounded-md p-2 z-50 text-white"
       style={{ left: x, top: y }}
       ref={menuRef}
     >

@@ -58,5 +58,5 @@ export async function action({ request, params }: Route.ActionArgs) {
       );
   }
 
-  return null;
+  return dataWithInfo({ status: "No Action" }, "No action occured");
 }
