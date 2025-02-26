@@ -139,9 +139,9 @@ function FolderRowLayout({
       </span>
       <span className="text-gray-400 group-hover:text-sb-restless">{size}</span>
       <div className="grid justify-center">
-        <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+        <div className="inline-flex gap-2 bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
           FOLDER
-          {isHidden && <EyeOffIcon className="w-3 h-3" />}
+          {isHidden && <EyeOffIcon className="w-3 h-3 self-center" />}
         </div>
       </div>
     </div>

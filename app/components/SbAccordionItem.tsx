@@ -1,6 +1,13 @@
 import { Button, Tooltip } from "@heroui/react";
 import type { Object } from "@prisma/client";
-import { ChevronLeft, Download, FolderIcon, Music, Video } from "lucide-react";
+import {
+  ChevronLeft,
+  Download,
+  EyeOffIcon,
+  FolderIcon,
+  Music,
+  Video,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { FolderWithObjects } from "~/types";
@@ -141,7 +148,14 @@ export function RowLayout({
 
         <div className="grid justify-center">
           <div className="bg-gray-700 px-3 py-1 text-xs rounded w-fit group">
-            <span className="group-hover:hidden"> {object.kind}</span>
+            <div className="grid justify-center group-hover:hidden">
+              <div className="inline-flex gap-2 bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+                {object.kind}
+                {object.hidden && (
+                  <EyeOffIcon className="w-3 h-3 self-center" />
+                )}
+              </div>
+            </div>
             <Tooltip
               content="Download"
               className="bg-sb-banner text-sb-restless font-bold"
