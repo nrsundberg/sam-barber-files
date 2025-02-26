@@ -8,6 +8,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Share Tech Mono"', "monospace"],
+      },
       colors: {
         "sb-banner": "#2f4254",
         "sb-restless": "#984f5a",
