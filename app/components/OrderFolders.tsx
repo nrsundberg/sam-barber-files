@@ -129,17 +129,19 @@ function FolderRowLayout({
         className="inline-flex items-center gap-x-2 text-lg font-semibold"
       >
         <ChevronLeft
-          className={`transform transition-transform duration-300 hidden`}
+          className={`transform text-xs md:text-large transition-transform duration-300 hidden`}
         />
         <FolderIcon />
         {name}
       </div>
-      <span className="text-gray-400 group-hover:text-sb-restless">
+      <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
         {createdDate}
       </span>
-      <span className="text-gray-400 group-hover:text-sb-restless">{size}</span>
+      <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+        {size}
+      </span>
       <div className="grid justify-center">
-        <div className="inline-flex gap-2 bg-gray-700 px-3 py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+        <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
           FOLDER
           {isHidden && <EyeOffIcon className="w-3 h-3 self-center" />}
         </div>

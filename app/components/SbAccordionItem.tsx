@@ -149,7 +149,7 @@ export function RowLayout({
           )}
           {object.fileName}
         </div>
-        <div>
+        <div className="text-center items-center flex justify-center">
           <p className="text-center text-medium hidden md:block">
             {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
           </p>
@@ -161,7 +161,7 @@ export function RowLayout({
           </p>
         </div>
 
-        <p className="text-center text-sm md:text-medium">
+        <p className="text-center text-sm md:text-medium self-center">
           {formatFileSize(object.size)}
         </p>
 
