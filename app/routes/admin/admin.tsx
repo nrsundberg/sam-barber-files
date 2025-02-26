@@ -228,7 +228,7 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
               Folder
             </h2>
             {/* FETCHER UPDATE  */}
-            <Form
+            <folderFetcher.Form
               ref={folderRef}
               method="POST"
               className="flex flex-col mt-4 gap-3"
@@ -273,7 +273,7 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
               >
                 Create Folder
               </Button>
-            </Form>
+            </folderFetcher.Form>
           </CardBody>
         </Card>
 

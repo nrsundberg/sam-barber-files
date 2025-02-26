@@ -24,9 +24,38 @@ const ContextMenu = ({
   let [isMoving, setIsMoving] = useState(false);
   let [selectedFolder, setSelectedFolder] = useState(object.folderId);
   let [isChangingDate, setIsChangingDate] = useState(false);
+  let [adjustedPosition, setAdjustedPosition] = useState({ x, y });
 
   let fetcher = useFetcher();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Adjust position to ensure menu stays within viewport
+  useEffect(() => {
+    if (menuRef.current) {
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let adjustedX = x;
+      let adjustedY = y;
+
+      // Check if menu extends beyond right edge of screen
+      if (x + menuRect.width > viewportWidth) {
+        adjustedX = viewportWidth - menuRect.width - 30;
+      }
+
+      // Check if menu extends beyond bottom edge of screen
+      if (y + menuRect.height > viewportHeight) {
+        adjustedY = viewportHeight - 10;
+      }
+
+      // Ensure we don't position off the left or top edge
+      adjustedX = Math.max(10, adjustedX);
+      adjustedY = Math.max(10, adjustedY);
+
+      setAdjustedPosition({ x: adjustedX, y: adjustedY });
+    }
+  }, [x, y]);
 
   const handleItemClick = (e: React.MouseEvent, callback: () => void) => {
     e.stopPropagation(); // Stop event propagation
@@ -49,7 +78,7 @@ const ContextMenu = ({
   return (
     <div
       className="absolute border border-gray-200 bg-gray-600 shadow-lg rounded-md p-2 z-50"
-      style={{ left: x, top: y }}
+      style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
       ref={menuRef}
     >
       <ul className="w-60">
