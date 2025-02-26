@@ -14,10 +14,10 @@ import SbAccordion from "~/components/SbAccordion";
 
 export function meta() {
   return [
-    { title: "Hidden Tracks" },
+    { title: "Sam Barber Files" },
     {
       property: "og:title",
-      content: "Hidden Tracks",
+      content: "Sam Barber Files",
     },
     {
       name: "description",
