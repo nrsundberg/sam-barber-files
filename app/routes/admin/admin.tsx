@@ -19,6 +19,7 @@ import {
   Form,
   Outlet,
   useFetcher,
+  useNavigate,
   useNavigation,
   useOutlet,
   useRevalidator,
@@ -165,10 +166,6 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ({ loaderData, params }: Route.ComponentProps) {
-  const revalidator = useRevalidator();
-  const navigation = useNavigation();
-  const fetcher = useFetcher({ key: "folder-fetcher" });
-
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
   let folderFetcher = useFetcher({ key: "folder-create-fetcher" });
@@ -194,21 +191,6 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
     }
   }, [folderFetcher.state, folderFetcher.data]);
 
-  // Monitor all fetchers for successful operations and revalidate
-  useEffect(() => {
-    // console.log(fetcher);
-    // Check if any fetcher completed a folder operation successfully
-    if (
-      fetcher.state === "idle" &&
-      fetcher.data?.ok &&
-      fetcher.data?.action?.includes("Folder")
-    ) {
-      // console.log("hello");
-      // Revalidate to refresh the data from the server
-      revalidator.revalidate();
-    }
-  }, [fetcher.state, fetcher.data]);
-
   // File state to take
   // TODO this should be a form that triggers an upload and returns the file key through actionData
   let [file, setFile] = useState<File | null>(null);
@@ -227,7 +209,6 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
               <FolderPlus className="w-5 h-5 text-yellow-400" /> Create New
               Folder
             </h2>
-            {/* FETCHER UPDATE  */}
             <folderFetcher.Form
               ref={folderRef}
               method="POST"
@@ -239,14 +220,6 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
                 className="max-w-[284px]"
                 isRequired
               />
-              {/*NOT NEEDED FOR NOW*/}
-              {/*<Input*/}
-              {/*  name="folderNumber"*/}
-              {/*  type="number"*/}
-              {/*  label="Folder Number"*/}
-              {/*  className="max-w-[284px]"*/}
-              {/*  isRequired*/}
-              {/*/>*/}
               <Switch
                 name={"hidden"}
                 isSelected={isFolderHidden}

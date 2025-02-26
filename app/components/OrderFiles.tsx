@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useRouteLoaderData, useSubmit } from "react-router";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -15,6 +15,8 @@ import SbContextMenu from "./SbContextMenu";
 export default function ({ objectList }: { objectList: Object[] }) {
   let [objects, setObjects] = useState(objectList);
   let submit = useSubmit();
+
+  useEffect(() => setObjects(objectList), [objectList]);
 
   const handleDragEnd = (event: { active: any; over: any }) => {
     let { active, over } = event;
@@ -67,15 +69,10 @@ export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: object.id });
 
-  let navigate = useNavigate();
-
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      onDoubleClick={() => {
-        navigate(object.id, { preventScrollReset: true });
-      }}
     >
       <SbContextMenu object={object} folders={folders}>
         <RowLayout

@@ -22,12 +22,12 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (params.type === "object") {
     try {
-      let { reorderedFolders } = await request.json();
+      let { reorderedObjects } = await request.json();
 
-      for (const folder of reorderedFolders) {
-        await prisma.folder.update({
-          where: { id: folder.id },
-          data: { folderPosition: folder.position },
+      for (const object of reorderedObjects) {
+        await prisma.object.update({
+          where: { id: object.id },
+          data: { filePosition: object.position },
         });
       }
 

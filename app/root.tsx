@@ -57,7 +57,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <Meta />
         <Links />
       </head>
-      <body className="text-md md:text-2xl">
+      <body className="text-xs md:text-medium">
         <HeroUIProvider>
           <Navbar
             maxWidth="full"

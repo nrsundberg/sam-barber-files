@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ChevronLeft, EyeOffIcon, FolderIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatFileSize, getTotalFolderSize } from "~/utils";
@@ -22,6 +22,9 @@ export default function ({
   selectedFolder: string | undefined;
 }) {
   let [folders, setFolders] = useState(folderList);
+
+  useEffect(() => setFolders(folderList), [folderList]);
+
   let submit = useSubmit();
 
   const handleDragEnd = (event: { active: any; over: any }) => {
@@ -61,9 +64,9 @@ export default function ({
         items={folders.map((f) => f.id)}
         strategy={verticalListSortingStrategy}
       >
-        {folders.map((folder: FolderWithObjects) => (
+        {folders.map((folder: FolderWithObjects, index: number) => (
           <SortableSbAccordionItem
-            key={folder.id + folder.name + folder.createdDate.toISOString()}
+            key={index}
             folder={folder}
             isSelected={folder.id === selectedFolder}
           />

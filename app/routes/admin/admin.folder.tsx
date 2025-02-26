@@ -8,7 +8,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     return {
       folder: await prisma.folder.findUniqueOrThrow({
         where: { id: params.folderId },
-        include: { objects: true },
+        include: { objects: { orderBy: { filePosition: "asc" } } },
       }),
     };
   } catch (e) {
