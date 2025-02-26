@@ -72,16 +72,18 @@ export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onDoubleClick={() => {
         navigate(object.id, { preventScrollReset: true });
       }}
-      className={`cursor-move ${object.hidden ? "opacity-60" : ""}`}
+      className={`${object.hidden ? "opacity-60" : ""}`}
     >
       <SbContextMenu object={object} folders={folders}>
-        <RowLayout object={object} isLast={false} />
+        <RowLayout
+          object={object}
+          isLast={false}
+          dragHandleProps={{ ...attributes, ...listeners }}
+        />
       </SbContextMenu>
     </div>
   );

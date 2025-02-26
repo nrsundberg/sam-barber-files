@@ -5,18 +5,29 @@ import OrderFiles from "~/components/OrderFiles";
 
 export async function loader({ params }: Route.LoaderArgs) {
   try {
-    await prisma.folder.findUniqueOrThrow({ where: { id: params.folderId } });
-    return prisma.object.findMany({ where: { folderId: params.folderId } });
+    return {
+      folder: await prisma.folder.findUniqueOrThrow({
+        where: { id: params.folderId },
+        include: { objects: true },
+      }),
+    };
   } catch (e) {
     return redirectWithWarning("/admin", "Folder not found");
   }
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let objects = loaderData;
+  let { folder } = loaderData;
 
-  if (objects.length == 0) {
+  if (folder.objects.length == 0) {
     return <p>NO FILES IN FOLDER...</p>;
   }
-  return <OrderFiles objectList={objects} />;
+  return (
+    <>
+      {folder.hidden && (
+        <p className="text-red-400">ALL FILES ARE HIDDEN UNDER THE FOLDER</p>
+      )}
+      <OrderFiles objectList={folder.objects} />
+    </>
+  );
 }

@@ -28,6 +28,11 @@ const ContextMenu = ({
   let fetcher = useFetcher();
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const handleItemClick = (e: React.MouseEvent, callback: () => void) => {
+    e.stopPropagation(); // Stop event propagation
+    callback();
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: any) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -88,7 +93,7 @@ const ContextMenu = ({
         ) : (
           <li
             className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsRenaming(true)}
+            onClick={(e) => handleItemClick(e, () => setIsRenaming(true))}
           >
             Rename
           </li>
@@ -135,7 +140,7 @@ const ContextMenu = ({
         ) : (
           <li
             className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsMoving(true)}
+            onClick={(e) => handleItemClick(e, () => setIsMoving(true))}
           >
             Move to folder
           </li>
@@ -181,7 +186,7 @@ const ContextMenu = ({
         ) : (
           <li
             className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsChangingDate(true)}
+            onClick={(e) => handleItemClick(e, () => setIsChangingDate(true))}
           >
             Change date
           </li>

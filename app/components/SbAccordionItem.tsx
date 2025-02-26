@@ -103,9 +103,11 @@ export default function ({
 export function RowLayout({
   object,
   isLast,
+  dragHandleProps,
 }: {
   object: Object;
   isLast: boolean;
+  dragHandleProps?: any;
 }) {
   return (
     <div
@@ -118,7 +120,10 @@ export function RowLayout({
                         }`}
     >
       <div className="w-full px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
-        <div className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless">
+        <div
+          {...dragHandleProps}
+          className="pl-6 inline-flex items-center gap-x-2 text-lg font-semibold group-hover:text-sb-restless"
+        >
           <ChevronLeft className={"opacity-0"} />
           {object.kind === "AUDIO" ? (
             <Music className="text-blue-400 w-6 h-6" />

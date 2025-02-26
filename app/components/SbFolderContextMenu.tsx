@@ -1,8 +1,7 @@
 import { Button, DatePicker } from "@heroui/react";
 import { parseAbsolute } from "@internationalized/date";
-import type { Folder, Object } from "@prisma/client";
 import React, { useState, useRef, useEffect } from "react";
-import { useFetcher } from "react-router";
+import { Form, useFetcher } from "react-router";
 import type { FolderWithObjects } from "~/types";
 
 // Context Menu Component
@@ -19,11 +18,21 @@ const ContextMenu = ({
 }) => {
   let [isRenaming, setIsRenaming] = useState(false);
   let [newFolderName, setNewFolderName] = useState(folder.name);
-  let [isMoving, setIsMoving] = useState(false);
   let [isChangingDate, setIsChangingDate] = useState(false);
 
   let fetcher = useFetcher();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleItemClick = (e: React.MouseEvent, callback: () => void) => {
+    e.stopPropagation(); // Stop event propagation
+    callback();
+  };
+
+  // useEffect(() => {
+  //   if (fetcher.state === "idle" && fetcher.data?.ok) {
+  //     onClose();
+  //   }
+  // }, [fetcher.state, fetcher.data]);
 
   useEffect(() => {
     const handleClickOutside = (event: any) => {
@@ -85,7 +94,7 @@ const ContextMenu = ({
         ) : (
           <li
             className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsRenaming(true)}
+            onClick={(e) => handleItemClick(e, () => setIsRenaming(true))}
           >
             Rename
           </li>
@@ -131,16 +140,17 @@ const ContextMenu = ({
         ) : (
           <li
             className="p-2 hover:bg-gray-700 cursor-pointer rounded"
-            onClick={() => setIsChangingDate(true)}
+            onClick={(e) => handleItemClick(e, () => setIsChangingDate(true))}
           >
             Change date
           </li>
         )}
 
         <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
-          <fetcher.Form method="POST" action={"/data/edit"}>
-            <input type="hidden" name="actionType" value="toggleHidden" />
-            <input type="hidden" name="folderId" value={folder.id} />
+          <fetcher.Form
+            method="POST"
+            action={`/data/edit/folder/${folder.id}/toggleHidden`}
+          >
             <input
               type="hidden"
               name="hidden"
@@ -154,9 +164,10 @@ const ContextMenu = ({
 
         <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
           {/* // TODO any use in deleting from s3 and video provider? */}
-          <fetcher.Form method="POST" action={"/data/edit"}>
-            <input type="hidden" name="actionType" value="delete" />
-            <input type="hidden" name="folderId" value={folder.id} />
+          <fetcher.Form
+            method="POST"
+            action={`/data/edit/folder/${folder.id}/delete`}
+          >
             <button type="submit" className="w-full text-left text-red-600">
               Delete
             </button>

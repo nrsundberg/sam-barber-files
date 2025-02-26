@@ -24,7 +24,6 @@ import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
 import OrderFolders from "~/components/OrderFolders";
-import type { FolderWithObjects } from "~/types";
 // import { fetchCloudflare } from "~/client.server";
 
 // Don't need SEO or dynamic header for admin route
@@ -157,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
-export default function ({ loaderData }: Route.ComponentProps) {
+export default function ({ loaderData, params }: Route.ComponentProps) {
   let fileFetcher = useFetcher({ key: "file-fetcher" });
   let fileRef = useRef<HTMLFormElement>(null);
   let folderFetcher = useFetcher({ key: "folder-fetcher" });
@@ -351,7 +350,10 @@ export default function ({ loaderData }: Route.ComponentProps) {
           {folders.length === 0 ? (
             <p>NO FOLDERS...</p>
           ) : (
-            <OrderFolders folderList={folders} />
+            <OrderFolders
+              folderList={folders}
+              selectedFolder={params.folderId}
+            />
           )}
         </div>
         <div className={"border-1 border-gray-400 rounded p-2"}>

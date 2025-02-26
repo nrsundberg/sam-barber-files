@@ -12,10 +12,15 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import SbContextMenu from "./SbContextMenu";
 import SbFolderContextMenu from "./SbFolderContextMenu";
 
-export default function ({ folderList }: { folderList: FolderWithObjects[] }) {
+export default function ({
+  folderList,
+  selectedFolder,
+}: {
+  folderList: FolderWithObjects[];
+  selectedFolder: string | undefined;
+}) {
   let [folders, setFolders] = useState(folderList);
   let submit = useSubmit();
 
@@ -56,8 +61,12 @@ export default function ({ folderList }: { folderList: FolderWithObjects[] }) {
         items={folders.map((f) => f.id)}
         strategy={verticalListSortingStrategy}
       >
-        {folders.map((folder: FolderWithObjects, index: number) => (
-          <SortableSbAccordionItem key={index} folder={folder} />
+        {folders.map((folder: FolderWithObjects) => (
+          <SortableSbAccordionItem
+            key={folder.id + folder.name + folder.createdDate.toISOString()}
+            folder={folder}
+            isSelected={folder.id === selectedFolder}
+          />
         ))}
       </SortableContext>
     </DndContext>
@@ -66,8 +75,10 @@ export default function ({ folderList }: { folderList: FolderWithObjects[] }) {
 
 export function SortableSbAccordionItem({
   folder,
+  isSelected,
 }: {
   folder: FolderWithObjects;
+  isSelected: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: folder.id });
@@ -77,13 +88,11 @@ export function SortableSbAccordionItem({
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onDoubleClick={() => {
-        navigate(folder.id, { preventScrollReset: true });
+        navigate(isSelected ? "./" : folder.id, { preventScrollReset: true });
       }}
-      className={`cursor-move ${folder.hidden ? "opacity-60" : ""}`}
+      className={`${folder.hidden ? "opacity-60" : ""} ${isSelected ? "border border-red-400 text-red-400" : ""}`}
     >
       <SbFolderContextMenu folder={folder}>
         <FolderRowLayout
@@ -91,6 +100,7 @@ export function SortableSbAccordionItem({
           createdDate={format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
           size={formatFileSize(getTotalFolderSize(folder.objects))}
           isHidden={folder.hidden}
+          dragHandleProps={{ ...attributes, ...listeners }}
         />
       </SbFolderContextMenu>
     </div>
@@ -102,15 +112,20 @@ function FolderRowLayout({
   createdDate,
   isHidden,
   size,
+  dragHandleProps,
 }: {
   name: string;
   createdDate: string;
   isHidden: boolean;
   size: string;
+  dragHandleProps?: any;
 }) {
   return (
     <div className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group">
-      <div className="inline-flex items-center gap-x-2 text-lg font-semibold">
+      <div
+        {...dragHandleProps}
+        className="inline-flex items-center gap-x-2 text-lg font-semibold"
+      >
         <ChevronLeft
           className={`transform transition-transform duration-300 hidden`}
         />
