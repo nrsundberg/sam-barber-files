@@ -18,9 +18,7 @@ if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
   throw new Error("Missing S3 environment variables");
 }
 
-const s3Endpoint = S3_ENDPOINT
-  ? { endpoint: S3_ENDPOINT, forcePathStyle: true }
-  : {};
+const s3Endpoint = S3_ENDPOINT ? { endpoint: S3_ENDPOINT } : {};
 
 export const s3Client = new S3Client({
   region: S3_REGION,
@@ -29,6 +27,7 @@ export const s3Client = new S3Client({
     accessKeyId: S3_ACCESS_KEY,
     secretAccessKey: S3_SECRET_KEY,
   },
+  forcePathStyle: true,
 });
 
 /**
