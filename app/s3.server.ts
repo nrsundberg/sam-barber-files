@@ -1,9 +1,9 @@
 import {
   GetObjectCommand,
   ListObjectsV2Command,
+  type ListObjectsV2CommandOutput,
   PutObjectCommand,
   S3Client,
-  type ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { S3Object } from "./types";
@@ -14,19 +14,21 @@ const S3_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 const S3_BUCKET_NAME = process.env.BUCKET_NAME;
 const S3_REGION = process.env.AWS_REGION;
 
-if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
+if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
   throw new Error("Missing S3 environment variables");
 }
 
+const s3Endpoint = S3_ENDPOINT
+  ? { endpoint: S3_ENDPOINT, forcePathStyle: true }
+  : {};
+
 export const s3Client = new S3Client({
   region: S3_REGION,
-  endpoint: S3_ENDPOINT,
-  // TODO these will be off in prod and connect through domain?
+  ...s3Endpoint,
   credentials: {
     accessKeyId: S3_ACCESS_KEY,
     secretAccessKey: S3_SECRET_KEY,
   },
-  forcePathStyle: true,
 });
 
 /**
@@ -37,7 +39,7 @@ export const s3Client = new S3Client({
  * @returns {Promise<string>} - The pre-signed URL.
  */
 export async function getPresignedDownloadUrl(
-  fileKey: string
+  fileKey: string,
 ): Promise<string> {
   try {
     const command = new GetObjectCommand({
@@ -85,7 +87,7 @@ export async function uploadToS3(file: File, fileId: string): Promise<boolean> {
 
 export const listS3Objects = async (
   prefix: string = "",
-  maxKeys: number = 1000
+  maxKeys: number = 1000,
 ): Promise<S3Object[]> => {
   try {
     const command = new ListObjectsV2Command({
