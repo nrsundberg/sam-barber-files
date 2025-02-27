@@ -11,5 +11,5 @@ export async function loader() {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  return <div>HELLO</div>;
+  return <div>Coming soon...</div>;
 }
