@@ -1,20 +1,9 @@
 import type { Route } from "./+types/home";
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-} from "@heroui/react";
 import prisma from "~/db.server";
 import { ObjectKind, type Object } from "@prisma/client";
-import { type DOMAttributes, type Ref } from "react";
-import { Stream } from "@cloudflare/stream-react";
-import SbAccordion from "~/components/SbAccordion";
+import SbAccordion from "~/components/accordion/SbAccordion";
 import { Music, Video } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
-import { object } from "zod";
 
 export function meta() {
   return [

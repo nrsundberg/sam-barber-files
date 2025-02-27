@@ -1,9 +1,4 @@
-import {
-  index,
-  prefix,
-  route,
-  type RouteConfig,
-} from "@react-router/dev/routes";
+import { index, route, type RouteConfig } from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
@@ -12,6 +7,8 @@ export default [
   route("admin", "routes/admin/admin.tsx", [
     route(":folderId", "routes/admin/admin.folder.tsx"),
   ]),
+  route("admin/fileCheck", "routes/admin/fileCheck.tsx"),
+  route("admin/fileBrowser", "routes/admin/fileBrowser.tsx"),
 
   // Authentication routes
   route("login", "routes/auth/login.tsx"),

@@ -8,9 +8,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { closestCenter, DndContext } from "@dnd-kit/core";
-import { RowLayout } from "./SbAccordionItem";
+import { RowLayout } from "../accordion/SbAccordionItem";
 import type { Object } from "@prisma/client";
-import SbContextMenu from "./SbContextMenu";
+import SbContextMenu from "../SbContextMenu";
 
 export default function ({ objectList }: { objectList: Object[] }) {
   let [objects, setObjects] = useState(objectList);
@@ -41,7 +41,7 @@ export default function ({ objectList }: { objectList: Object[] }) {
             method: "POST",
             navigate: false,
             encType: "application/json",
-          },
+          }
         );
 
         return updatedObjects;

@@ -1,7 +1,7 @@
 import prisma from "~/db.server";
 import type { Route } from "./+types/admin.folder";
 import { redirectWithWarning } from "remix-toast";
-import OrderFiles from "~/components/OrderFiles";
+import OrderFiles from "~/components/dnd/OrderFiles";
 
 export async function loader({ params }: Route.LoaderArgs) {
   try {

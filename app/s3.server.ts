@@ -1,9 +1,12 @@
 import {
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
+  type ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { S3Object } from "./types";
 
 const S3_ENDPOINT = process.env.AWS_ENDPOINT_URL_S3;
 const S3_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID;
@@ -79,3 +82,33 @@ export async function uploadToS3(file: File, fileId: string): Promise<boolean> {
     return false;
   }
 }
+
+export const listS3Objects = async (
+  prefix: string = "",
+  maxKeys: number = 1000
+): Promise<S3Object[]> => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: S3_BUCKET_NAME,
+      Prefix: prefix,
+      MaxKeys: maxKeys,
+    });
+
+    const response: ListObjectsV2CommandOutput = await s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    return response.Contents.map((item) => ({
+      key: item.Key || "",
+      size: item.Size || 0,
+      lastModified: item.LastModified || new Date(),
+      etag: item.ETag?.replace(/"/g, "") || "",
+      storageClass: item.StorageClass || "",
+    }));
+  } catch (error) {
+    console.error("Error listing S3 objects:", error);
+    throw error;
+  }
+};

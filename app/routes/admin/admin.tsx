@@ -14,17 +14,22 @@ import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import { data, Outlet, useFetcher, useOutlet } from "react-router";
+import {
+  data,
+  Link,
+  NavLink,
+  Outlet,
+  useFetcher,
+  useOutlet,
+} from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
-import { getPresignedDownloadUrl, uploadToS3 } from "~/s3.server";
+import { uploadToS3 } from "~/s3.server";
 import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
-import { accountId, client } from "~/client.server";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
-import OrderFolders from "~/components/OrderFolders";
-// import { fetchCloudflare } from "~/client.server";
+import OrderFolders from "~/components/dnd/OrderFolders";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
@@ -36,17 +41,12 @@ export function meta() {
 // Loader to bring in existing folders
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
-  // await fetchCloudflare("", "");
-
   const { getUser } = await getKindeSession(request);
   const user = await getUser();
   if (user === null) {
     return redirectWithError("/", "You are not authorized to view this page.");
   }
 
-  // console.log(video);
-  // // uid from cloudflare
-  // console.log(video.uid);
   return prisma.folder.findMany({
     orderBy: { folderPosition: "asc" },
     include: {
@@ -114,32 +114,17 @@ export async function action({ request }: Route.ActionArgs) {
             filePosition: numFiles,
             kind,
             s3fileKey: "",
-            cloudFlareId: "",
             folderId,
           },
         });
 
         let uploadedS3 = await uploadToS3(file, newObject.id);
         if (uploadedS3) {
-          if (process.env.NODE_ENV === "production") {
-            let presignedUrl = await getPresignedDownloadUrl(newObject.id);
-            const video = await client.stream.copy.create({
-              account_id: accountId ?? "",
-              url: presignedUrl,
-              meta: { name: file.name },
-            });
-            await prisma.object.update({
-              where: { id: newObject.id },
-              // NOTE for not the sefileKey is the same as Id
-              data: { s3fileKey: newObject.id, cloudFlareId: video.uid },
-            });
-          } else {
-            await prisma.object.update({
-              where: { id: newObject.id },
-              // NOTE for not the sefileKey is the same as Id
-              data: { s3fileKey: newObject.id },
-            });
-          }
+          await prisma.object.update({
+            where: { id: newObject.id },
+            // NOTE for not the sefileKey is the same as Id
+            data: { s3fileKey: newObject.id },
+          });
         } else {
           return dataWithError(
             { error: "Couldn't upload" },
@@ -187,7 +172,16 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <div className="p-6 bg-black min-h-screen text-white">
-      <h1 className="text-3xl font-bold">ADMIN PANEL</h1>
+      <div className="inline-flex gap-2">
+        <h1 className="text-3xl font-bold">ADMIN PANEL</h1>
+        <NavLink
+          to={"/admin/fileCheck"}
+          className="border-1 border-gray-400 p-1"
+        >
+          Check AWS Links
+        </NavLink>
+        <Link to={"/admin/filebrowser"}>Show AWS Files</Link>
+      </div>
 
       <Divider className={"h-1"} />
       <h2 className={"my-3 text-xl font-semibold"}>UPLOAD & CREATE</h2>
