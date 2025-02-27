@@ -10,6 +10,7 @@ export async function loader() {
   return listS3Objects();
 }
 
+// TODO this page isnt locked down by auth
 export default function ({ loaderData }: Route.ComponentProps) {
   return <S3FileBrowser files={loaderData} />;
 }
