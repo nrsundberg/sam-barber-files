@@ -41,7 +41,7 @@ model Object {
   size         Int
   kind         ObjectKind
   filePosition Int
-  s3fileKey    String
+  s3fileKey    String     @unique
   posterKey    String?
   folder       Folder     @relation(fields: [folderId], references: [id])
   folderId     String
