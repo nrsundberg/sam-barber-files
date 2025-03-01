@@ -30,22 +30,18 @@ import { now } from "@internationalized/date";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
 import OrderFolders from "~/components/dnd/OrderFolders";
+import { getUserAndProtectRoute } from "~/utils.server";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
   return [{ title: "Admin Panel" }];
 }
 
-// TODO Add auth to this route and app in general
 // This loader should be locked down
 // Loader to bring in existing folders
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
-  const { getUser } = await getKindeSession(request);
-  const user = await getUser();
-  if (user === null) {
-    return redirectWithError("/", "You are not authorized to view this page.");
-  }
+  const user = await getUserAndProtectRoute(request);
 
   return prisma.folder.findMany({
     orderBy: { folderPosition: "asc" },
@@ -69,9 +65,9 @@ const uploadFileSchema = zfd.formData({
   createdDate: z.string(),
 });
 
-// TODO Add auth to this route
-// This action should be locked down
 export async function action({ request }: Route.ActionArgs) {
+  const user = await getUserAndProtectRoute(request);
+
   const formData = await request.formData();
   switch (request.method) {
     case "POST":
