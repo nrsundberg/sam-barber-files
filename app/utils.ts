@@ -1,15 +1,25 @@
 import type { Object } from "@prisma/client";
 
-export const formatFileSize = (size: number) => {
-  if (size >= 1024 * 1024 * 1024) {
-    return `${(size / 1024 / 1024 / 1024).toFixed(1)}GB`;
-  } else if (size >= 1024 * 1024) {
-    return `${(size / 1024 / 1024).toFixed(1)}MB`;
-  } else if (size >= 1024) {
-    return `${(size / 1024).toFixed(1)}KB`;
-  } else {
-    return `${size}B`;
-  }
+export const formatBytes = (bytes: number, decimals = 2) => {
+  if (bytes === 0) return "0B";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + sizes[i];
+};
+
+export const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 };
 
 export const getTotalFolderSize = (objects: Object[]): number => {

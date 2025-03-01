@@ -14,18 +14,11 @@ import { FolderPlus, Upload } from "lucide-react";
 import type { Route } from "./+types/admin";
 import prisma from "~/db.server";
 import { ObjectKind } from "@prisma/client";
-import {
-  data,
-  Link,
-  NavLink,
-  Outlet,
-  useFetcher,
-  useOutlet,
-} from "react-router";
+import { data, Link, Outlet, useFetcher, useOutlet } from "react-router";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { uploadToS3 } from "~/s3.server";
-import { convertToUTCDateTime, formatFileSize } from "~/utils";
+import { convertToUTCDateTime, formatBytes } from "~/utils";
 import { now } from "@internationalized/date";
 import { dataWithError, dataWithSuccess } from "remix-toast";
 import OrderFolders from "~/components/dnd/OrderFolders";
@@ -304,7 +297,7 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
                   label={"File Name"}
                   defaultValue={file.name}
                   className="h-fit"
-                  endContent={formatFileSize(file.size)}
+                  endContent={formatBytes(file.size)}
                 />
               )}
               <Button

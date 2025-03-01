@@ -3,7 +3,7 @@ import { ChevronLeft, EyeOffIcon, FolderIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
-import { formatFileSize, getTotalFolderSize } from "~/utils";
+import { formatBytes, getTotalFolderSize } from "~/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -101,7 +101,7 @@ export function SortableSbAccordionItem({
         <FolderRowLayout
           name={folder.name}
           createdDate={format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
-          size={formatFileSize(getTotalFolderSize(folder.objects))}
+          size={formatBytes(getTotalFolderSize(folder.objects))}
           isHidden={folder.hidden}
           dragHandleProps={{ ...attributes, ...listeners }}
         />

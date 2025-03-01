@@ -13,7 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
-import { formatFileSize, getTotalFolderSize } from "~/utils";
+import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
 
 export interface AccordionItemProps {
@@ -90,7 +90,7 @@ export default function ({
           </p>
         </span>
         <span className="text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
-          {formatFileSize(getTotalFolderSize(folder.objects))}
+          {formatBytes(getTotalFolderSize(folder.objects))}
         </span>
         <div className="grid justify-center items-center">
           <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
@@ -196,7 +196,7 @@ export function RowLayout({
         </div>
 
         <p className="text-center text-sm md:text-medium self-center">
-          {formatFileSize(object.size)}
+          {formatBytes(object.size)}
         </p>
 
         <div className="grid justify-center">
