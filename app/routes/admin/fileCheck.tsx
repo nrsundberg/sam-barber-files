@@ -1,4 +1,3 @@
-import prisma from "~/db.server";
 import type { Route } from "./+types/fileCheck";
 import { listS3Objects } from "~/s3.server";
 import { getUserAndProtectRoute } from "~/utils.server";

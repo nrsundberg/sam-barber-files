@@ -27,8 +27,7 @@ import { z } from "zod";
 import { uploadToS3 } from "~/s3.server";
 import { convertToUTCDateTime, formatFileSize } from "~/utils";
 import { now } from "@internationalized/date";
-import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
-import { dataWithError, dataWithSuccess, redirectWithError } from "remix-toast";
+import { dataWithError, dataWithSuccess } from "remix-toast";
 import OrderFolders from "~/components/dnd/OrderFolders";
 import { getUserAndProtectRoute } from "~/utils.server";
 
@@ -66,8 +65,6 @@ const uploadFileSchema = zfd.formData({
 });
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getUserAndProtectRoute(request);
-
   const formData = await request.formData();
   switch (request.method) {
     case "POST":
@@ -170,13 +167,15 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
     <div className="p-6 bg-black min-h-screen text-white">
       <div className="inline-flex gap-2">
         <h1 className="text-3xl font-bold">ADMIN PANEL</h1>
-        <NavLink
-          to={"/admin/fileCheck"}
-          className="border-1 border-gray-400 p-1"
-        >
+        <Link className="border-1 border-gray-400 p-1" to={"/admin/fileCheck"}>
           Check AWS Links
-        </NavLink>
-        <Link to={"/admin/filebrowser"}>Show AWS Files</Link>
+        </Link>
+        <Link
+          className="border-1 border-gray-400 p-1"
+          to={"/admin/fileBrowser"}
+        >
+          Show AWS Files
+        </Link>
       </div>
 
       <Divider className={"h-1"} />
