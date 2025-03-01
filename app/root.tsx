@@ -28,6 +28,10 @@ import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: toastStyles },
+  {
+    rel: "icon",
+    href: "/favicon.svg",
+  },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
