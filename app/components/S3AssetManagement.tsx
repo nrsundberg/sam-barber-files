@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { S3Object } from "~/types";
 import type { Object as DbObject, ObjectKind } from "@prisma/client";
 import { Form, useActionData, useSubmit } from "react-router";
@@ -66,6 +66,11 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
       return { linked: true, type: "poster", object: linkedAsPoster };
     return { linked: false };
   };
+
+  let photoObjects = useMemo(
+    () => dbObjects.filter((obj) => obj.kind === "PHOTO"),
+    [dbObjects]
+  );
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4">
@@ -303,11 +308,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                 <h3 className="font-medium mb-2">Set as Poster Image</h3>
 
                 {/* Filter objects that can have a poster (audio/video) */}
-                {dbObjects.filter(
-                  (obj) =>
-                    (obj.kind === "VIDEO" || obj.kind === "AUDIO") &&
-                    obj.s3fileKey !== selectedFile.key
-                ).length > 0 ? (
+                {photoObjects.length > 0 ? (
                   <>
                     <p className="text-sm mb-2">
                       You can use this file as a poster image for existing video
@@ -326,20 +327,14 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                         }
                       >
                         <option value="">-- Select Object --</option>
-                        {dbObjects
-                          .filter(
-                            (obj) =>
-                              obj.kind === "PHOTO" &&
-                              obj.s3fileKey !== selectedFile.key
-                          )
-                          .map((obj) => (
-                            <option key={obj.id} value={obj.id}>
-                              {obj.fileName} ({obj.kind.toLowerCase()})
-                              {obj.posterKey === selectedFile.key
-                                ? " (Current poster)"
-                                : ""}
-                            </option>
-                          ))}
+                        {photoObjects.map((obj) => (
+                          <option key={obj.id} value={obj.id}>
+                            {obj.fileName} ({obj.kind.toLowerCase()})
+                            {obj.posterKey === selectedFile.key
+                              ? " (Current poster)"
+                              : ""}
+                          </option>
+                        ))}
                       </select>
 
                       <input

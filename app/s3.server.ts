@@ -14,9 +14,19 @@ const S3_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 const S3_BUCKET_NAME = process.env.BUCKET_NAME;
 const S3_REGION = process.env.AWS_REGION;
 
-if (!S3_ENDPOINT || !S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
+const CDN_ENDPOINT = process.env.CDN_ENDPOINT;
+
+if (
+  !S3_ENDPOINT ||
+  !S3_ACCESS_KEY ||
+  !S3_SECRET_KEY ||
+  !S3_BUCKET_NAME ||
+  !CDN_ENDPOINT
+) {
   throw new Error("Missing S3 environment variables");
 }
+
+export const cdnEndpoint = CDN_ENDPOINT;
 
 export const s3Client = new S3Client({
   region: S3_REGION,

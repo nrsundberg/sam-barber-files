@@ -4,6 +4,7 @@ import { ObjectKind, type Object } from "@prisma/client";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { Music, Video } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
+import { cdnEndpoint } from "~/s3.server";
 
 export function meta() {
   return [
@@ -38,11 +39,11 @@ export async function loader({}: Route.LoaderArgs) {
       objects: { where: { hidden: false }, orderBy: { filePosition: "asc" } },
     },
   });
-  return Promise.all([folders, favorites, trending]);
+  return Promise.all([folders, favorites, trending, cdnEndpoint]);
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let [folders, favorites, trending] = loaderData;
+  let [folders, favorites, trending, cdn_endpoint] = loaderData;
 
   return (
     <div className="min-h-screen mt-1">
@@ -54,7 +55,11 @@ export default function ({ loaderData }: Route.ComponentProps) {
             <p>FAVORITES</p>
             <div className={"inline-flex gap-1 md:gap-3"}>
               {favorites.map((object: Object) => (
-                <ThumbnailObject key={object.id} object={object} />
+                <ThumbnailObject
+                  key={object.id}
+                  object={object}
+                  endpoint={cdn_endpoint}
+                />
               ))}
             </div>
           </div>
@@ -64,7 +69,11 @@ export default function ({ loaderData }: Route.ComponentProps) {
             <p>TRENDING</p>
             <div className={"inline-flex gap-1 md:gap-3"}>
               {trending.map((object: Object) => (
-                <ThumbnailObject key={object.id} object={object} />
+                <ThumbnailObject
+                  key={object.id}
+                  object={object}
+                  endpoint={cdn_endpoint}
+                />
               ))}
             </div>
           </div>
@@ -82,16 +91,26 @@ export default function ({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function ThumbnailObject({ object }: { object: Object }) {
+function ThumbnailObject({
+  object,
+  endpoint,
+}: {
+  object: Object;
+  endpoint: string;
+}) {
   return (
     <div className={"flex flex-col"}>
-      <p>
-        {object.kind === "AUDIO" ? (
-          <Music className="text-blue-400 w-6 h-6" />
-        ) : (
-          <Video className="text-green-400 w-6 h-6" />
-        )}
-      </p>
+      {object.posterKey ? (
+        <img src={endpoint + object.posterKey} height={50} width={50} />
+      ) : (
+        <p>
+          {object.kind === "AUDIO" ? (
+            <Music className="text-blue-400 w-6 h-6" />
+          ) : (
+            <Video className="text-green-400 w-6 h-6" />
+          )}
+        </p>
+      )}
       <p>{object.fileName}</p>
       <p>{formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}</p>
     </div>
