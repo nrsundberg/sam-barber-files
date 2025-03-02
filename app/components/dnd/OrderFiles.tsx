@@ -12,7 +12,13 @@ import { RowLayout } from "../accordion/SbAccordionItem";
 import type { Object } from "@prisma/client";
 import SbContextMenu from "../SbContextMenu";
 
-export default function ({ objectList }: { objectList: Object[] }) {
+export default function ({
+  objectList,
+  endpoint,
+}: {
+  objectList: Object[];
+  endpoint: string;
+}) {
   let [objects, setObjects] = useState(objectList);
   let submit = useSubmit();
 
@@ -56,14 +62,24 @@ export default function ({ objectList }: { objectList: Object[] }) {
         strategy={verticalListSortingStrategy}
       >
         {objects.map((object: Object, index: number) => (
-          <SortableSbObjectAccordionItem key={index} object={object} />
+          <SortableSbObjectAccordionItem
+            key={index}
+            object={object}
+            endpoint={endpoint}
+          />
         ))}
       </SortableContext>
     </DndContext>
   );
 }
 
-export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
+export function SortableSbObjectAccordionItem({
+  object,
+  endpoint,
+}: {
+  object: Object;
+  endpoint: string;
+}) {
   let folders = useRouteLoaderData("routes/admin/admin");
 
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -80,6 +96,7 @@ export function SortableSbObjectAccordionItem({ object }: { object: Object }) {
           inAdmin={true}
           isLast={false}
           dragHandleProps={{ ...attributes, ...listeners }}
+          endpoint={endpoint}
         />
       </SbContextMenu>
     </div>

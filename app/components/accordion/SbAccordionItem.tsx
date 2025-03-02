@@ -5,22 +5,22 @@ import {
   Download,
   EyeOffIcon,
   FolderIcon,
-  Music,
   Star,
   TrendingUp,
-  Video,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
-import VideoCarouselModal from "../carousel/VideoCarousel";
+import { Thumbnail } from "../Thumbnail";
+import VideoCarousel from "../carousel/VideoCarousel";
+import { useVideoCarousel } from "../carousel/useVideoCarousel";
 
 export interface AccordionItemProps {
   index: number;
   folder: FolderWithObjects;
-  isOpen: boolean;
+  isFolderOpen: boolean;
   onClick: () => void;
   passRef: (el: any, key: number) => void;
   endpoint: string;
@@ -30,14 +30,12 @@ export default function ({
   index,
   folder,
   passRef,
-  isOpen,
+  isFolderOpen,
   onClick,
   endpoint,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
   let [isSticky, setIsSticky] = useState(false);
-  let [videoModalOpen, setVideoModalOpen] = useState(false);
-  let [selectedObjectIndex, setSelectedObjectIndex] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,12 +59,10 @@ export default function ({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Function to open the video modal with the selected object
-  const openVideoModal = (objectIndex: number) => {
-    console.log("hello");
-    setSelectedObjectIndex(objectIndex);
-    setVideoModalOpen(true);
-  };
+  const { isOpen, openModal, closeModal, currentIndex } = useVideoCarousel({
+    objects: folder.objects,
+    endpoint: endpoint,
+  });
 
   return (
     <div
@@ -84,7 +80,7 @@ export default function ({
         <div className="inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold">
           <ChevronLeft
             className={`transform transition-transform duration-300 ${
-              isOpen ? "-rotate-90" : "rotate-180"
+              isFolderOpen ? "-rotate-90" : "rotate-180"
             }`}
           />
           <FolderIcon />
@@ -112,7 +108,7 @@ export default function ({
       </button>
       <div
         className={`grid transition-[grid-template-rows] duration-300 ${
-          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          isFolderOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         } overflow-hidden`}
       >
         <div className="overflow-hidden">
@@ -120,19 +116,19 @@ export default function ({
             <RowLayout
               key={object.id}
               inAdmin={false}
-              onClick={() => openVideoModal(objectIndex)}
+              onClick={() => openModal(objectIndex)}
               object={object}
               isLast={index === folder.objects.length - 1}
+              endpoint={endpoint}
             />
           ))}
         </div>
       </div>
-      {/* Video Carousel Modal */}
-      <VideoCarouselModal
-        isOpen={videoModalOpen}
-        onClose={() => setVideoModalOpen(false)}
+      <VideoCarousel
+        isOpen={isOpen}
+        onClose={() => closeModal()}
         objects={folder.objects}
-        initialObjectIndex={selectedObjectIndex}
+        initialObjectIndex={currentIndex}
         endpoint={endpoint}
       />
     </div>
@@ -145,12 +141,14 @@ export function RowLayout({
   isLast,
   onClick,
   dragHandleProps,
+  endpoint,
 }: {
   object: Object;
   inAdmin: boolean;
   isLast: boolean;
   onClick?: () => void;
   dragHandleProps?: any;
+  endpoint: string;
 }) {
   let submit = useSubmit();
 
@@ -199,23 +197,7 @@ export function RowLayout({
           ) : (
             <ChevronLeft className={"opacity-0"} />
           )}
-          {object.kind === "AUDIO" ? (
-            <Music className="text-blue-400 w-6 h-6" />
-          ) : (
-            <Video className="text-green-400 w-6 h-6" />
-          )}
-          {object.fileName}
-        </div>
-        <div className="text-center items-center flex justify-center">
-          <p className="text-center text-medium hidden md:block">
-            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
-          </p>
-          <p className="text-center text-xs md:hidden">
-            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy")}
-          </p>
-          <p className="text-center text-xs md:hidden">
-            {formatInTimeZone(object.createdDate, "UTC", "hh:mm a")}
-          </p>
+          <Thumbnail object={object} endpoint={endpoint} />
         </div>
 
         <p className="text-center text-sm md:text-medium self-center">

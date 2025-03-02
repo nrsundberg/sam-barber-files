@@ -85,7 +85,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
             key={folder.id}
             index={index}
             folder={folder}
-            isOpen={openIndexes.includes(index)}
+            isFolderOpen={openIndexes.includes(index)}
             onClick={() => toggleItem(index)}
             passRef={passElementRef}
             endpoint={endpoint}

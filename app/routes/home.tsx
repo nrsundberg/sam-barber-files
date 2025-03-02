@@ -1,10 +1,12 @@
 import type { Route } from "./+types/home";
 import prisma from "~/db.server";
-import { ObjectKind, type Object } from "@prisma/client";
+import { type Object } from "@prisma/client";
 import SbAccordion from "~/components/accordion/SbAccordion";
-import { Music, Video } from "lucide-react";
-import { formatInTimeZone } from "date-fns-tz";
 import { cdnEndpoint } from "~/s3.server";
+import { Thumbnail } from "~/components/Thumbnail";
+import VideoCarousel from "~/components/carousel/VideoCarousel";
+import { useState } from "react";
+import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 
 export function meta() {
   return [
@@ -21,7 +23,6 @@ export function meta() {
 }
 
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
-
 export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
@@ -45,6 +46,11 @@ export async function loader({}: Route.LoaderArgs) {
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint] = loaderData;
 
+  const { isOpen, openModal, closeModal, currentIndex } = useVideoCarousel({
+    objects: favorites,
+    endpoint: cdnEndpoint,
+  });
+
   return (
     <div className="min-h-screen mt-1">
       <div className={"px-1 grid auto-rows-auto justify-around mb-1 md:mb-4"}>
@@ -54,22 +60,31 @@ export default function ({ loaderData }: Route.ComponentProps) {
           <div>
             <p>FAVORITES</p>
             <div className={"inline-flex gap-1 md:gap-3"}>
-              {favorites.map((object: Object) => (
-                <ThumbnailObject
+              {favorites.map((object: Object, objectIndex) => (
+                <Thumbnail
                   key={object.id}
                   object={object}
                   endpoint={cdnEndpoint}
+                  onClick={() => openModal(objectIndex)}
                 />
               ))}
             </div>
           </div>
         )}
+        <VideoCarousel
+          isOpen={isOpen}
+          onClose={() => closeModal()}
+          objects={favorites}
+          initialObjectIndex={currentIndex}
+          endpoint={cdnEndpoint}
+        />
+
         {trending.length > 0 && (
           <div>
             <p>TRENDING</p>
             <div className={"inline-flex gap-1 md:gap-3"}>
               {trending.map((object: Object) => (
-                <ThumbnailObject
+                <Thumbnail
                   key={object.id}
                   object={object}
                   endpoint={cdnEndpoint}
@@ -88,59 +103,5 @@ export default function ({ loaderData }: Route.ComponentProps) {
       </div>
       <SbAccordion folders={folders} endpoint={cdnEndpoint} allowMultiple />
     </div>
-  );
-}
-
-function ThumbnailObject({
-  object,
-  endpoint,
-}: {
-  object: Object;
-  endpoint: string;
-}) {
-  return (
-    <div className={"flex flex-col"}>
-      {object.posterKey ? (
-        <img src={endpoint + object.posterKey} height={50} width={50} />
-      ) : (
-        <p>
-          {object.kind === "AUDIO" ? (
-            <Music className="text-blue-400 w-6 h-6" />
-          ) : (
-            <Video className="text-green-400 w-6 h-6" />
-          )}
-        </p>
-      )}
-      <p>{object.fileName}</p>
-      <p>{formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}</p>
-    </div>
-  );
-}
-
-function VideoPopup({
-  objects,
-  currentObjectId,
-  cloudfrontUrl,
-}: {
-  objects: Object[];
-  currentObjectId: string;
-  cloudfrontUrl: string;
-}) {
-  let currentObject = objects.find((it) => it.id === currentObjectId);
-  return currentObject?.kind === ObjectKind.AUDIO ? (
-    <audio src={cloudfrontUrl + `/${currentObject?.s3fileKey}`} />
-  ) : (
-    <video
-      width="640"
-      height="1/4lvh"
-      controls
-      poster={cloudfrontUrl + `/${currentObject?.posterKey}`}
-    >
-      <source
-        src={cloudfrontUrl + `/${currentObject?.s3fileKey}`}
-        type="video/mp4"
-      />
-      Your browser does not support the video tag.
-    </video>
   );
 }
