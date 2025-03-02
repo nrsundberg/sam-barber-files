@@ -21,9 +21,6 @@ if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME || !CDN_ENDPOINT) {
 }
 
 export const cdnEndpoint = CDN_ENDPOINT;
-if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
-  throw new Error("Missing S3 environment variables");
-}
 
 const s3Endpoint = S3_ENDPOINT ? { endpoint: S3_ENDPOINT } : {};
 
