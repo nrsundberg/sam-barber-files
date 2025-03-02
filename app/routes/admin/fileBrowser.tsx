@@ -88,8 +88,6 @@ export async function action({ request }: Route.ActionArgs) {
     let posterId = formData.get("posterId") as string;
     let s3Key = formData.get("s3Key") as string;
 
-    console.log(posterId);
-
     try {
       // TODO this should be an sql on change field so if the poster key changes this is reflected
       let poster = await prisma.object.findUniqueOrThrow({
@@ -117,12 +115,10 @@ export async function action({ request }: Route.ActionArgs) {
   );
 }
 
-// TODO this page isnt locked down by auth
 export default function ({ loaderData }: Route.ComponentProps) {
   let { s3Files, dbObjects, folders } = loaderData;
 
   return (
     <S3AssetManager files={s3Files} dbObjects={dbObjects} folders={folders} />
   );
-  // return <S3FileBrowser files={loaderData} />;
 }
