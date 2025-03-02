@@ -1,9 +1,9 @@
 import {
   GetObjectCommand,
   ListObjectsV2Command,
+  type ListObjectsV2CommandOutput,
   PutObjectCommand,
   S3Client,
-  type ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { S3Object } from "./types";
@@ -16,22 +16,20 @@ const S3_REGION = process.env.AWS_REGION;
 
 const CDN_ENDPOINT = process.env.CDN_ENDPOINT;
 
-if (
-  !S3_ENDPOINT ||
-  !S3_ACCESS_KEY ||
-  !S3_SECRET_KEY ||
-  !S3_BUCKET_NAME ||
-  !CDN_ENDPOINT
-) {
+if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME || !CDN_ENDPOINT) {
   throw new Error("Missing S3 environment variables");
 }
 
 export const cdnEndpoint = CDN_ENDPOINT;
+if (!S3_ACCESS_KEY || !S3_SECRET_KEY || !S3_BUCKET_NAME) {
+  throw new Error("Missing S3 environment variables");
+}
+
+const s3Endpoint = S3_ENDPOINT ? { endpoint: S3_ENDPOINT } : {};
 
 export const s3Client = new S3Client({
   region: S3_REGION,
-  endpoint: S3_ENDPOINT,
-  // TODO these will be off in prod and connect through domain?
+  ...s3Endpoint,
   credentials: {
     accessKeyId: S3_ACCESS_KEY,
     secretAccessKey: S3_SECRET_KEY,
