@@ -5,11 +5,14 @@ import type { FolderWithObjects } from "~/types";
 export interface AccordionProps {
   folders: FolderWithObjects[];
   allowMultiple?: boolean;
+  // Could make a context provider to not have to drill props
+  endpoint: string;
 }
 
 const SbAccordion: React.FC<AccordionProps> = ({
   folders,
   allowMultiple = false,
+  endpoint,
 }) => {
   let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
 
@@ -59,7 +62,6 @@ const SbAccordion: React.FC<AccordionProps> = ({
             const item = itemRefs.current[index];
             const elementTop =
               item.getBoundingClientRect().top + window.scrollY;
-            console.log(elementTop - 64);
             window.scrollTo({
               top: elementTop - 64,
               behavior: "smooth",
@@ -86,6 +88,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
             isOpen={openIndexes.includes(index)}
             onClick={() => toggleItem(index)}
             passRef={passElementRef}
+            endpoint={endpoint}
           />
         );
       })}
@@ -96,13 +99,3 @@ const SbAccordion: React.FC<AccordionProps> = ({
 };
 
 export default SbAccordion;
-
-{
-  /* <VideoModal
-                    objects={folder.objects}
-                    isOpen={isOpen}
-                    targetRef={targetRef}
-                    onOpenChange={onOpenChange}
-                    moveProps={moveProps}
-                  /> */
-}

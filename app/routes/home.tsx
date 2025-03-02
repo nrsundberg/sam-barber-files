@@ -43,7 +43,7 @@ export async function loader({}: Route.LoaderArgs) {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let [folders, favorites, trending, cdn_endpoint] = loaderData;
+  let [folders, favorites, trending, cdnEndpoint] = loaderData;
 
   return (
     <div className="min-h-screen mt-1">
@@ -58,7 +58,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
                 <ThumbnailObject
                   key={object.id}
                   object={object}
-                  endpoint={cdn_endpoint}
+                  endpoint={cdnEndpoint}
                 />
               ))}
             </div>
@@ -72,7 +72,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
                 <ThumbnailObject
                   key={object.id}
                   object={object}
-                  endpoint={cdn_endpoint}
+                  endpoint={cdnEndpoint}
                 />
               ))}
             </div>
@@ -86,7 +86,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <p className="text-center">SIZE</p>
         <p className="text-center">TYPE</p>
       </div>
-      <SbAccordion folders={folders} allowMultiple />
+      <SbAccordion folders={folders} endpoint={cdnEndpoint} allowMultiple />
     </div>
   );
 }

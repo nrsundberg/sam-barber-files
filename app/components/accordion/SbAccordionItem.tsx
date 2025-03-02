@@ -15,6 +15,7 @@ import { Link, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import VideoCarouselModal from "../carousel/VideoCarousel";
 
 export interface AccordionItemProps {
   index: number;
@@ -22,6 +23,7 @@ export interface AccordionItemProps {
   isOpen: boolean;
   onClick: () => void;
   passRef: (el: any, key: number) => void;
+  endpoint: string;
 }
 
 export default function ({
@@ -30,9 +32,12 @@ export default function ({
   passRef,
   isOpen,
   onClick,
+  endpoint,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
-  const [isSticky, setIsSticky] = useState(false);
+  let [isSticky, setIsSticky] = useState(false);
+  let [videoModalOpen, setVideoModalOpen] = useState(false);
+  let [selectedObjectIndex, setSelectedObjectIndex] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,6 +60,13 @@ export default function ({
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Function to open the video modal with the selected object
+  const openVideoModal = (objectIndex: number) => {
+    console.log("hello");
+    setSelectedObjectIndex(objectIndex);
+    setVideoModalOpen(true);
+  };
 
   return (
     <div
@@ -104,16 +116,25 @@ export default function ({
         } overflow-hidden`}
       >
         <div className="overflow-hidden">
-          {folder.objects.map((object) => (
+          {folder.objects.map((object, objectIndex) => (
             <RowLayout
               key={object.id}
               inAdmin={false}
+              onClick={() => openVideoModal(objectIndex)}
               object={object}
               isLast={index === folder.objects.length - 1}
             />
           ))}
         </div>
       </div>
+      {/* Video Carousel Modal */}
+      <VideoCarouselModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        objects={folder.objects}
+        initialObjectIndex={selectedObjectIndex}
+        endpoint={endpoint}
+      />
     </div>
   );
 }
@@ -122,11 +143,13 @@ export function RowLayout({
   object,
   inAdmin,
   isLast,
+  onClick,
   dragHandleProps,
 }: {
   object: Object;
   inAdmin: boolean;
   isLast: boolean;
+  onClick?: () => void;
   dragHandleProps?: any;
 }) {
   let submit = useSubmit();
@@ -147,7 +170,7 @@ export function RowLayout({
 
   return (
     <div
-      //   onClick={onOpen}
+      onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex items-center justify-between py-2 border-b border-gray-500
                        hover:bg-gray-800 transition duration-300 text-gray-400
