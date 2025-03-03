@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { S3Object } from "~/types";
-import type { Object as DbObject, ObjectKind } from "@prisma/client";
-import { Form, useActionData, useSubmit } from "react-router";
+import type { Object as DbObject, Object, ObjectKind } from "@prisma/client";
+import { Form, useActionData } from "react-router";
 import { formatBytes, formatDate } from "~/utils";
 
 interface S3AssetManagerProps {
@@ -11,15 +11,15 @@ interface S3AssetManagerProps {
 }
 
 const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
-  const [selectedFile, setSelectedFile] = useState<S3Object | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
-  const [selectedObjectKind, setSelectedObjectKind] =
+  let [selectedFile, setSelectedFile] = useState<S3Object | null>(null);
+  let [linkedObject, setLinkedObject] = useState<Object | null>(null);
+  let [selectedFolderId, setSelectedFolderId] = useState<string>("");
+  let [selectedObjectKind, setSelectedObjectKind] =
     useState<ObjectKind>("PHOTO");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showOnlyUnlinked, setShowOnlyUnlinked] = useState(false);
+  let [searchTerm, setSearchTerm] = useState("");
+  let [showOnlyUnlinked, setShowOnlyUnlinked] = useState(false);
 
-  const actionData = useActionData();
-  const submit = useSubmit();
+  let actionData = useActionData();
 
   // Reset form when a new file is selected
   useEffect(() => {
@@ -28,9 +28,11 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
         (obj) => obj.s3fileKey === selectedFile.key
       );
       if (linkedObject) {
+        setLinkedObject(linkedObject);
         setSelectedFolderId(linkedObject.folderId);
         setSelectedObjectKind(linkedObject.kind);
       } else {
+        setLinkedObject(null);
         setSelectedFolderId("");
         setSelectedObjectKind("PHOTO");
       }
@@ -58,6 +60,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
   // Check if a file is already linked to a database object
   const getFileStatus = (fileKey: string) => {
     const linkedAsMain = dbObjects.find((obj) => obj.s3fileKey === fileKey);
+    // TODO this is now based on if the file is in the poster folder
     const linkedAsPoster = dbObjects.find((obj) => obj.posterKey === fileKey);
 
     if (linkedAsMain)
@@ -332,16 +335,16 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                           className="w-full p-2 border rounded mb-2"
                           required
                           defaultValue={
-                            dbObjects.find(
-                              (it) => it.posterKey === selectedFile.key
+                            photoObjects.find(
+                              (it) => it.s3fileKey === linkedObject?.posterKey
                             )?.id ?? ""
                           }
                         >
                           <option value="">-- Select Object --</option>
                           {photoObjects.map((obj) => (
                             <option key={obj.id} value={obj.id}>
-                              {obj.fileName} ({obj.kind.toLowerCase()})
-                              {obj.posterKey === selectedFile.key
+                              {obj.fileName}
+                              {obj.s3fileKey === linkedObject?.posterKey
                                 ? " (Current poster)"
                                 : ""}
                             </option>
