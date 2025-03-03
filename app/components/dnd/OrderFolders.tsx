@@ -12,7 +12,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import SbFolderContextMenu from "../SbFolderContextMenu";
+import SbFolderContextMenu from "../contextMenu/SbFolderContextMenu";
 
 export default function ({
   folderList,

@@ -3,7 +3,7 @@ import { listS3Objects } from "~/s3.server";
 import { getUserAndProtectRoute } from "~/utils.server";
 import prisma from "~/db.server";
 import { dataWithError } from "remix-toast";
-import OrphanedDbObjects from "~/components/OrphanedObjects";
+import OrphanedDbObjects from "~/components/s3/OrphanedObjects";
 
 export function meta() {
   return [{ title: "Orphaned Objects - Admin Panel" }];

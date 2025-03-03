@@ -6,10 +6,12 @@ export function Thumbnail({
   object,
   endpoint,
   onClick,
+  isRow,
 }: {
   object: Object;
   endpoint: string;
   onClick?: () => void;
+  isRow?: boolean;
 }) {
   return (
     <div className="inline-flex gap-1 md:gap-3" onClick={onClick && onClick}>
@@ -26,9 +28,11 @@ export function Thumbnail({
       )}
       <div className={"flex flex-col"}>
         <p>{object.fileName}</p>
-        <p>
-          {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
-        </p>
+        {isRow ? null : (
+          <p>
+            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+          </p>
+        )}
       </div>
     </div>
   );

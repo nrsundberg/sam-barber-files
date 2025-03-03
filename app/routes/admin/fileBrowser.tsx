@@ -2,7 +2,7 @@ import type { Route } from "./+types/fileBrowser";
 import { listS3Objects } from "~/s3.server";
 import { getUserAndProtectRoute } from "~/utils.server";
 import prisma from "~/db.server";
-import S3AssetManager from "~/components/S3AssetManagement";
+import S3AssetManager from "~/components/s3/S3AssetManagement";
 import { dataWithError } from "remix-toast";
 
 export function meta() {

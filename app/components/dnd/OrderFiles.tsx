@@ -10,7 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { closestCenter, DndContext } from "@dnd-kit/core";
 import { RowLayout } from "../accordion/SbAccordionItem";
 import type { Object } from "@prisma/client";
-import SbContextMenu from "../SbContextMenu";
+import SbContextMenu from "../contextMenu/SbContextMenu";
 
 export default function ({
   objectList,
