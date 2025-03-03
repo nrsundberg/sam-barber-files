@@ -85,8 +85,8 @@ export default function ({
           {formatBytes(object.size)}
         </p>
 
-        <div className="grid justify-center">
-          <div className="grid justify-center items-center group-hover:hidden">
+        <div className="grid justify-center items-center">
+          <div className="group-hover:hidden">
             <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}

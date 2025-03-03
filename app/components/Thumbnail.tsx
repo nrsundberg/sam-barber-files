@@ -14,7 +14,10 @@ export function Thumbnail({
   isRow?: boolean;
 }) {
   return (
-    <div className="inline-flex gap-1 md:gap-3" onClick={onClick && onClick}>
+    <div
+      className="inline-flex gap-1 md:gap-3 items-center"
+      onClick={onClick && onClick}
+    >
       {object.posterKey ? (
         <img src={endpoint + object.posterKey} height={75} width={75} />
       ) : (
