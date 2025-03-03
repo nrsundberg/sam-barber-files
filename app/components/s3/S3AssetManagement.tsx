@@ -15,7 +15,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
   let [linkedObject, setLinkedObject] = useState<Object | null>(null);
   let [selectedFolderId, setSelectedFolderId] = useState<string>("");
   let [selectedObjectKind, setSelectedObjectKind] =
-    useState<ObjectKind>("PHOTO");
+    useState<ObjectKind>("VIDEO");
   let [searchTerm, setSearchTerm] = useState("");
   let [showOnlyUnlinked, setShowOnlyUnlinked] = useState(false);
 
@@ -34,7 +34,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
       } else {
         setLinkedObject(null);
         setSelectedFolderId("");
-        setSelectedObjectKind("PHOTO");
+        setSelectedObjectKind("VIDEO");
       }
     }
   }, [selectedFile, dbObjects]);
