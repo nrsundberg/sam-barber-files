@@ -8,9 +8,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { closestCenter, DndContext } from "@dnd-kit/core";
-import { RowLayout } from "../accordion/SbAccordionItem";
 import type { Object } from "@prisma/client";
 import SbContextMenu from "../contextMenu/SbContextMenu";
+import ObjectRowLayout from "../accordion/ObjectRowLayout";
 
 export default function ({
   objectList,
@@ -91,7 +91,7 @@ export function SortableSbObjectAccordionItem({
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       <SbContextMenu object={object} folders={folders}>
-        <RowLayout
+        <ObjectRowLayout
           object={object}
           inAdmin={true}
           isLast={false}

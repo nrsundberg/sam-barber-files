@@ -93,7 +93,9 @@ export function SortableSbAccordionItem({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onDoubleClick={() => {
-        navigate(isSelected ? "./" : folder.id, { preventScrollReset: true });
+        navigate(isSelected ? "./" : `/admin/${folder.id}`, {
+          preventScrollReset: true,
+        });
       }}
       className={`${isSelected ? "border border-red-400 text-red-400" : ""}`}
     >
