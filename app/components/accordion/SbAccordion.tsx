@@ -63,7 +63,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
             const elementTop =
               item.getBoundingClientRect().top + window.scrollY;
             window.scrollTo({
-              top: elementTop - 64,
+              top: elementTop - 96,
               behavior: "smooth",
             });
           }

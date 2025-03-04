@@ -1,7 +1,6 @@
 import {
   data,
   isRouteErrorResponse,
-  Link,
   Links,
   Meta,
   Outlet,
@@ -11,19 +10,13 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import {
-  HeroUIProvider,
-  Navbar,
-  NavbarBrand,
-  NavbarItem,
-  Tooltip,
-} from "@heroui/react";
+import { HeroUIProvider } from "@heroui/react";
 import { getToast } from "remix-toast";
 import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
-import ScrollToTopButton from "./components/ScrollToTop";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
+import SbNavbar from "./components/SbNavbar";
 
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
@@ -63,45 +56,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
       </head>
       <body className="text-xs md:text-medium">
         <HeroUIProvider>
-          <Navbar
-            maxWidth="full"
-            isBordered
-            isBlurred
-            className="bg-slate-50 text-black"
-          >
-            <NavbarBrand>
-              <Link to={"/"} className="font-bold md:text-2xl">
-                SAM BARBER FILES
-              </Link>
-            </NavbarBrand>
-            {user && (
-              <>
-                <NavbarItem>
-                  <Tooltip content={"This only shows for logged in sessions"}>
-                    <Link
-                      to={"/admin"}
-                      className="text-black font-bold border-2 p-2 rounded"
-                    >
-                      Admin Panel
-                    </Link>
-                  </Tooltip>
-                </NavbarItem>
-                <NavbarItem>
-                  <Tooltip content={"This only shows for logged in sessions"}>
-                    <Link
-                      to={"/kinde-auth/logout"}
-                      className="text-black font-bold border-2 p-2 rounded"
-                    >
-                      Logout
-                    </Link>
-                  </Tooltip>
-                </NavbarItem>
-              </>
-            )}
-            <NavbarItem>
-              <ScrollToTopButton />
-            </NavbarItem>
-          </Navbar>
+          <SbNavbar user={user} />
           <Outlet />
           <ScrollRestoration />
           <Scripts />

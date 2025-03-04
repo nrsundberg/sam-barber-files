@@ -17,7 +17,7 @@ export default function () {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={`text-black font-semibold text-md transition-opacity ${
+      className={`text-white font-semibold text-md transition-opacity ${
         isVisible ? "opacity-100" : "opacity-0"
       }`}
     >

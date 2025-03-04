@@ -1,19 +1,8 @@
-import { Button, Tooltip } from "@heroui/react";
-import type { Object } from "@prisma/client";
-import {
-  ChevronLeft,
-  Download,
-  EyeOffIcon,
-  FolderIcon,
-  Star,
-  TrendingUp,
-} from "lucide-react";
+import { ChevronLeft, FolderIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
-import { Thumbnail } from "../Thumbnail";
 import VideoCarousel from "../carousel/VideoCarousel";
 import { useVideoCarousel } from "../carousel/useVideoCarousel";
 import ObjectRowLayout from "./ObjectRowLayout";
