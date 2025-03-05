@@ -4,7 +4,7 @@ import type { KindeUser } from "@kinde-oss/kinde-remix-sdk/types";
 import { Tooltip } from "@heroui/react";
 import ScrollToTopButton from "./ScrollToTop";
 
-export default function ({ user }: { user: KindeUser | undefined }) {
+export default function ({ user }: { user: KindeUser | null }) {
   return (
     <header className="sticky top-0 z-50 border-b-2 border-white bg-opacity-100 overflow-hidden bg-black">
       <RotatingBanner />
