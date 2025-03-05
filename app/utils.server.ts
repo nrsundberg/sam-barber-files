@@ -9,7 +9,7 @@ export async function getUserAndProtectRoute(
   const user = await getUser();
   if (user === null) {
     throw await redirectWithError(
-      "/",
+      "/login",
       "You are not authorized to view this page."
     );
   }
