@@ -6,6 +6,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -16,6 +17,7 @@ import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
+import ReactGA from "react-ga4";
 import SbNavbar from "./components/SbNavbar";
 
 // Add the toast stylesheet
@@ -34,9 +36,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return data({ toast, user: await getUser() }, { headers });
 }
 
-// export function Layout({
 export default function App({ loaderData }: Route.ComponentProps) {
   let { toast, user } = loaderData;
+  let location = useLocation();
+
+  useEffect(() => {
+    ReactGA.initialize("G-3KL2MQ8DYM");
+    ReactGA.send({ hitType: "pageview", page: location.pathname });
+  }, [location]);
 
   // Hook to show the toasts
   useEffect(() => {
@@ -54,6 +61,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <Meta />
         <Links />
       </head>
+
       <body className="text-xs md:text-medium">
         <HeroUIProvider>
           <SbNavbar user={user} />
