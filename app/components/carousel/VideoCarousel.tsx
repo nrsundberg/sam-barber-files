@@ -1,6 +1,6 @@
 import React from "react";
-import { Modal, ModalContent } from "@heroui/react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { Button, Modal, ModalContent } from "@heroui/react";
+import { ChevronUp, ChevronDown, X } from "lucide-react";
 import type { Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
@@ -44,7 +44,7 @@ export default function VideoCarousel({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size={"xl"}
+      size={"3xl"}
       backdrop={"blur"}
       className="bg-transparent shadow-none"
       classNames={{
@@ -77,7 +77,7 @@ export default function VideoCarousel({
 
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
-            <div className="relative w-full max-w-4xl aspect-video">
+            <div className="relative w-full max-w-6xl aspect-video">
               <video
                 controls
                 ref={videoRef}
@@ -91,27 +91,32 @@ export default function VideoCarousel({
               />
 
               {/* Video info overlay */}
-              <div className="left-0 right-0 bg-black bg-opacity-50 p-4 text-white">
-                <h3 className="text-lg font-bold mb-1">
-                  {currentObject.fileName}
-                </h3>
-                <div className="flex justify-between text-sm">
-                  <p>
+              <div className="grid grid-cols-3 py-1">
+                <div className="bg-black bg-opacity-50 text-white">
+                  <h3 className="text-lg font-bold">
+                    {currentObject.fileName}
+                  </h3>
+                  <p className="text-sm">
                     {formatInTimeZone(
                       currentObject.createdDate,
                       "UTC",
                       "MM.dd.yyyy hh:mm a"
                     )}
                   </p>
-                  <p>{formatBytes(currentObject.size)}</p>
                 </div>
-              </div>
-            </div>
 
-            <div className="mt-4 px-4 w-full max-w-4xl">
-              <p className="text-white text-center">
-                {currentIndex + 1} of {objects.length}
-              </p>
+                <p className="text-gray-500 text-center">
+                  {currentIndex + 1} of {objects.length}
+                </p>
+                <p className="text-sm self-end place-self-end">
+                  {formatBytes(currentObject.size)}
+                </p>
+              </div>
+              <div className="w-full justify-center flex">
+                <Button variant="bordered" className="my-3" onPress={onClose}>
+                  Close
+                </Button>
+              </div>
             </div>
           </div>
 
