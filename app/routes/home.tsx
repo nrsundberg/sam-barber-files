@@ -47,17 +47,12 @@ export async function loader({}: Route.LoaderArgs) {
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint] = loaderData;
 
-  const { isOpen, openModal, closeModal, currentIndex } = useVideoCarousel({
+  const useVideoFavorites = useVideoCarousel({
     objects: favorites,
     endpoint: cdnEndpoint,
   });
 
-  const {
-    isOpen: isOpenTrending,
-    openModal: openModalTrending,
-    closeModal: closeModalTrending,
-    currentIndex: currentIndexTrending,
-  } = useVideoCarousel({
+  const useVideoTrending = useVideoCarousel({
     objects: trending,
     endpoint: cdnEndpoint,
   });
@@ -72,7 +67,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               {favorites.map((object: Object, objectIndex) => (
                 <ObjectGridLayout
                   key={object.id}
-                  onClick={() => openModal(objectIndex)}
+                  onClick={() => useVideoFavorites.openModal(objectIndex)}
                   object={object}
                   endpoint={cdnEndpoint}
                   width={350}
@@ -82,11 +77,9 @@ export default function ({ loaderData }: Route.ComponentProps) {
           </div>
         )}
         <VideoCarousel
-          isOpen={isOpen}
-          onClose={() => closeModal()}
           objects={favorites}
-          initialObjectIndex={currentIndex}
           endpoint={cdnEndpoint}
+          useVideo={useVideoFavorites}
         />
 
         {trending.length > 0 && (
@@ -96,7 +89,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               {trending.map((object: Object, index: number) => (
                 <ObjectGridLayout
                   key={object.id}
-                  onClick={() => openModalTrending(index)}
+                  onClick={() => useVideoTrending.openModal(index)}
                   object={object}
                   endpoint={cdnEndpoint}
                   width={350}
@@ -106,11 +99,9 @@ export default function ({ loaderData }: Route.ComponentProps) {
           </div>
         )}
         <VideoCarousel
-          isOpen={isOpenTrending}
-          onClose={() => closeModalTrending()}
           objects={trending}
-          initialObjectIndex={currentIndexTrending}
           endpoint={cdnEndpoint}
+          useVideo={useVideoTrending}
         />
       </div>
 

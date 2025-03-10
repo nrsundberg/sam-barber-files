@@ -7,7 +7,7 @@ interface UseVideoCarouselProps {
   endpoint: string;
 }
 
-interface UseVideoCarouselReturn {
+export interface UseVideoCarouselReturn {
   // State
   isOpen: boolean;
   currentIndex: number;
@@ -18,7 +18,7 @@ interface UseVideoCarouselReturn {
   containerRef: React.RefObject<HTMLDivElement | null>;
 
   // Actions
-  openModal: (objectIndex?: number) => void;
+  openModal: (objectIndex: number) => void;
   closeModal: () => void;
   navigateToVideo: (index: number) => void;
   handleNext: () => void;
@@ -46,13 +46,6 @@ export function useVideoCarousel({
   let touchStartY = useRef<number | null>(null);
 
   const currentObject = objects.length > 0 ? objects[currentIndex] : null;
-
-  // Reset current index when modal opens or initial index changes
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentIndex(initialObjectIndex);
-    }
-  }, [initialObjectIndex, isOpen]);
 
   // Handle video ended event
   useEffect(() => {
@@ -83,10 +76,8 @@ export function useVideoCarousel({
   }, [isPlaying]);
 
   // Functions for controlling the carousel
-  const openModal = (objectIndex?: number) => {
-    if (objectIndex !== undefined) {
-      setCurrentIndex(objectIndex);
-    }
+  const openModal = (objectIndex: number) => {
+    setCurrentIndex(objectIndex);
     setIsOpen(true);
   };
 

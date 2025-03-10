@@ -3,24 +3,22 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
-import { useVideoCarousel } from "./useVideoCarousel";
+import { type UseVideoCarouselReturn } from "./useVideoCarousel";
 
 interface VideoCarouselProps {
   objects: Object[];
-  initialObjectIndex: number;
   endpoint: string;
-  isOpen: boolean;
-  onClose: () => void;
+  useVideo: UseVideoCarouselReturn;
 }
 
 export default function VideoCarousel({
   objects,
-  initialObjectIndex,
   endpoint,
-  isOpen,
-  onClose,
+  useVideo,
 }: VideoCarouselProps) {
-  const {
+  let {
+    isOpen,
+    closeModal,
     currentIndex,
     currentObject,
     videoRef,
@@ -31,18 +29,14 @@ export default function VideoCarousel({
     handleTouchMove,
     handleTouchEnd,
     handleWheel,
-  } = useVideoCarousel({
-    objects,
-    initialObjectIndex,
-    endpoint,
-  });
+  } = useVideo;
 
   if (!isOpen || !currentObject) return null;
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={closeModal}
       size={"3xl"}
       backdrop={"blur"}
       className="bg-transparent shadow-none"
@@ -132,7 +126,11 @@ export default function VideoCarousel({
                 </p>
               </div>
               <div className="w-full justify-center flex">
-                <Button variant="bordered" className="my-3" onPress={onClose}>
+                <Button
+                  variant="bordered"
+                  className="my-3"
+                  onPress={closeModal}
+                >
                   Close
                 </Button>
               </div>

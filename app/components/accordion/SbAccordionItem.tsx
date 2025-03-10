@@ -30,7 +30,7 @@ export default function ({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
 
-  const { isOpen, openModal, closeModal, currentIndex } = useVideoCarousel({
+  const useVideo = useVideoCarousel({
     objects: folder.objects,
     endpoint: endpoint,
   });
@@ -113,7 +113,7 @@ export default function ({
               <ObjectRowLayout
                 key={object.id}
                 inAdmin={false}
-                onClick={() => openModal(objectIndex)}
+                onClick={() => useVideo.openModal(objectIndex)}
                 object={object}
                 isLast={objectIndex === folder.objects.length - 1}
                 endpoint={endpoint}
@@ -125,7 +125,7 @@ export default function ({
               {folder.objects.map((object, objectIndex) => (
                 <ObjectGridLayout
                   key={object.id}
-                  onClick={() => openModal(objectIndex)}
+                  onClick={() => useVideo.openModal(objectIndex)}
                   object={object}
                   endpoint={endpoint}
                 />
@@ -136,11 +136,9 @@ export default function ({
       </div>
 
       <VideoCarousel
-        isOpen={isOpen}
-        onClose={() => closeModal()}
         objects={folder.objects}
-        initialObjectIndex={currentIndex}
         endpoint={endpoint}
+        useVideo={useVideo}
       />
     </div>
   );
