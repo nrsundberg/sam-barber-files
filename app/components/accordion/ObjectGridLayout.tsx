@@ -39,7 +39,7 @@ export default function ({
       )}
 
       <div className="flex justify-between items-center mt-auto">
-        <div className="text-xs font-light md:text-sm md:font-medium wrap-text">
+        <div className="text-xs font-light md:text-sm md:font-medium truncate max-w-[80%]">
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
 
