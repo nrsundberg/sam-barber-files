@@ -1,6 +1,5 @@
-import React from "react";
 import { Button, Modal, ModalContent } from "@heroui/react";
-import { ChevronUp, ChevronDown, X } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";

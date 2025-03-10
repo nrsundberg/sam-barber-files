@@ -1,11 +1,14 @@
-import { ChevronLeft, FolderIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, FolderIcon, Grid, List } from "lucide-react";
+import { useRef, useState } from "react";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
 import VideoCarousel from "../carousel/VideoCarousel";
 import { useVideoCarousel } from "../carousel/useVideoCarousel";
 import ObjectRowLayout from "./ObjectRowLayout";
+import ObjectGridLayout from "./ObjectGridLayout";
+import { DisplayStyle } from "@prisma/client";
+import { Switch } from "@heroui/react";
 
 export interface AccordionItemProps {
   index: number;
@@ -25,95 +28,112 @@ export default function ({
   endpoint,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
-  let [isSticky, setIsSticky] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!parentRef.current) return;
-
-      const parentTop = parentRef.current.getBoundingClientRect().top;
-      const lastChild = parentRef.current.querySelector(".last-child");
-
-      if (lastChild) {
-        const lastChildBottom = lastChild.getBoundingClientRect().bottom;
-
-        if (parentTop <= 0 && lastChildBottom > window.innerHeight) {
-          setIsSticky(true);
-        } else {
-          setIsSticky(false);
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
 
   const { isOpen, openModal, closeModal, currentIndex } = useVideoCarousel({
     objects: folder.objects,
     endpoint: endpoint,
   });
 
+  const toggleViewMode = (view: DisplayStyle) => {
+    setViewMode(view);
+  };
+
   return (
     <div
       key={folder.id}
       ref={parentRef}
-      className={`border-b border-gray-500 z-10 transition-all ${
-        isSticky ? "fixed top-0 left-0 right-0 shadow-lg" : "relative"
-      }`}
+      className={"border-b border-gray-500 z-10 transition-all"}
     >
-      <button
-        ref={(el) => passRef(el, index)}
-        className="w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-1 md:p-4 hover:bg-sb-banner hover:text-sb-restless group"
-        onClick={onClick}
-      >
-        <div className="inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold">
-          <ChevronLeft
-            className={`transform transition-transform duration-300 ${
-              isFolderOpen ? "-rotate-90" : "rotate-180"
-            }`}
-          />
-          <FolderIcon />
-          {folder.name}
-        </div>
-        <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
-          <p className="text-center hidden md:block">
-            {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
-          </p>
-          <p className="text-center text-xs md:hidden">
-            {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy")}
-          </p>
-          <p className="text-center text-xs md:hidden">
-            {formatInTimeZone(folder.createdDate, "UTC", "hh:mm a")}
-          </p>
-        </span>
-        <span className="text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
-          {formatBytes(getTotalFolderSize(folder.objects))}
-        </span>
-        <div className="grid justify-center items-center">
-          <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
-            FOLDER
+      <div className="flex items-center w-full">
+        <button
+          ref={(el) => passRef(el, index)}
+          className="flex-1 grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-1 md:p-4 hover:bg-sb-banner hover:text-sb-restless group"
+          onClick={onClick}
+        >
+          <div className="inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold">
+            <ChevronLeft
+              className={`transform transition-transform duration-300 ${
+                isFolderOpen ? "-rotate-90" : "rotate-180"
+              }`}
+            />
+            <FolderIcon />
+            {folder.name}
           </div>
-        </div>
-      </button>
+          <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+            <p className="text-center hidden md:block">
+              {formatInTimeZone(
+                folder.createdDate,
+                "UTC",
+                "MM.dd.yyyy hh:mm a"
+              )}
+            </p>
+            <p className="text-center text-xs md:hidden">
+              {formatInTimeZone(folder.createdDate, "UTC", "MM.dd.yyyy")}
+            </p>
+            <p className="text-center text-xs md:hidden">
+              {formatInTimeZone(folder.createdDate, "UTC", "hh:mm a")}
+            </p>
+          </span>
+          <span className="text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
+            {formatBytes(getTotalFolderSize(folder.objects))}
+          </span>
+          <div
+            className={`justify-center items-center ${isFolderOpen ? "inline-flex gap-2" : "grid gap-2"}`}
+          >
+            <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+              FOLDER
+            </div>
+            {isFolderOpen && (
+              <Switch
+                onValueChange={(selected) =>
+                  toggleViewMode(
+                    selected ? DisplayStyle.LIST : DisplayStyle.GRID
+                  )
+                }
+                checked={viewMode == "GRID"}
+                color="default"
+                className="justify-self-center"
+                endContent={<Grid className="w-5 h-5" />}
+                startContent={<List className="w-5 h-5" />}
+              />
+            )}
+          </div>
+        </button>
+      </div>
+
       <div
-        className={`grid transition-[grid-template-rows] duration-300 ${
+        className={`transition-[grid-template-rows] duration-300 ${
           isFolderOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        } overflow-hidden`}
+        } grid overflow-hidden`}
       >
         <div className="overflow-hidden">
-          {folder.objects.map((object, objectIndex) => (
-            <ObjectRowLayout
-              key={object.id}
-              inAdmin={false}
-              onClick={() => openModal(objectIndex)}
-              object={object}
-              isLast={index === folder.objects.length - 1}
-              endpoint={endpoint}
-            />
-          ))}
+          {viewMode == "LIST" ? (
+            folder.objects.map((object, objectIndex) => (
+              <ObjectRowLayout
+                key={object.id}
+                inAdmin={false}
+                onClick={() => openModal(objectIndex)}
+                object={object}
+                isLast={objectIndex === folder.objects.length - 1}
+                endpoint={endpoint}
+              />
+            ))
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+              {folder.objects.map((object, objectIndex) => (
+                <ObjectGridLayout
+                  key={object.id}
+                  onClick={() => openModal(objectIndex)}
+                  object={object}
+                  endpoint={endpoint}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
       <VideoCarousel
         isOpen={isOpen}
         onClose={() => closeModal()}
