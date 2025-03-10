@@ -1,5 +1,4 @@
 import type { Object } from "@prisma/client";
-import { formatInTimeZone } from "date-fns-tz";
 import { Camera, Music, Video } from "lucide-react";
 
 export function Thumbnail({
@@ -19,13 +18,13 @@ export function Thumbnail({
 }) {
   return (
     <div
-      className="inline-flex gap-1 md:gap-3 items-center w-full justify-center align-middle h-full"
+      className={"align-middle w-full h-full items-center"}
       onClick={onClick && onClick}
     >
       {object.posterKey ? (
         <img src={endpoint + object.posterKey} height={height} width={width} />
       ) : (
-        <p>
+        <div className="items-center flex h-full justify-center">
           {object.kind === "AUDIO" ? (
             <Music className="text-blue-400 w-[50px] h-[50px]" />
           ) : object.kind === "PHOTO" ? (
@@ -33,22 +32,9 @@ export function Thumbnail({
           ) : (
             <Video className="text-green-400 w-[50px] h-[50px]" />
           )}
-        </p>
-      )}
-      {!isRow ? null : (
-        <div className={"flex flex-col"}>
-          <p>{object.fileName}</p>
-          {isRow ? null : (
-            <p>
-              {formatInTimeZone(
-                object.createdDate,
-                "UTC",
-                "MM.dd.yyyy hh:mm a"
-              )}
-            </p>
-          )}
         </div>
       )}
+      {!isRow ? null : <p className="self-center">{object.fileName}</p>}
     </div>
   );
 }

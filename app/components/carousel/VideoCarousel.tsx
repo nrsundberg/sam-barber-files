@@ -62,7 +62,7 @@ export default function VideoCarousel({
           {/* Previous video preview (partially visible) */}
           {currentIndex > 0 && (
             <div
-              className="absolute top-0 w-full h-20 bg-black bg-opacity-70 flex items-center justify-center cursor-pointer"
+              className="absolute top-0 w-full h-20 bg-opacity-70 flex items-center justify-center cursor-pointer"
               onClick={handlePrev}
             >
               <div className="flex flex-col items-center">
@@ -142,7 +142,7 @@ export default function VideoCarousel({
           {/* Next video preview (partially visible) */}
           {currentIndex < objects.length - 1 && (
             <div
-              className="absolute bottom-0 w-full h-20 bg-black bg-opacity-70 flex items-center justify-center cursor-pointer"
+              className="absolute bottom-0 w-full h-20 bg-opacity-70 flex items-center justify-center cursor-pointer"
               onClick={handleNext}
             >
               <div className="flex flex-col items-center">

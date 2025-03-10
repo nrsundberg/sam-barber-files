@@ -108,7 +108,7 @@ export default function ({
               isIconOnly
               variant="shadow"
               as={Link}
-              to={`/download/${object.s3fileKey}`}
+              to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
               reloadDocument
               size="sm"
               className="bg-sb-banner justify-center group-hover:text-sb-restless hidden group-hover:flex"

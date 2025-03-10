@@ -6,9 +6,13 @@ import { redirect } from "react-router";
 export async function loader({ params }: Route.LoaderArgs) {
   let { fileId } = params;
   try {
-    let presignedUrl = await getPresignedDownloadUrl(fileId);
+    let presignedUrl = await getPresignedDownloadUrl(
+      decodeURIComponent(fileId)
+    );
 
-    let object = await prisma.object.findUnique({ where: { id: fileId } });
+    let object = await prisma.object.findUnique({
+      where: { s3fileKey: fileId },
+    });
     // Fetch the file from S3 using the signed URL
     let response = await fetch(presignedUrl);
 
