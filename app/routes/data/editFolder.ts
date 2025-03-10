@@ -3,6 +3,7 @@ import type { Route } from "./+types/editFolder";
 import invariant from "tiny-invariant";
 import { convertToUTCDateTime } from "~/utils";
 import { dataWithInfo, dataWithSuccess, dataWithWarning } from "remix-toast";
+import type { DisplayStyle } from "@prisma/client";
 
 export async function action({ request, params }: Route.ActionArgs) {
   let formData = await request.formData();
@@ -45,6 +46,18 @@ export async function action({ request, params }: Route.ActionArgs) {
       return dataWithInfo(
         { action: "Folder vis changed", ok: true },
         hidden ? "Folder marked as hidden" : "Folder made visible"
+      );
+
+    case "toggleDisplay":
+      const display = formData.get("display")?.toString();
+
+      await prisma.folder.update({
+        where: { id: folderId },
+        data: { defaultStyle: display as DisplayStyle },
+      });
+      return dataWithInfo(
+        { action: "Folder style changed", ok: true },
+        display === "LIST" ? "Folder in list" : "Folder in grid"
       );
 
     case "delete":

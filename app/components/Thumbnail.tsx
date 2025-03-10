@@ -1,42 +1,54 @@
 import type { Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
-import { Music, Video } from "lucide-react";
+import { Camera, Music, Video } from "lucide-react";
 
 export function Thumbnail({
   object,
   endpoint,
   onClick,
   isRow,
+  height,
+  width,
 }: {
   object: Object;
   endpoint: string;
   onClick?: () => void;
   isRow?: boolean;
+  height?: number;
+  width?: number;
 }) {
   return (
     <div
-      className="inline-flex gap-1 md:gap-3 items-center"
+      className="inline-flex gap-1 md:gap-3 items-center w-full justify-center align-middle h-full"
       onClick={onClick && onClick}
     >
       {object.posterKey ? (
-        <img src={endpoint + object.posterKey} height={75} width={75} />
+        <img src={endpoint + object.posterKey} height={height} width={width} />
       ) : (
         <p>
           {object.kind === "AUDIO" ? (
-            <Music className="text-blue-400 w-6 h-6" />
+            <Music className="text-blue-400 w-[50px] h-[50px]" />
+          ) : object.kind === "PHOTO" ? (
+            <Camera className="text-green-400 w-[50px] h-[50px]" />
           ) : (
-            <Video className="text-green-400 w-6 h-6" />
+            <Video className="text-green-400 w-[50px] h-[50px]" />
           )}
         </p>
       )}
-      <div className={"flex flex-col"}>
-        <p>{object.fileName}</p>
-        {isRow ? null : (
-          <p>
-            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
-          </p>
-        )}
-      </div>
+      {!isRow ? null : (
+        <div className={"flex flex-col"}>
+          <p>{object.fileName}</p>
+          {isRow ? null : (
+            <p>
+              {formatInTimeZone(
+                object.createdDate,
+                "UTC",
+                "MM.dd.yyyy hh:mm a"
+              )}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

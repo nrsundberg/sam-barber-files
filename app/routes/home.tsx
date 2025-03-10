@@ -7,6 +7,7 @@ import { Thumbnail } from "~/components/Thumbnail";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
+import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
 
 export function meta() {
   return [
@@ -51,21 +52,30 @@ export default function ({ loaderData }: Route.ComponentProps) {
     endpoint: cdnEndpoint,
   });
 
+  const {
+    isOpen: isOpenTrending,
+    openModal: openModalTrending,
+    closeModal: closeModalTrending,
+    currentIndex: currentIndexTrending,
+  } = useVideoCarousel({
+    objects: trending,
+    endpoint: cdnEndpoint,
+  });
+
   return (
     <div className="min-h-screen mt-1">
-      <div className={"px-1 grid auto-rows-auto justify-around mb-1 md:mb-4"}>
-        {/*NOTE THIS WILL DISPLAY IF THERE ARE NONE*/}
-        {/*IF A NEED TO HAVE NONE CONDI*/}
+      <div className={"px-4 grid auto-rows-auto mb-1 md:mb-4"}>
         {favorites.length > 0 && (
           <div>
-            <p>FAVORITES</p>
-            <div className={"inline-flex gap-1 md:gap-3"}>
+            <p className="text-2xl font-bold">FAVORITES</p>
+            <div className="grid grid-cols-5 gap-1 lg:gap-10">
               {favorites.map((object: Object, objectIndex) => (
-                <Thumbnail
+                <ObjectGridLayout
                   key={object.id}
+                  onClick={() => openModal(objectIndex)}
                   object={object}
                   endpoint={cdnEndpoint}
-                  onClick={() => openModal(objectIndex)}
+                  width={350}
                 />
               ))}
             </div>
@@ -80,19 +90,28 @@ export default function ({ loaderData }: Route.ComponentProps) {
         />
 
         {trending.length > 0 && (
-          <div>
-            <p>TRENDING</p>
-            <div className={"inline-flex gap-1 md:gap-3"}>
-              {trending.map((object: Object) => (
-                <Thumbnail
+          <div className="mt-2">
+            <p className="text-2xl font-bold">TRENDING</p>
+            <div className="grid grid-cols-5 gap-4">
+              {trending.map((object: Object, index: number) => (
+                <ObjectGridLayout
                   key={object.id}
+                  onClick={() => openModalTrending(index)}
                   object={object}
                   endpoint={cdnEndpoint}
+                  width={350}
                 />
               ))}
             </div>
           </div>
         )}
+        <VideoCarousel
+          isOpen={isOpenTrending}
+          onClose={() => closeModalTrending()}
+          objects={trending}
+          initialObjectIndex={currentIndexTrending}
+          endpoint={cdnEndpoint}
+        />
       </div>
 
       <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">

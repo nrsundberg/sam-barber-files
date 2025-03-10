@@ -16,7 +16,14 @@ const RotatingBanner = () => {
     "-",
   ];
 
-  const repeatedWords = [...words, ...words, ...words, ...words];
+  const repeatedWords = [
+    ...words,
+    ...words,
+    ...words,
+    ...words,
+    ...words,
+    ...words,
+  ];
 
   return (
     <div className="w-full bg-white overflow-hidden py-1">

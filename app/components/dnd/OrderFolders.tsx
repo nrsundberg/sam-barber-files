@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ChevronLeft, EyeOffIcon, FolderIcon } from "lucide-react";
+import { ChevronLeft, EyeOffIcon, FolderIcon, Grid, List } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSubmit } from "react-router";
 import type { FolderWithObjects } from "~/types";
@@ -105,6 +105,7 @@ export function SortableSbAccordionItem({
           createdDate={format(folder.createdDate, "MM.dd.yyyy hh:mm a")}
           size={formatBytes(getTotalFolderSize(folder.objects))}
           isHidden={folder.hidden}
+          isGrid={folder.defaultStyle === "GRID"}
           dragHandleProps={{ ...attributes, ...listeners }}
         />
       </SbFolderContextMenu>
@@ -118,12 +119,14 @@ function FolderRowLayout({
   isHidden,
   size,
   dragHandleProps,
+  isGrid,
 }: {
   name: string;
   createdDate: string;
   isHidden: boolean;
   size: string;
   dragHandleProps?: any;
+  isGrid: boolean;
 }) {
   return (
     <div
@@ -148,6 +151,7 @@ function FolderRowLayout({
       <div className="grid justify-center">
         <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
           FOLDER
+          {isGrid ? <Grid className="w-5 h-5" /> : <List className="w-5 h-5" />}
           {isHidden && <EyeOffIcon className="w-3 h-3 self-center" />}
         </div>
       </div>

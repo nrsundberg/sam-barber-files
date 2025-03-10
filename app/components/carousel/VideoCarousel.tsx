@@ -111,7 +111,7 @@ export default function VideoCarousel({
 
               {/* Video info overlay */}
               <div className="grid grid-cols-3 py-1">
-                <div className="bg-black bg-opacity-50 text-white">
+                <div className="bg-opacity-50 text-white">
                   <h3 className="text-lg font-bold">
                     {currentObject.fileName}
                   </h3>

@@ -189,6 +189,23 @@ const ContextMenu = ({
         </li>
 
         <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
+          <fetcher.Form
+            method="POST"
+            action={`/data/edit/folder/${folder.id}/toggleDisplay`}
+            onSubmit={onClose}
+          >
+            <input
+              type="hidden"
+              name="display"
+              value={folder.defaultStyle === "GRID" ? "LIST" : "GRID"}
+            />
+            <button type="submit" className="w-full text-left">
+              {folder.defaultStyle === "GRID" ? "List View" : "Grid View"}
+            </button>
+          </fetcher.Form>
+        </li>
+
+        <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
           {/* // TODO any use in deleting from s3 and video provider? */}
           <fetcher.Form
             method="POST"

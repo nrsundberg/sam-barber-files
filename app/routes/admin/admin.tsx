@@ -122,7 +122,9 @@ export async function action({ request }: Route.ActionArgs) {
         console.error(`Could not upload file with error: ${e}`);
         return data({ error: "Could not load file" }, { status: 400 });
       }
+    case "UPDATE":
   }
+
   return data({ error: "Invalid action" }, { status: 400 });
 }
 
