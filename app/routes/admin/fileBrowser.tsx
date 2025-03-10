@@ -4,6 +4,9 @@ import { getUserAndProtectRoute } from "~/utils.server";
 import prisma from "~/db.server";
 import S3AssetManager from "~/components/s3/S3AssetManagement";
 import { dataWithError } from "remix-toast";
+import { zfd } from "zod-form-data";
+import { object, z } from "zod";
+import { ObjectKind } from "@prisma/client";
 
 export function meta() {
   return [{ title: "File Browser - Admin Panel" }];
@@ -32,6 +35,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   // return listS3Objects();
 }
 
+const createOrUpdateObject = zfd.formData({
+  s3fileKey: z.string(),
+  fileName: z.string(),
+  size: z.coerce.number(),
+  folderId: z.string(),
+  kind: z.enum(["PHOTO", "VIDEO", "AUDIO"]),
+  objectId: z.string().optional(),
+});
+
 export async function action({ request }: Route.ActionArgs) {
   // Verify authentication
   let user = await getUserAndProtectRoute(request);
@@ -40,75 +52,88 @@ export async function action({ request }: Route.ActionArgs) {
   let action = formData.get("action") as string;
 
   // Handle creation of a new database object
-  if (action === "createObject") {
-    const s3fileKey = formData.get("s3fileKey") as string;
-    const fileName = formData.get("fileName") as string;
-    const size = parseInt(formData.get("size") as string);
-    const folderId = formData.get("folderId") as string;
-    const kind = formData.get("kind") as "PHOTO" | "VIDEO" | "AUDIO";
+  switch (action) {
+    case "createObject": {
+      let { s3fileKey, fileName, size, folderId, kind } =
+        createOrUpdateObject.parse(formData);
 
-    try {
-      // Get the highest filePosition in this folder to place the new file at the end
-      let highestPositionObj = await prisma.object.findFirst({
-        where: { folderId },
-        orderBy: { filePosition: "desc" },
-      });
+      try {
+        // Get the highest filePosition in this folder to place the new file at the end
+        let highestPositionObj = await prisma.object.findFirst({
+          where: { folderId },
+          orderBy: { filePosition: "desc" },
+        });
 
-      let filePosition = highestPositionObj
-        ? highestPositionObj.filePosition + 1
-        : 0;
+        let filePosition = highestPositionObj
+          ? highestPositionObj.filePosition + 1
+          : 0;
 
-      // Create the new object
-      let newObject = await prisma.object.create({
-        data: {
-          fileName,
-          createdDate: new Date(),
-          hidden: false,
-          size,
-          kind,
-          filePosition,
-          s3fileKey,
-          folderId,
-        },
-      });
+        // Create the new object
+        let newObject = await prisma.object.create({
+          data: {
+            fileName,
+            createdDate: new Date(),
+            hidden: false,
+            size,
+            kind,
+            filePosition,
+            s3fileKey,
+            folderId,
+          },
+        });
 
-      return {
-        success: true,
-        message: `Object "${fileName}" created successfully.`,
-        object: newObject,
-      };
-    } catch (error) {
-      console.error("Error creating object:", error);
-      return { error: true, message: "Failed to create object." };
+        return {
+          success: true,
+          message: `Object "${fileName}" created successfully.`,
+          object: newObject,
+        };
+      } catch (error) {
+        console.error("Error creating object:", error);
+        return { error: true, message: "Failed to create object." };
+      }
+    }
+    case "modifyObject": {
+      let { fileName, size, folderId, kind, objectId } =
+        createOrUpdateObject.parse(formData);
+      if (objectId) {
+        let updatedObject = await prisma.object.update({
+          where: { id: objectId },
+          data: { fileName, size, folderId, kind },
+        });
+        return {
+          success: true,
+          message: `Object "${fileName}" updated.`,
+          object: updatedObject,
+        };
+      }
+    }
+
+    // Handle setting a file as a poster image
+    case "setPoster": {
+      let posterId = formData.get("posterId") as string;
+      let s3Key = formData.get("s3Key") as string;
+
+      try {
+        // TODO this should be an sql on change field so if the poster key changes this is reflected
+        let poster = await prisma.object.findUniqueOrThrow({
+          where: { id: posterId },
+        });
+        let updatedObject = await prisma.object.update({
+          where: { s3fileKey: s3Key },
+          data: { posterKey: poster.s3fileKey },
+        });
+
+        return {
+          success: true,
+          message: "Poster image set successfully.",
+          object: updatedObject,
+        };
+      } catch (error) {
+        console.error("Error setting poster image:", error);
+        return { error: true, message: "Failed to set poster image." };
+      }
     }
   }
-
-  // Handle setting a file as a poster image
-  if (action === "setPoster") {
-    let posterId = formData.get("posterId") as string;
-    let s3Key = formData.get("s3Key") as string;
-
-    try {
-      // TODO this should be an sql on change field so if the poster key changes this is reflected
-      let poster = await prisma.object.findUniqueOrThrow({
-        where: { id: posterId },
-      });
-      let updatedObject = await prisma.object.update({
-        where: { s3fileKey: s3Key },
-        data: { posterKey: poster.s3fileKey },
-      });
-
-      return {
-        success: true,
-        message: "Poster image set successfully.",
-        object: updatedObject,
-      };
-    } catch (error) {
-      console.error("Error setting poster image:", error);
-      return { error: true, message: "Failed to set poster image." };
-    }
-  }
-
   return dataWithError(
     { error: true, message: "Invalid action." },
     "Invalid action"

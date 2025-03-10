@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, Modal, ModalContent } from "@heroui/react";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
-import type { Object } from "@prisma/client";
+import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { useVideoCarousel } from "./useVideoCarousel";
@@ -78,17 +78,37 @@ export default function VideoCarousel({
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full max-w-6xl aspect-video">
-              <video
-                controls
-                ref={videoRef}
-                src={endpoint + currentObject.s3fileKey}
-                className="w-full h-full object-contain"
-                poster={
-                  currentObject.posterKey
-                    ? endpoint + currentObject.posterKey
-                    : undefined
-                }
-              />
+              {currentObject.kind === ObjectKind.VIDEO ? (
+                <video
+                  controls
+                  ref={videoRef}
+                  src={endpoint + currentObject.s3fileKey}
+                  className="w-full h-full object-contain"
+                  poster={
+                    currentObject.posterKey
+                      ? endpoint + currentObject.posterKey
+                      : undefined
+                  }
+                />
+              ) : (
+                <div className="flex-col">
+                  {currentObject.posterKey && (
+                    <img
+                      src={
+                        currentObject.posterKey
+                          ? endpoint + currentObject.posterKey
+                          : undefined
+                      }
+                    />
+                  )}
+                  <audio
+                    controls
+                    ref={videoRef}
+                    src={endpoint + currentObject.s3fileKey}
+                    className="w-full min-h-fit py-1"
+                  />
+                </div>
+              )}
 
               {/* Video info overlay */}
               <div className="grid grid-cols-3 py-1">
