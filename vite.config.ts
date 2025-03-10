@@ -9,6 +9,12 @@ export default defineConfig({
       plugins: [tailwindcss],
     },
   },
+  resolve: {
+    alias: {
+      ".prisma/client/index-browser":
+        "./node_modules/.prisma/client/index-browser.js",
+    },
+  },
   server: { port: 3000 },
   plugins: [reactRouter(), tsconfigPaths()],
 });
