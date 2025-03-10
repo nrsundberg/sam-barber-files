@@ -15,7 +15,7 @@ datasource db {
 
 // TODO will need to add some layout structure or model maybe keying off id from the Folder
 model Folder {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   name            String
   // THERE could be collision here and should check
   folderPosition  Int
@@ -24,10 +24,11 @@ model Folder {
   objects         Object[]
   // NOTE will not directly support this initially unless we want subfolders but the framework is here
   // A Folder can be directly inside one parent
-  parentFolderId  String?  @unique
-  parentFolder    Folder?  @relation("ParentFolder", fields: [parentFolderId], references: [id])
+  parentFolderId  String?      @unique
+  parentFolder    Folder?      @relation("ParentFolder", fields: [parentFolderId], references: [id])
   // A parent Folder can have multiple children folders
-  childrenFolders Folder[] @relation("ParentFolder")
+  childrenFolders Folder[]     @relation("ParentFolder")
+  defaultStyle    DisplayStyle @default(GRID)
 }
 
 model Object {
@@ -51,4 +52,9 @@ enum ObjectKind {
   AUDIO
   VIDEO
   PHOTO
+}
+
+enum DisplayStyle {
+  LIST
+  GRID
 }
