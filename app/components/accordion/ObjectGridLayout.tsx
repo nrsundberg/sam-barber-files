@@ -39,13 +39,13 @@ export default function ({
       )}
 
       <div className="flex justify-between items-center mt-auto">
-        <div className="text-sm font-medium truncate max-w-[70%]">
+        <div className="text-xs font-light md:text-sm md:font-medium wrap-text">
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
 
         <div className="grid justify-center items-center">
           <div className="group-hover:hidden">
-            <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
+            <div className="hidden sm:inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
@@ -71,8 +71,10 @@ export default function ({
       </div>
 
       <div className="flex justify-between items-center text-xs mt-1">
-        <span>{formatBytes(object.size)}</span>
-        <span>{formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy")}</span>
+        <span className="hidden sm:block">{formatBytes(object.size)}</span>
+        <span className="hidden sm:block">
+          {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy")}
+        </span>
       </div>
     </div>
   );

@@ -88,7 +88,7 @@ export default function ({
           {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </p>
 
-        <p className="text-center text-sm md:text-medium self-center">
+        <p className="hidden sm:block text-center text-sm md:text-medium self-center">
           {formatBytes(object.size)}
         </p>
 

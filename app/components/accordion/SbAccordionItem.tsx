@@ -75,11 +75,11 @@ export default function ({
               {formatInTimeZone(folder.createdDate, "UTC", "hh:mm a")}
             </p>
           </span>
-          <span className="text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
+          <span className="hidden sm:block text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
             {formatBytes(getTotalFolderSize(folder.objects))}
           </span>
           <div
-            className={`justify-center items-center ${isFolderOpen ? "inline-flex gap-2" : "grid gap-2"}`}
+            className={`hidden sm:block justify-center items-center ${isFolderOpen ? "inline-flex gap-2" : "grid gap-2"}`}
           >
             <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
               FOLDER

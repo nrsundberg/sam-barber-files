@@ -62,7 +62,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
       <div className={"px-4 grid auto-rows-auto mb-1 md:mb-4"}>
         {favorites.length > 0 && (
           <div>
-            <p className="text-2xl font-bold">FAVORITES</p>
+            <p className="text-lg md:text-2xl font-bold">FAVORITES</p>
             <div className="grid grid-cols-5 gap-1 lg:gap-10">
               {favorites.map((object: Object, objectIndex) => (
                 <ObjectGridLayout
@@ -84,7 +84,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
         {trending.length > 0 && (
           <div className="mt-2">
-            <p className="text-2xl font-bold">TRENDING</p>
+            <p className="text-lg md:text-2xl font-bold">TRENDING</p>
             <div className="grid grid-cols-5 gap-4">
               {trending.map((object: Object, index: number) => (
                 <ObjectGridLayout
@@ -108,8 +108,8 @@ export default function ({ loaderData }: Route.ComponentProps) {
       <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
         <p className="pl-[65px] text-start">NAME</p>
         <p className="text-center">UPLOADED</p>
-        <p className="text-center">SIZE</p>
-        <p className="text-center">TYPE</p>
+        <p className="hidden sm:block text-center">SIZE</p>
+        <p className="hidden sm:block text-center">TYPE</p>
       </div>
       <SbAccordion folders={folders} endpoint={cdnEndpoint} allowMultiple />
     </div>
