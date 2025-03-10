@@ -19,6 +19,7 @@ export default function ({
   onClick,
   dragHandleProps,
   endpoint,
+  width,
 }: {
   object: Object;
   inAdmin: boolean;
@@ -26,6 +27,7 @@ export default function ({
   onClick?: () => void;
   dragHandleProps?: any;
   endpoint: string;
+  width?: number;
 }) {
   let submit = useSubmit();
 
@@ -78,7 +80,7 @@ export default function ({
             object={object}
             endpoint={endpoint}
             isRow={true}
-            width={inAdmin ? 150 : undefined}
+            width={width ? width : inAdmin ? 150 : undefined}
           />
         </div>
 

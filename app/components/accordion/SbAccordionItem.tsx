@@ -117,6 +117,7 @@ export default function ({
                 object={object}
                 isLast={objectIndex === folder.objects.length - 1}
                 endpoint={endpoint}
+                width={200}
               />
             ))
           ) : (
