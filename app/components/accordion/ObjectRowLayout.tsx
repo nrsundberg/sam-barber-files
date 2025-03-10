@@ -74,7 +74,12 @@ export default function ({
           ) : (
             <ChevronLeft className={"opacity-0"} />
           )}
-          <Thumbnail object={object} endpoint={endpoint} isRow={true} />
+          <Thumbnail
+            object={object}
+            endpoint={endpoint}
+            isRow={true}
+            width={inAdmin ? 150 : undefined}
+          />
         </div>
 
         <p className="text-center text-sm md:text-medium self-center">
