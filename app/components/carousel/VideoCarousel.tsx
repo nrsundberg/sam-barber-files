@@ -123,7 +123,7 @@ export default function VideoCarousel({
                 </p>
                 <div className="flex flex-col gap-1">
                   <button
-                    className="my-3 rounded-md bg-sb-banner text-white px-4 py-2"
+                    className="my-3 rounded-md bg-sb-banner text-white px-4 py-2 sm:hidden"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeModal();
