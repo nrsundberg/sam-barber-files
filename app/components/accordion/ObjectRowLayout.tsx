@@ -84,15 +84,32 @@ export default function ({
           />
         </div>
 
-        <p className="text-center text-sm md:text-medium self-center">
+        <p className="hidden sm:block text-center text-sm md:text-medium self-center">
           {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
         </p>
+
+        <div className="flex flex-col gap-3 justify-center items-center sm:hidden">
+          <div className="inline-flex bg-gray-700 px-1 text-xs rounded h-fit w-fit text-gray-400">
+            {object.kind}
+          </div>
+          <p className="text-center text-sm md:text-medium self-center">
+            {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
+          </p>
+
+          <Link
+            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+            reloadDocument
+            className="inline-flex gap-2 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit text-sb-restless"
+          >
+            Download
+          </Link>
+        </div>
 
         <p className="hidden sm:block text-center text-sm md:text-medium self-center">
           {formatBytes(object.size)}
         </p>
 
-        <div className="grid justify-center items-center">
+        <div className="hidden sm:grid justify-center items-center">
           <div className="md:group-hover:hidden">
             <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
               {object.kind}
