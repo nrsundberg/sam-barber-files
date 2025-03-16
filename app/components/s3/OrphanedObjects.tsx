@@ -168,7 +168,7 @@ const OrphanedDbObjects = ({
                       <td className="py-2 px-4">
                         <button
                           type="button"
-                          className="text-xs bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded"
+                          className="text-xs bg-blue-500 md:hover:bg-blue-600 text-white font-bold py-1 px-2 rounded"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedObject(obj);
@@ -314,7 +314,7 @@ const OrphanedDbObjects = ({
                   <div className="flex space-x-2">
                     <button
                       type="submit"
-                      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+                      className="bg-green-500 md:hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
                     >
                       Fix References
                     </button>
@@ -323,7 +323,7 @@ const OrphanedDbObjects = ({
                       type="submit"
                       name="action"
                       value="deleteObject"
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+                      className="bg-red-500 md:hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
                       onClick={(e) => {
                         if (
                           !confirm(

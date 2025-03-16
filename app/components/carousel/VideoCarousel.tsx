@@ -1,4 +1,4 @@
-import { Button, Modal, ModalContent } from "@heroui/react";
+import { Button, Modal, ModalContent, type PressEvent } from "@heroui/react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
@@ -121,18 +121,20 @@ export default function VideoCarousel({
                 <p className="text-gray-500 text-center">
                   {currentIndex + 1} of {objects.length}
                 </p>
-                <p className="text-sm self-end place-self-end">
-                  {formatBytes(currentObject.size)}
-                </p>
-              </div>
-              <div className="w-full justify-center flex">
-                <Button
-                  variant="bordered"
-                  className="my-3"
-                  onPress={closeModal}
-                >
-                  Close
-                </Button>
+                <div className="flex flex-col gap-1">
+                  <button
+                    className="my-3 rounded-md bg-sb-banner text-white px-4 py-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeModal();
+                    }}
+                  >
+                    Close
+                  </button>
+                  <p className="text-sm self-end place-self-end">
+                    {formatBytes(currentObject.size)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

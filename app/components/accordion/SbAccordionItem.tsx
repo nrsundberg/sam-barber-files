@@ -48,7 +48,7 @@ export default function ({
       <div className="flex items-center w-full">
         <button
           ref={(el) => passRef(el, index)}
-          className="flex-1 grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-1 md:p-4 hover:bg-sb-banner hover:text-sb-restless group"
+          className="flex-1 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-1 md:p-4 md:hover:bg-sb-banner md:hover:text-sb-restless group"
           onClick={onClick}
         >
           <div className="inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold">
@@ -60,7 +60,7 @@ export default function ({
             <FolderIcon />
             {folder.name}
           </div>
-          <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+          <span className="text-gray-400 text-xs md:text-medium md:group-hover:text-sb-restless">
             <p className="text-center hidden md:block">
               {formatInTimeZone(
                 folder.createdDate,
@@ -75,13 +75,13 @@ export default function ({
               {formatInTimeZone(folder.createdDate, "UTC", "hh:mm a")}
             </p>
           </span>
-          <span className="hidden sm:block text-gray-400 text-sm md:text-medium group-hover:text-sb-restless">
+          <span className="hidden sm:block text-gray-400 text-sm md:text-medium md:group-hover:text-sb-restless">
             {formatBytes(getTotalFolderSize(folder.objects))}
           </span>
           <div
             className={`hidden sm:block justify-center items-center ${isFolderOpen ? "inline-flex gap-2" : "grid gap-2"}`}
           >
-            <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+            <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 md:group-hover:text-sb-restless">
               FOLDER
             </div>
             {isFolderOpen && (

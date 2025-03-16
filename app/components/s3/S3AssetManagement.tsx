@@ -157,7 +157,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                     <td className="py-2 px-4">
                       <button
                         type="button"
-                        className="text-xs bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded"
+                        className="text-xs bg-blue-500 md:hover:bg-blue-600 text-white font-bold py-1 px-2 rounded"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedFile(item);
@@ -297,7 +297,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
 
                         <button
                           type="submit"
-                          className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+                          className="bg-green-500 md:hover:bg-green-600 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
                           disabled={!selectedFolderId}
                         >
                           {linkedObject ? "Update Object" : "Create Object"}
@@ -360,7 +360,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
 
                         <button
                           type="submit"
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+                          className="bg-blue-500 md:hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
                         >
                           Set as Poster
                         </button>

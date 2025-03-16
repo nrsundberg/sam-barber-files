@@ -21,8 +21,8 @@ export default function ({
     <div
       onClick={onClick ? onClick : undefined}
       key={object.id}
-      className={`flex flex-col hover:bg-gray-800 transition duration-300 text-gray-400
-                  hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885] group
+      className={`flex flex-col md:hover:bg-gray-800 transition duration-300 text-gray-400
+                  md:hover:text-[#D17885] md:hover:shadow-[0_0_4px_#D17885] group
                   ${object.hidden ? "opacity-60" : ""}`}
     >
       <Thumbnail
@@ -44,8 +44,8 @@ export default function ({
         </div>
 
         <div className="grid justify-center items-center">
-          <div className="group-hover:hidden">
-            <div className="hidden sm:inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
+          <div className="md:group-hover:hidden">
+            <div className="hidden sm:inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
@@ -62,7 +62,7 @@ export default function ({
               to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
               reloadDocument
               size="sm"
-              className="bg-sb-banner justify-center group-hover:text-sb-restless hidden group-hover:flex"
+              className="bg-sb-banner justify-center md:group-hover:text-sb-restless hidden md:group-hover:flex"
             >
               <Download className="w-5 h-5" />
             </Button>

@@ -50,17 +50,17 @@ export default function ({
       onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex items-center justify-between py-2 border-b border-gray-500
-                       hover:bg-gray-800 transition duration-300 text-gray-400
-                        hover:text-[#D17885] hover:shadow-[0_0_4px_#D17885] group ${
+                       md:hover:bg-gray-800 transition duration-300 text-gray-400
+                        md:hover:text-[#D17885] md:hover:shadow-[0_0_4px_#D17885] group ${
                           isLast ? "last-child" : ""
                         }`}
     >
       <div
-        className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
+        className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
       >
         <div
           {...dragHandleProps}
-          className="pl-1 md:pl-6 inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold group-hover:text-sb-restless"
+          className="pl-1 md:pl-6 inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold md:group-hover:text-sb-restless"
         >
           {inAdmin ? (
             <div className={"inline-flex gap-2"}>
@@ -93,8 +93,8 @@ export default function ({
         </p>
 
         <div className="grid justify-center items-center">
-          <div className="group-hover:hidden">
-            <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 group-hover:text-sb-restless">
+          <div className="md:group-hover:hidden">
+            <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
@@ -111,7 +111,7 @@ export default function ({
               to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
               reloadDocument
               size="sm"
-              className="bg-sb-banner justify-center group-hover:text-sb-restless hidden group-hover:flex"
+              className="bg-sb-banner justify-center md:group-hover:text-sb-restless hidden md:group-hover:flex"
             >
               <Download className="w-5 h-5" />
             </Button>

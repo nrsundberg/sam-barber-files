@@ -105,7 +105,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
         />
       </div>
 
-      <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-[1.5fr_1fr_.5fr_.5fr]">
+      <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr]">
         <p className="pl-[65px] text-start">NAME</p>
         <p className="text-center">UPLOADED</p>
         <p className="hidden sm:block text-center">SIZE</p>

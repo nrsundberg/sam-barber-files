@@ -130,7 +130,7 @@ function FolderRowLayout({
 }) {
   return (
     <div
-      className={`${isHidden ? "opacity-60" : ""} w-full grid grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 hover:bg-sb-banner hover:text-sb-restless group`}
+      className={`${isHidden ? "opacity-60" : ""} w-full grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr] transition p-4 md:hover:bg-sb-banner md:hover:text-sb-restless group`}
     >
       <div
         {...dragHandleProps}
@@ -142,14 +142,14 @@ function FolderRowLayout({
         <FolderIcon />
         {name}
       </div>
-      <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+      <span className="text-gray-400 text-xs md:text-medium md:group-hover:text-sb-restless">
         {createdDate}
       </span>
-      <span className="text-gray-400 text-xs md:text-medium group-hover:text-sb-restless">
+      <span className="text-gray-400 text-xs md:text-medium md:group-hover:text-sb-restless">
         {size}
       </span>
       <div className="grid justify-center">
-        <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded w-fit text-gray-400 group-hover:text-sb-restless">
+        <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded w-fit text-gray-400 md:group-hover:text-sb-restless">
           FOLDER
           {isGrid ? <Grid className="w-5 h-5" /> : <List className="w-5 h-5" />}
           {isHidden && <EyeOffIcon className="w-3 h-3 self-center" />}

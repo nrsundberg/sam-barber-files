@@ -22,7 +22,12 @@ export function Thumbnail({
       onClick={onClick && onClick}
     >
       {object.posterKey ? (
-        <img src={endpoint + object.posterKey} height={height} width={width} />
+        <img
+          src={endpoint + object.posterKey}
+          height={height}
+          width={width}
+          className="max-w-[100px] sm:max-w-full"
+        />
       ) : (
         <div className="items-center flex h-full justify-center">
           {object.kind === "AUDIO" ? (
@@ -38,14 +43,3 @@ export function Thumbnail({
     </div>
   );
 }
-
-//         <div className="text-center items-center flex justify-center">
-//           <p className="text-center text-medium hidden md:block">
-//             {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
-//           </p>
-//           <p className="text-center text-xs md:hidden">
-//             {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy")}
-//           </p>
-//           <p className="text-center text-xs md:hidden">
-//             {formatInTimeZone(object.createdDate, "UTC", "hh:mm a")}
-//           </p>

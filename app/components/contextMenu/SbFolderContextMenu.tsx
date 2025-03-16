@@ -117,7 +117,7 @@ const ContextMenu = ({
           </li>
         ) : (
           <li
-            className="p-2 hover:bg-gray-700 cursor-pointer rounded"
+            className="p-2 md:hover:bg-gray-700 cursor-pointer rounded"
             onClick={(e) => handleItemClick(e, () => setIsRenaming(true))}
           >
             Rename
@@ -164,14 +164,14 @@ const ContextMenu = ({
           </li>
         ) : (
           <li
-            className="p-2 hover:bg-gray-700 cursor-pointer rounded"
+            className="p-2 md:hover:bg-gray-700 cursor-pointer rounded"
             onClick={(e) => handleItemClick(e, () => setIsChangingDate(true))}
           >
             Change date
           </li>
         )}
 
-        <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
+        <li className="p-2 md:hover:bg-gray-700 cursor-pointer rounded">
           <fetcher.Form
             method="POST"
             action={`/data/edit/folder/${folder.id}/toggleHidden`}
@@ -188,7 +188,7 @@ const ContextMenu = ({
           </fetcher.Form>
         </li>
 
-        <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
+        <li className="p-2 md:hover:bg-gray-700 cursor-pointer rounded">
           <fetcher.Form
             method="POST"
             action={`/data/edit/folder/${folder.id}/toggleDisplay`}
@@ -205,7 +205,7 @@ const ContextMenu = ({
           </fetcher.Form>
         </li>
 
-        <li className="p-2 hover:bg-gray-700 cursor-pointer rounded">
+        <li className="p-2 md:hover:bg-gray-700 cursor-pointer rounded">
           {/* // TODO any use in deleting from s3 and video provider? */}
           <fetcher.Form
             method="POST"
