@@ -4,6 +4,7 @@ import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
+import { useMemo } from "react";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -31,7 +32,18 @@ export default function VideoCarousel({
     handleWheel,
   } = useVideo;
 
+  // Create a memoized mapping of video sources to prevent unnecessary re-renders
+  const videoSources = useMemo(() => {
+    return objects.map((obj) => ({
+      src: endpoint + obj.s3fileKey,
+      poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
+    }));
+  }, [objects, endpoint]);
+
   if (!isOpen || !currentObject) return null;
+
+  // Get the current source from our memoized collection
+  const currentSource = videoSources[currentIndex];
 
   return (
     <Modal
@@ -75,30 +87,30 @@ export default function VideoCarousel({
                 <video
                   controls
                   ref={videoRef}
-                  src={endpoint + currentObject.s3fileKey}
+                  key={`video-${currentObject.id}`}
+                  src={currentSource.src}
+                  poster={currentSource.poster}
                   className="w-full h-full object-contain"
-                  poster={
-                    currentObject.posterKey
-                      ? endpoint + currentObject.posterKey
-                      : undefined
-                  }
+                  preload="metadata"
+                  crossOrigin="anonymous"
                 />
               ) : (
                 <div className="flex-col">
-                  {currentObject.posterKey && (
+                  {currentSource.poster && (
                     <img
-                      src={
-                        currentObject.posterKey
-                          ? endpoint + currentObject.posterKey
-                          : undefined
-                      }
+                      src={currentSource.poster}
+                      alt={currentObject.fileName}
+                      loading="lazy"
                     />
                   )}
                   <audio
                     controls
                     ref={videoRef}
-                    src={endpoint + currentObject.s3fileKey}
+                    key={`audio-${currentObject.id}`}
+                    preload="metadata"
+                    src={currentSource.src}
                     className="w-full min-h-fit py-1"
+                    crossOrigin="anonymous"
                   />
                 </div>
               )}
