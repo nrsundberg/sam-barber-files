@@ -1,5 +1,5 @@
 import type { Object } from "@prisma/client";
-import { Camera, Music, Video } from "lucide-react";
+import { AudioLines } from "lucide-react";
 
 export function Thumbnail({
   object,
@@ -31,11 +31,15 @@ export function Thumbnail({
       ) : (
         <div className="items-center flex h-full justify-center">
           {object.kind === "AUDIO" ? (
-            <Music className="text-blue-400 w-[50px] h-[50px]" />
+            <AudioLines className="text-gray-400 w-[75px] h-[75px]" />
           ) : object.kind === "PHOTO" ? (
-            <Camera className="text-green-400 w-[50px] h-[50px]" />
+            <img src={endpoint + object.s3fileKey} />
           ) : (
-            <Video className="text-green-400 w-[50px] h-[50px]" />
+            <video
+              // controls
+              src={endpoint + object.s3fileKey}
+              className="w-full h-full object-contain"
+            />
           )}
         </div>
       )}

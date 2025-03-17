@@ -116,23 +116,13 @@ export default function ({
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
           </div>
-          <Tooltip
-            content="Download"
-            closeDelay={0}
-            className="bg-sb-banner text-sb-restless font-bold"
+          <Link
+            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+            reloadDocument
+            className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
           >
-            <Button
-              isIconOnly
-              variant="shadow"
-              as={Link}
-              to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-              reloadDocument
-              size="sm"
-              className="bg-sb-banner justify-center md:group-hover:text-sb-restless hidden md:group-hover:flex"
-            >
-              <Download className="w-5 h-5" />
-            </Button>
-          </Tooltip>
+            Download
+          </Link>
         </div>
       </div>
     </div>

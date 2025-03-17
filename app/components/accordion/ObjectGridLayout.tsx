@@ -21,8 +21,8 @@ export default function ({
     <div
       onClick={onClick ? onClick : undefined}
       key={object.id}
-      className={`flex flex-col md:hover:bg-gray-800 transition duration-300 text-gray-400
-                  md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
+      className={`flex flex-col h-full md:hover:bg-gray-800 transition duration-300 text-gray-400
+                  md:hover:text-sb-restless p-1 md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
                   ${object.hidden ? "opacity-60" : ""}`}
     >
       <Thumbnail
@@ -38,7 +38,7 @@ export default function ({
         </div>
       )}
 
-      <div className="flex justify-between items-center mt-auto">
+      <div className="flex justify-between items-center mt-1">
         <div className="text-xs font-light md:text-sm md:font-medium wrap-text">
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
@@ -50,23 +50,13 @@ export default function ({
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
           </div>
-          <Tooltip
-            content="Download"
-            closeDelay={0}
-            className="bg-sb-banner text-sb-restless font-bold"
+          <Link
+            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+            reloadDocument
+            className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
           >
-            <Button
-              isIconOnly
-              variant="shadow"
-              as={Link}
-              to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-              reloadDocument
-              size="sm"
-              className="bg-sb-banner justify-center md:group-hover:text-sb-restless hidden md:group-hover:flex"
-            >
-              <Download className="w-5 h-5" />
-            </Button>
-          </Tooltip>
+            Download
+          </Link>
         </div>
       </div>
 

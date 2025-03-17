@@ -8,6 +8,7 @@ import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
+import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 
 export function meta() {
   return [
@@ -28,11 +29,9 @@ export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true },
-    take: 5,
   });
   let trending = prisma.object.findMany({
     where: { isTrending: true },
-    take: 5,
   });
   let folders = prisma.folder.findMany({
     where: { hidden: false },
@@ -59,8 +58,16 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen mt-1">
-      <div className={"px-4 grid auto-rows-auto mb-1 md:mb-4"}>
+      <div className={"mb-1 md:mb-4"}>
         {favorites.length > 0 && (
+          <HorizontalCarousel
+            title="FAVORITES"
+            objects={favorites}
+            endpoint={cdnEndpoint}
+            onItemClick={(index) => useVideoFavorites.openModal(index)}
+          />
+        )}
+        {/* {favorites.length > 0 && (
           <div>
             <p className="text-medium md:text-xl font-bold">FAVORITES</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-1 lg:gap-10">
@@ -75,7 +82,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               ))}
             </div>
           </div>
-        )}
+        )} */}
         <VideoCarousel
           objects={favorites}
           endpoint={cdnEndpoint}
