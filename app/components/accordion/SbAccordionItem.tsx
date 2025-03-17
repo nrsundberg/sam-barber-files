@@ -79,16 +79,16 @@ export default function ({
             {formatBytes(getTotalFolderSize(folder.objects))}
           </span>
           <div
-            className={`hidden sm:block justify-center items-center ${isFolderOpen ? "inline-flex gap-2" : "grid gap-2"}`}
+            className={`hidden justify-center items-center sm:inline-flex gap-2`}
           >
-            <div className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 md:group-hover:text-sb-restless">
+            <p className="bg-gray-700 px-1 md:px-3 h-fit md:py-1 text-xs rounded w-fit text-gray-400 md:group-hover:text-sb-restless">
               FOLDER
-            </div>
+            </p>
             {isFolderOpen && (
               <Switch
                 onValueChange={(selected) =>
                   toggleViewMode(
-                    selected ? DisplayStyle.LIST : DisplayStyle.GRID
+                    selected ? DisplayStyle.GRID : DisplayStyle.LIST
                   )
                 }
                 checked={viewMode == "GRID"}
