@@ -1,5 +1,6 @@
 import type { Object } from "@prisma/client";
 import { AudioLines } from "lucide-react";
+import { Link } from "react-router";
 
 export function Thumbnail({
   object,
@@ -22,21 +23,27 @@ export function Thumbnail({
       onClick={onClick && onClick}
     >
       {object.posterKey ? (
-        <img
-          src={endpoint + object.posterKey}
-          height={height}
-          width={width}
-          className="max-w-[100px] sm:max-w-full"
-        />
+        <>
+          <img
+            src={endpoint + object.posterKey}
+            height={height}
+            width={width}
+            className="max-w-[100px] sm:max-w-full"
+          />
+          <Link prefetch={"render"} to={endpoint + object.posterKey} />
+        </>
       ) : (
         <div className="items-center flex h-full justify-center">
           {object.kind === "AUDIO" ? (
             <AudioLines className="text-gray-400 w-[75px] h-[75px]" />
           ) : object.kind === "PHOTO" ? (
-            <img src={endpoint + object.s3fileKey} />
+            <>
+              <img src={endpoint + object.s3fileKey} />
+              <Link prefetch={"render"} to={endpoint + object.posterKey} />
+            </>
           ) : (
             <video
-              // controls
+              preload="metadata"
               src={endpoint + object.s3fileKey}
               className="w-full h-full object-contain"
             />
