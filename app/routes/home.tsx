@@ -62,7 +62,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
       <div className={"px-4 grid auto-rows-auto mb-1 md:mb-4"}>
         {favorites.length > 0 && (
           <div>
-            <p className="text-lg md:text-2xl font-bold">FAVORITES</p>
+            <p className="text-medium md:text-xl font-bold">FAVORITES</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-1 lg:gap-10">
               {favorites.map((object: Object, objectIndex) => (
                 <ObjectGridLayout
@@ -84,7 +84,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
         {trending.length > 0 && (
           <div className="mt-2">
-            <p className="text-lg md:text-2xl font-bold">TRENDING</p>
+            <p className="text-medium md:text-xl font-bold">TRENDING</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-1 lg:gap-10">
               {trending.map((object: Object, index: number) => (
                 <ObjectGridLayout

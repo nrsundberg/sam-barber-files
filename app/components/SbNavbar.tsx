@@ -9,7 +9,7 @@ export default function ({ user }: { user: KindeUser | null }) {
     <header className="sticky top-0 z-50 border-b-2 border-white bg-opacity-100 overflow-hidden bg-black">
       <RotatingBanner />
       <div className="px-1 py-1 md:px-10 md:py-3 flex justify-between items-center">
-        <Link to={"/"} className="font-bold text-lg md:text-2xl">
+        <Link to={"/"} className="font-bold text-lg md:text-3xl">
           SAM BARBER FILES
         </Link>
         <nav className="inline-flex gap-2">
