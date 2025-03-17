@@ -51,7 +51,7 @@ export default function ({
       key={object.id}
       className={`flex items-center justify-between py-2 border-b border-gray-500
                        md:hover:bg-gray-800 transition duration-300 text-gray-400
-                        md:hover:text-[#D17885] md:hover:shadow-[0_0_4px_#D17885] group ${
+                        md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group ${
                           isLast ? "last-child" : ""
                         }`}
     >

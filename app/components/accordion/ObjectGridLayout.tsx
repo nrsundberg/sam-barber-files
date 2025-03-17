@@ -22,7 +22,7 @@ export default function ({
       onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex flex-col md:hover:bg-gray-800 transition duration-300 text-gray-400
-                  md:hover:text-[#D17885] md:hover:shadow-[0_0_4px_#D17885] group
+                  md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
                   ${object.hidden ? "opacity-60" : ""}`}
     >
       <Thumbnail

@@ -22,7 +22,7 @@ export default {
       },
       colors: {
         "sb-banner": "#2f4254",
-        "sb-restless": "#984f5a",
+        "sb-restless": "#ced4da",
       },
     },
   },
