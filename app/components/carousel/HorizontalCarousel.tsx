@@ -19,7 +19,9 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   const carouselRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
+  const [visibleItems, setVisibleItems] = useState<Set<number>>(
+    new Set([0, 1, 2])
+  ); // Preload first 3 items
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Check if arrows should be displayed initially and on resize
@@ -70,7 +72,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
       },
       {
         root: carouselRef.current,
-        rootMargin: "100px", // Load items a bit before they come into view
+        rootMargin: "200px", // Increased loading range - load items further before they come into view
         threshold: 0.1,
       }
     );

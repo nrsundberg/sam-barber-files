@@ -1,4 +1,4 @@
-import { Button, Modal, ModalContent, type PressEvent } from "@heroui/react";
+import { Button, Modal, ModalContent } from "@heroui/react";
 import { ChevronUp, ChevronDown, AudioLines } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
@@ -201,12 +201,14 @@ export default function VideoCarousel({
                         ref={(el) => {
                           videoRefs.current[index] = el;
                         }}
-                        src={videoSources[index].src}
+                        src={`${videoSources[index].src}#t=0.1`} // Add timestamp to only load metadata initially
                         poster={videoSources[index].poster}
                         className="w-full h-full object-contain"
-                        preload={shouldPreload ? "auto" : "metadata"}
+                        preload={shouldPreload ? "metadata" : "none"} // Only load metadata initially
                         crossOrigin="anonymous"
-                        onLoadedData={() => handleMediaLoaded(index, fileKey)}
+                        onLoadedMetadata={() =>
+                          handleMediaLoaded(index, fileKey)
+                        }
                         style={{ display: shouldRender ? "block" : "none" }}
                       />
                     ) : (
@@ -229,11 +231,13 @@ export default function VideoCarousel({
                           ref={(el) => {
                             videoRefs.current[index] = el;
                           }}
-                          preload={shouldPreload ? "auto" : "metadata"}
-                          src={videoSources[index].src}
+                          preload={shouldPreload ? "metadata" : "none"} // Only load metadata initially
+                          src={`${videoSources[index].src}#t=0.1`} // Add timestamp to only load metadata
                           className="w-full min-h-fit py-1"
                           crossOrigin="anonymous"
-                          onLoadedData={() => handleMediaLoaded(index, fileKey)}
+                          onLoadedMetadata={() =>
+                            handleMediaLoaded(index, fileKey)
+                          }
                           style={{ display: shouldRender ? "block" : "none" }}
                         />
                       </div>

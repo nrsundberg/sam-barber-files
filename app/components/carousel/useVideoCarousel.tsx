@@ -1,4 +1,4 @@
-// Modified useVideoCarousel.tsx
+// Optimized useVideoCarousel.tsx
 import { useState, useEffect, useRef } from "react";
 import type { Object } from "@prisma/client";
 
@@ -31,7 +31,7 @@ export interface UseVideoCarouselReturn {
   handlePrev: () => void;
   getVideoSourceUrl: (object: Object) => string;
   getPosterUrl: (object: Object) => string | undefined;
-  markVideoAsLoaded: (objectKey: string, index: number) => void; // New method to mark videos as loaded
+  markVideoAsLoaded: (objectKey: string, index: number) => void; // Method to mark videos as loaded
 
   // Event handlers
   handleTouchStart: (e: React.TouchEvent) => void;
@@ -99,7 +99,8 @@ export function useVideoCarousel({
   }, [objects, listId]);
 
   // Create stable URL getters instead of regenerating URLs on every render
-  const getVideoSourceUrl = (object: Object) => endpoint + object.s3fileKey;
+  const getVideoSourceUrl = (object: Object) =>
+    `${endpoint}${object.s3fileKey}#t=0.1`;
   const getPosterUrl = (object: Object) =>
     object.posterKey ? endpoint + object.posterKey : undefined;
 
@@ -218,6 +219,16 @@ export function useVideoCarousel({
   const closeModal = () => {
     setIsOpen(false);
     setIsPlaying(false);
+
+    // Pause and unload the current video when closing
+    if (videoRef.current) {
+      videoRef.current.pause();
+      // Reset source to stop network requests
+      if (currentObject && currentObject.kind === "VIDEO") {
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
+      }
+    }
   };
 
   const navigateToVideo = (index: number) => {

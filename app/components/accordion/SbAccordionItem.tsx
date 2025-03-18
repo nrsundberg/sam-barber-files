@@ -20,7 +20,7 @@ export interface AccordionItemProps {
   readyToLoad?: boolean;
 }
 
-export default function ({
+export default function SbAccordionItem({
   index,
   folder,
   passRef,
@@ -32,8 +32,10 @@ export default function ({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
   const [contentLoaded, setContentLoaded] = useState(false);
-  // New state to track if content has been initially loaded (even if accordion is now closed)
+  // Track if content has been initially loaded (even if accordion is now closed)
   const [hasBeenLoaded, setHasBeenLoaded] = useState(false);
+  // New state to track which range of items should be initially loaded
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
 
   const useVideo = useVideoCarousel({
     objects: folder.objects,
@@ -49,8 +51,53 @@ export default function ({
     if (isFolderOpen && !contentLoaded && readyToLoad) {
       setContentLoaded(true);
       setHasBeenLoaded(true);
+
+      // Calculate how many items to load initially based on folder size
+      const initialCount =
+        folder.objects.length > 50 ? 15 : Math.min(folder.objects.length, 25);
+      setVisibleRange({ start: 0, end: initialCount - 1 });
     }
-  }, [isFolderOpen, contentLoaded, readyToLoad]);
+  }, [isFolderOpen, contentLoaded, readyToLoad, folder.objects.length]);
+
+  // Set up scroll event listener to load more content as user scrolls
+  useEffect(() => {
+    if (!isFolderOpen || !contentLoaded) return;
+
+    const handleScroll = () => {
+      // Check if we're nearing the end of currently loaded items
+      if (parentRef.current) {
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const parentBottom =
+          parentRef.current.getBoundingClientRect().bottom + window.scrollY;
+
+        // If we're within 1000px of the bottom of our current range, load more items
+        if (scrollPosition > parentBottom - 1000) {
+          setVisibleRange((prev) => {
+            const newEnd = Math.min(prev.end + 10, folder.objects.length - 1);
+            return { ...prev, end: newEnd };
+          });
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isFolderOpen, contentLoaded, folder.objects.length]);
+
+  // Calculate which items should be rendered
+  const itemsToRender =
+    isFolderOpen && contentLoaded
+      ? folder.objects.slice(0, visibleRange.end + 1)
+      : [];
+
+  // Calculate which items should have their thumbnails loaded
+  const shouldLoadThumbnail = (index: number) => {
+    // Always load all thumbnails for list view (they're smaller)
+    if (viewMode === DisplayStyle.LIST) return true;
+
+    // For grid view, be more selective
+    return index <= visibleRange.end;
+  };
 
   return (
     <div
@@ -129,7 +176,7 @@ export default function ({
           <>
             {viewMode == "LIST" ? (
               <div className="accordion-content">
-                {folder.objects.map((object, objectIndex) => (
+                {itemsToRender.map((object, objectIndex) => (
                   <ObjectRowLayout
                     key={object.id}
                     inAdmin={false}
@@ -138,19 +185,19 @@ export default function ({
                     isLast={objectIndex === folder.objects.length - 1}
                     endpoint={endpoint}
                     width={200}
-                    shouldLoad={true} // Always load once the accordion has been opened once
+                    shouldLoad={shouldLoadThumbnail(objectIndex)} // Only load visible thumbnails
                   />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 accordion-content">
-                {folder.objects.map((object, objectIndex) => (
+                {itemsToRender.map((object, objectIndex) => (
                   <ObjectGridLayout
                     key={object.id}
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}
                     endpoint={endpoint}
-                    shouldLoad={true} // Always load once the accordion has been opened once
+                    shouldLoad={shouldLoadThumbnail(objectIndex)} // Only load visible thumbnails
                   />
                 ))}
               </div>

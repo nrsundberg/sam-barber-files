@@ -99,6 +99,7 @@ export function Thumbnail({
                   alt={object.fileName || "photo"}
                 />
               ) : (
+                // Video thumbnail - use poster frame or just first frame
                 <video
                   preload="metadata"
                   src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
@@ -106,6 +107,9 @@ export function Thumbnail({
                   poster={
                     object.posterKey ? endpoint + object.posterKey : undefined
                   }
+                  muted
+                  disablePictureInPicture
+                  disableRemotePlayback
                 />
               )}
             </div>
