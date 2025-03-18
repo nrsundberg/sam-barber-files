@@ -16,6 +16,7 @@ export interface UseVideoCarouselReturn {
   currentObject: Object | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -154,6 +155,7 @@ export function useVideoCarousel({
     currentObject,
     videoRef,
     containerRef,
+    setIsPlaying,
 
     // Actions
     openModal,

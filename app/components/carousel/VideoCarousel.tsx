@@ -1,10 +1,10 @@
 import { Button, Modal, ModalContent, type PressEvent } from "@heroui/react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, AudioLines } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -30,7 +30,12 @@ export default function VideoCarousel({
     handleTouchMove,
     handleTouchEnd,
     handleWheel,
+    isPlaying,
+    setIsPlaying,
   } = useVideo;
+
+  // Create refs for all video elements
+  const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
 
   // Create a memoized mapping of video sources to prevent unnecessary re-renders
   const videoSources = useMemo(() => {
@@ -40,10 +45,35 @@ export default function VideoCarousel({
     }));
   }, [objects, endpoint]);
 
-  if (!isOpen || !currentObject) return null;
+  // Set up ref for current video
+  useEffect(() => {
+    if (isOpen && currentIndex >= 0 && videoRefs.current[currentIndex]) {
+      videoRef.current = videoRefs.current[currentIndex] as any;
+    }
+  }, [isOpen, currentIndex, videoRef]);
 
-  // Get the current source from our memoized collection
-  const currentSource = videoSources[currentIndex];
+  // Manage play/pause state when switching videos
+  useEffect(() => {
+    if (isOpen) {
+      // Pause all videos except current
+      videoRefs.current.forEach((videoElement, index) => {
+        if (videoElement && index !== currentIndex) {
+          videoElement.pause();
+        }
+      });
+
+      // Update current video playing state
+      if (videoRef.current) {
+        if (isPlaying) {
+          videoRef.current.play().catch(() => setIsPlaying(false));
+        } else {
+          videoRef.current.pause();
+        }
+      }
+    }
+  }, [isOpen, currentIndex, isPlaying, setIsPlaying]);
+
+  if (!isOpen) return null;
 
   return (
     <Modal
@@ -83,71 +113,86 @@ export default function VideoCarousel({
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full max-w-6xl aspect-video">
-              {currentObject.kind === ObjectKind.VIDEO ? (
-                <video
-                  controls
-                  ref={videoRef}
-                  key={`video-${currentObject.id}`}
-                  src={currentSource.src}
-                  poster={currentSource.poster}
-                  className="w-full h-full object-contain"
-                  preload="metadata"
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <div className="flex-col">
-                  {currentSource.poster && (
-                    <img
-                      src={currentSource.poster}
-                      alt={currentObject.fileName}
-                      loading="lazy"
+              {/* Keep all videos in DOM but only show the current one */}
+              {objects.map((object, index) => (
+                <div
+                  key={`media-container-${object.id}`}
+                  style={{ display: currentIndex === index ? "block" : "none" }}
+                  className="w-full h-full"
+                >
+                  {object.kind === ObjectKind.VIDEO ? (
+                    <video
+                      controls
+                      ref={(el) => {
+                        videoRefs.current[index] = el;
+                      }}
+                      src={videoSources[index].src}
+                      poster={videoSources[index].poster}
+                      className="w-full h-full object-contain"
+                      preload="metadata"
+                      crossOrigin="anonymous"
                     />
+                  ) : (
+                    <div className="flex-col h-full content-end justify-items-center">
+                      {videoSources[index].poster ? (
+                        <img
+                          src={videoSources[index].poster}
+                          alt={object.fileName}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                      )}
+                      <audio
+                        controls
+                        ref={(el) => {
+                          videoRefs.current[index] = el;
+                        }}
+                        preload="metadata"
+                        src={videoSources[index].src}
+                        className="w-full min-h-fit py-1"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
                   )}
-                  <audio
-                    controls
-                    ref={videoRef}
-                    key={`audio-${currentObject.id}`}
-                    preload="metadata"
-                    src={currentSource.src}
-                    className="w-full min-h-fit py-1"
-                    crossOrigin="anonymous"
-                  />
                 </div>
-              )}
+              ))}
 
               {/* Video info overlay */}
-              <div className="grid grid-cols-3 py-1">
-                <div className="bg-opacity-50 text-white">
-                  <h3 className="text-lg font-bold">
-                    {currentObject.fileName}
-                  </h3>
-                  <p className="text-sm">
-                    {formatInTimeZone(
-                      currentObject.createdDate,
-                      "UTC",
-                      "MM.dd.yyyy hh:mm a"
-                    )}
-                  </p>
-                </div>
+              {currentObject && (
+                <div className="grid grid-cols-3 py-1">
+                  <div className="bg-opacity-50 text-white">
+                    <h3 className="text-lg font-bold">
+                      {currentObject.fileName}
+                    </h3>
+                    <p className="text-sm">
+                      {formatInTimeZone(
+                        currentObject.createdDate,
+                        "UTC",
+                        "MM.dd.yyyy hh:mm a"
+                      )}
+                    </p>
+                  </div>
 
-                <p className="text-gray-500 text-center">
-                  {currentIndex + 1} of {objects.length}
-                </p>
-                <div className="flex flex-col gap-1">
-                  <button
-                    className="my-3 rounded-md bg-sb-banner text-white px-4 py-2 sm:hidden"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeModal();
-                    }}
-                  >
-                    Close
-                  </button>
-                  <p className="text-sm self-end place-self-end">
-                    {formatBytes(currentObject.size)}
+                  <p className="text-gray-500 text-center">
+                    {currentIndex + 1} of {objects.length}
                   </p>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      className="my-3 rounded-md bg-sb-banner text-white px-4 py-2 sm:hidden"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeModal();
+                      }}
+                    >
+                      Close
+                    </button>
+                    <p className="text-sm self-end place-self-end">
+                      {currentObject && formatBytes(currentObject.size)}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
