@@ -10,7 +10,7 @@ export default function ({
   onClick,
   endpoint,
   width,
-  shouldLoad = false, // Add shouldLoad prop with default false
+  shouldLoad = false,
 }: {
   object: Object;
   onClick?: () => void;
@@ -23,25 +23,27 @@ export default function ({
       onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex flex-col h-full md:hover:bg-gray-800 transition duration-300 text-gray-400
-                  md:hover:text-sb-restless p-1 md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
-                  ${object.hidden ? "opacity-60" : ""}`}
+                md:hover:text-sb-restless p-1 md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
+                ${object.hidden ? " opacity-60" : ""}`}
     >
-      <Thumbnail
-        object={object}
-        endpoint={endpoint}
-        isRow={false}
-        width={width}
-        shouldLoad={shouldLoad} // Pass shouldLoad to Thumbnail
-      />
+      <div className="relative aspect-video w-full">
+        <Thumbnail
+          object={object}
+          endpoint={endpoint}
+          isRow={false}
+          width={width}
+          shouldLoad={shouldLoad}
+        />
 
-      {object.hidden && (
-        <div className="absolute top-2 right-2 z-10 bg-gray-900 bg-opacity-70 rounded p-1">
-          <EyeOffIcon className="w-4 h-4" />
-        </div>
-      )}
+        {object.hidden && (
+          <div className="absolute top-2 right-2 z-10 bg-gray-900 bg-opacity-70 rounded p-1">
+            <EyeOffIcon className="w-4 h-4" />
+          </div>
+        )}
+      </div>
 
-      <div className="flex justify-between items-center mt-1">
-        <div className="text-xs font-light md:text-sm md:font-medium wrap-text">
+      <div className="flex justify-between items-center mt-1 min-h-[2.5rem]">
+        <div className="text-xs font-light md:text-sm md:font-medium line-clamp-2 sm:flex-1 sm:w-full max-w-[70%] sm:max-w-none">
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
 

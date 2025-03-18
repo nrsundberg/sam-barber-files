@@ -127,7 +127,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
         {showLeftArrow && (
           <button
             onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gray-900 bg-opacity-70 rounded-full p-2 text-white hover:bg-opacity-90 transition"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full p-2 text-white hover:bg-opacity-90 transition"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -137,22 +137,24 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
         {/* Carousel container */}
         <div
           ref={carouselRef}
-          className="flex overflow-x-auto scrollbar-hide gap-4 py-2 scroll-smooth snap-x"
+          className="flex overflow-x-auto scrollbar-hide gap-4 py-2 scroll-smooth snap-x pb-4"
           onScroll={handleScroll}
         >
           {objects.map((object, index) => (
             <div
               key={object.id}
-              className="carousel-item flex-none w-64 md:w-80 snap-start"
+              className="carousel-item flex-none w-64 md:w-64 snap-start h-auto"
               data-index={index}
             >
-              <ObjectGridLayout
-                object={object}
-                onClick={() => onItemClick(index)}
-                endpoint={endpoint}
-                width={320}
-                shouldLoad={visibleItems.has(index) || index < 3} // Always load first 3 items
-              />
+              <div className="w-full h-full flex flex-col">
+                <ObjectGridLayout
+                  object={object}
+                  onClick={() => onItemClick(index)}
+                  endpoint={endpoint}
+                  width={320}
+                  shouldLoad={visibleItems.has(index) || index < 3} // Always load first 3 items
+                />
+              </div>
             </div>
           ))}
         </div>

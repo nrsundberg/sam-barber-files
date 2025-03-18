@@ -1,4 +1,3 @@
-// ObjectRowLayout.tsx - Updated with lazy loading
 import { Link, useSubmit } from "react-router";
 import type { Object } from "@prisma/client";
 import {
@@ -20,7 +19,7 @@ export default function ({
   dragHandleProps,
   endpoint,
   width,
-  shouldLoad = false, // Add shouldLoad prop with default false
+  shouldLoad = false,
 }: {
   object: Object;
   inAdmin: boolean;
@@ -52,20 +51,20 @@ export default function ({
       onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex items-center justify-between py-3 border-b border-gray-500
-                       md:hover:bg-gray-800 transition duration-300 text-gray-400
-                        md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group ${
-                          isLast ? "last-child" : ""
-                        }`}
+                 md:hover:bg-gray-800 transition duration-300 text-gray-400
+                 md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group ${
+                   isLast ? "border-b-0" : ""
+                 }`}
     >
       <div
-        className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr]`}
+        className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-2 md:grid-cols-[2.5fr_1fr_.5fr_.5fr]`}
       >
         <div
           {...dragHandleProps}
-          className="pl-1 md:pl-6 inline-flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold md:group-hover:text-sb-restless"
+          className="pl-1 md:pl-6 flex items-center gap-x-2 text-xs md:text-lg font-medium md:font-semibold md:group-hover:text-sb-restless w-full overflow-hidden"
         >
           {inAdmin ? (
-            <div className={"inline-flex gap-2"}>
+            <div className="inline-flex gap-2 mr-2 flex-shrink-0">
               <TrendingUp
                 className={`${object.isTrending ? "text-green-500" : ""}`}
                 onClickCapture={() => updateTrendingOrFavorite(true)}
@@ -76,15 +75,23 @@ export default function ({
               />
             </div>
           ) : (
-            <ChevronLeft className={"opacity-0"} />
+            <ChevronLeft className="opacity-0 flex-shrink-0" />
           )}
-          <Thumbnail
-            object={object}
-            endpoint={endpoint}
-            isRow={true}
-            width={width ? width : inAdmin ? 100 : undefined}
-            shouldLoad={shouldLoad} // Pass shouldLoad to Thumbnail
-          />
+          <div className="flex items-center min-w-0 w-full">
+            <div className="flex-shrink-0">
+              <Thumbnail
+                object={object}
+                endpoint={endpoint}
+                isRow={true}
+                isAdmin={inAdmin}
+                width={width}
+                shouldLoad={shouldLoad}
+              />
+            </div>
+            <p className="ml-2 text-sm truncate min-w-0 flex-1">
+              {object.fileName}
+            </p>
+          </div>
         </div>
 
         <p className="hidden sm:block text-center text-sm md:text-medium self-center">

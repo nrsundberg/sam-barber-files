@@ -9,7 +9,8 @@ export function Thumbnail({
   isRow,
   height,
   width,
-  shouldLoad = false, // New prop to control lazy loading
+  isAdmin = false,
+  shouldLoad = false, // Control lazy loading
 }: {
   object: Object;
   endpoint: string;
@@ -17,7 +18,8 @@ export function Thumbnail({
   isRow?: boolean;
   height?: number;
   width?: number;
-  shouldLoad?: boolean; // Default is false to prevent loading until needed
+  isAdmin?: boolean; // New prop to control sizing in admin view
+  shouldLoad?: boolean;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
@@ -50,37 +52,49 @@ export function Thumbnail({
     }
   }, [shouldLoad, hasAttemptedLoad]);
 
-  // Render actual content when shouldLoad is true and element has attempted to load at least once
+  // Render actual content when shouldLoad is true and element has attempted to load
   const shouldRenderContent = shouldLoad && hasAttemptedLoad;
+
+  // Calculate container classes based on layout type
+  const containerClasses = isRow
+    ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0`
+    : "w-full h-full flex items-center justify-center";
+
+  // Calculate image/video container classes based on layout type
+  const mediaContainerClasses = isRow
+    ? "w-full h-full flex items-center justify-center overflow-hidden"
+    : "aspect-video w-full flex items-center justify-center overflow-hidden";
 
   return (
     <div
       ref={elementRef}
-      className={"align-middle w-full h-full items-center"}
+      className={containerClasses}
       onClick={onClick && onClick}
     >
-      {
-        object.posterKey && shouldRenderContent ? (
-          <img
-            src={endpoint + object.posterKey}
-            height={height}
-            width={width}
-            className="max-w-[100px] sm:max-w-full"
-            loading="lazy"
-            onLoad={() => setIsLoaded(true)}
-            alt={object.fileName || "thumbnail"}
-          />
-        ) : (
-          shouldRenderContent && (
-            <div className="items-center flex h-full justify-center">
+      {shouldRenderContent && (
+        <>
+          {object.posterKey ? (
+            <div className={mediaContainerClasses}>
+              <img
+                src={endpoint + object.posterKey}
+                height={height}
+                width={width}
+                className="object-contain max-h-full max-w-full"
+                loading="lazy"
+                onLoad={() => setIsLoaded(true)}
+                alt={object.fileName || "thumbnail"}
+              />
+            </div>
+          ) : (
+            <div className={mediaContainerClasses}>
               {object.kind === "AUDIO" ? (
-                <AudioLines className="text-gray-400 w-[75px] h-[75px]" />
+                <AudioLines className="text-gray-400 w-12 h-12" />
               ) : object.kind === "PHOTO" ? (
                 <img
                   src={endpoint + object.s3fileKey}
                   loading="lazy"
                   width={width}
-                  className="w-full h-full object-contain"
+                  className="object-contain max-h-full max-w-full"
                   onLoad={() => setIsLoaded(true)}
                   alt={object.fileName || "photo"}
                 />
@@ -88,23 +102,21 @@ export function Thumbnail({
                 <video
                   preload="metadata"
                   src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
-                  className="w-full h-full object-contain"
+                  className="object-contain max-h-full max-w-full"
                   poster={
                     object.posterKey ? endpoint + object.posterKey : undefined
                   }
                 />
               )}
             </div>
-          )
-        )
-        // ) : (
-        // // Placeholder when not loaded
-        // <div className="flex items-center justify-center bg-gray-900 w-full h-full min-h-[100px]">
-        //   <div className="w-12 h-12 rounded-full border-4 border-gray-600 border-t-gray-400 animate-spin"></div>
-        // </div>
-        // )
-      }
-      {!isRow ? null : <p className="self-center">{object.fileName}</p>}
+          )}
+        </>
+      )}
+      {!shouldRenderContent && (
+        <div className={`bg-gray-900 ${mediaContainerClasses}`}>
+          <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+        </div>
+      )}
     </div>
   );
 }
