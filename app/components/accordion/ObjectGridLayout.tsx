@@ -20,13 +20,15 @@ export default function ({
 }) {
   return (
     <div
-      onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex flex-col h-full md:hover:bg-gray-800 transition duration-300 text-gray-400
                 md:hover:text-sb-restless p-1 md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group
                 ${object.hidden ? " opacity-60" : ""}`}
     >
-      <div className="relative aspect-video w-full">
+      <div
+        className="relative aspect-video w-full cursor-pointer"
+        onClick={onClick ? onClick : undefined}
+      >
         <Thumbnail
           object={object}
           endpoint={endpoint}
@@ -43,7 +45,10 @@ export default function ({
       </div>
 
       <div className="flex justify-between items-center mt-1 min-h-[2.5rem]">
-        <div className="text-xs font-light md:text-sm md:font-medium line-clamp-2 sm:flex-1 sm:w-full max-w-[70%] sm:max-w-none">
+        <div
+          className="text-xs font-light md:text-sm md:font-medium line-clamp-2 sm:flex-1 sm:w-full max-w-[70%] sm:max-w-none cursor-pointer"
+          onClick={onClick ? onClick : undefined}
+        >
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
 
@@ -58,6 +63,7 @@ export default function ({
             to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
             reloadDocument
             className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
+            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
           >
             Download
           </Link>

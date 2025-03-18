@@ -32,7 +32,12 @@ export default function ({
 }) {
   let submit = useSubmit();
 
-  const updateTrendingOrFavorite = (trendingField: boolean) => {
+  const updateTrendingOrFavorite = (
+    trendingField: boolean,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation(); // Prevent the carousel from opening
+
     let formData = new FormData();
     formData.set("isTrending", (!object.isTrending).toString());
     formData.set("isFavorite", (!object.isFavorite).toString());
@@ -48,7 +53,6 @@ export default function ({
 
   return (
     <div
-      onClick={onClick ? onClick : undefined}
       key={object.id}
       className={`flex items-center justify-between py-3 border-b border-gray-500
                  md:hover:bg-gray-800 transition duration-300 text-gray-400
@@ -58,6 +62,7 @@ export default function ({
     >
       <div
         className={`${object.hidden ? "opacity-60" : ""} w-full px-1 md:px-4 grid grid-cols-2 md:grid-cols-[2.5fr_1fr_.5fr_.5fr]`}
+        onClick={onClick ? onClick : undefined}
       >
         <div
           {...dragHandleProps}
@@ -67,11 +72,11 @@ export default function ({
             <div className="inline-flex gap-2 mr-2 flex-shrink-0">
               <TrendingUp
                 className={`${object.isTrending ? "text-green-500" : ""}`}
-                onClickCapture={() => updateTrendingOrFavorite(true)}
+                onClickCapture={(e) => updateTrendingOrFavorite(true, e)}
               />
               <Star
                 className={`${object.isFavorite ? "text-yellow-300" : ""}`}
-                onClickCapture={() => updateTrendingOrFavorite(false)}
+                onClickCapture={(e) => updateTrendingOrFavorite(false, e)}
               />
             </div>
           ) : (
@@ -110,6 +115,7 @@ export default function ({
             to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
             reloadDocument
             className="inline-flex gap-2 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit text-sb-restless"
+            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
           >
             Download
           </Link>
@@ -130,6 +136,7 @@ export default function ({
             to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
             reloadDocument
             className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
+            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
           >
             Download
           </Link>
