@@ -101,7 +101,7 @@ export default function ({
                     selected ? DisplayStyle.GRID : DisplayStyle.LIST
                   )
                 }
-                checked={viewMode == "GRID"}
+                isSelected={viewMode === DisplayStyle.GRID}
                 color="default"
                 className="justify-self-center"
                 endContent={<Grid className="w-5 h-5" />}
