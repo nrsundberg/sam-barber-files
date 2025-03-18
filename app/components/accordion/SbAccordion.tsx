@@ -5,16 +5,39 @@ import type { FolderWithObjects } from "~/types";
 export interface AccordionProps {
   folders: FolderWithObjects[];
   allowMultiple?: boolean;
-  // Could make a context provider to not have to drill props
   endpoint: string;
+  initialLoadComplete?: boolean; // Added to control loading priority
 }
 
 const SbAccordion: React.FC<AccordionProps> = ({
   folders,
   allowMultiple = false,
   endpoint,
+  initialLoadComplete = false, // Default to false
 }) => {
   let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
+  let [openIndexes, setOpenIndexes] = useState<number[]>([]);
+  let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  let [readyToLoad, setReadyToLoad] = useState(initialLoadComplete);
+
+  // Update readyToLoad when initialLoadComplete changes
+  useEffect(() => {
+    if (initialLoadComplete && !readyToLoad) {
+      setReadyToLoad(true);
+    }
+  }, [initialLoadComplete, readyToLoad]);
+
+  useEffect(() => {
+    // If initialLoadComplete wasn't set, we'll set readyToLoad after a delay
+    // to give priority to favorites and trending
+    if (!initialLoadComplete && !readyToLoad) {
+      const timer = setTimeout(() => {
+        setReadyToLoad(true);
+      }, 1000); // Delay loading accordion content by 1 second
+
+      return () => clearTimeout(timer);
+    }
+  }, [initialLoadComplete, readyToLoad]);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -41,9 +64,6 @@ const SbAccordion: React.FC<AccordionProps> = ({
     window.addEventListener("resize", updateHeight); // Update on resize
     return () => window.removeEventListener("resize", updateHeight);
   }, [folders]); // Run when items change
-
-  let [openIndexes, setOpenIndexes] = useState<number[]>([]);
-  let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const toggleItem = (index: number) => {
     setOpenIndexes((prev) => {
@@ -89,6 +109,7 @@ const SbAccordion: React.FC<AccordionProps> = ({
             onClick={() => toggleItem(index)}
             passRef={passElementRef}
             endpoint={endpoint}
+            readyToLoad={readyToLoad} // Pass readyToLoad state to control loading
           />
         );
       })}

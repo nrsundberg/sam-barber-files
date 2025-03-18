@@ -1,3 +1,4 @@
+// ObjectRowLayout.tsx - Updated with lazy loading
 import { Link, useSubmit } from "react-router";
 import type { Object } from "@prisma/client";
 import {
@@ -20,6 +21,7 @@ export default function ({
   dragHandleProps,
   endpoint,
   width,
+  shouldLoad = false, // Add shouldLoad prop with default false
 }: {
   object: Object;
   inAdmin: boolean;
@@ -28,6 +30,7 @@ export default function ({
   dragHandleProps?: any;
   endpoint: string;
   width?: number;
+  shouldLoad?: boolean;
 }) {
   let submit = useSubmit();
 
@@ -81,6 +84,7 @@ export default function ({
             endpoint={endpoint}
             isRow={true}
             width={width ? width : inAdmin ? 150 : undefined}
+            shouldLoad={shouldLoad} // Pass shouldLoad to Thumbnail
           />
         </div>
 

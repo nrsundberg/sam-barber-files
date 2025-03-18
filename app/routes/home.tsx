@@ -5,7 +5,7 @@ import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
 import { Thumbnail } from "~/components/Thumbnail";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
@@ -45,6 +45,7 @@ export async function loader({}: Route.LoaderArgs) {
 
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint] = loaderData;
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const useVideoFavorites = useVideoCarousel({
     objects: favorites,
@@ -55,6 +56,18 @@ export default function ({ loaderData }: Route.ComponentProps) {
     objects: trending,
     endpoint: cdnEndpoint,
   });
+
+  // Flag to prioritize loading favorites and trending first
+  useEffect(() => {
+    if (!initialLoadComplete) {
+      // Set a small timeout to ensure the page has rendered first
+      const timer = setTimeout(() => {
+        setInitialLoadComplete(true);
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen mt-1">
@@ -94,7 +107,14 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <p className="hidden sm:block text-center">SIZE</p>
         <p className="hidden sm:block text-center">TYPE</p>
       </div>
-      <SbAccordion folders={folders} endpoint={cdnEndpoint} allowMultiple />
+
+      {/* Only pass initialLoadComplete to ensure accordions load after favorites/trending */}
+      <SbAccordion
+        folders={folders}
+        endpoint={cdnEndpoint}
+        allowMultiple
+        initialLoadComplete={initialLoadComplete}
+      />
     </div>
   );
 }

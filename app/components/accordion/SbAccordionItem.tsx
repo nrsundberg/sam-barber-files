@@ -1,5 +1,5 @@
 import { ChevronLeft, FolderIcon, Grid, List } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -17,6 +17,7 @@ export interface AccordionItemProps {
   onClick: () => void;
   passRef: (el: any, key: number) => void;
   endpoint: string;
+  readyToLoad?: boolean; // Add readyToLoad prop
 }
 
 export default function ({
@@ -26,9 +27,11 @@ export default function ({
   isFolderOpen,
   onClick,
   endpoint,
+  readyToLoad = false,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
+  const [contentLoaded, setContentLoaded] = useState(false);
 
   const useVideo = useVideoCarousel({
     objects: folder.objects,
@@ -38,6 +41,13 @@ export default function ({
   const toggleViewMode = (view: DisplayStyle) => {
     setViewMode(view);
   };
+
+  // Only load content when folder is open for the first time and when app is ready to load accordion content
+  useEffect(() => {
+    if (isFolderOpen && !contentLoaded && readyToLoad) {
+      setContentLoaded(true);
+    }
+  }, [isFolderOpen, contentLoaded, readyToLoad]);
 
   return (
     <div
@@ -108,38 +118,48 @@ export default function ({
         } grid overflow-hidden`}
       >
         <div className="overflow-hidden">
-          {viewMode == "LIST" ? (
-            folder.objects.map((object, objectIndex) => (
-              <ObjectRowLayout
-                key={object.id}
-                inAdmin={false}
-                onClick={() => useVideo.openModal(objectIndex)}
-                object={object}
-                isLast={objectIndex === folder.objects.length - 1}
-                endpoint={endpoint}
-                width={200}
-              />
-            ))
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-              {folder.objects.map((object, objectIndex) => (
-                <ObjectGridLayout
-                  key={object.id}
-                  onClick={() => useVideo.openModal(objectIndex)}
-                  object={object}
-                  endpoint={endpoint}
-                />
-              ))}
-            </div>
+          {/* Only render content if folder has been opened at least once and app is ready to load accordion content */}
+          {contentLoaded && readyToLoad && (
+            <>
+              {viewMode == "LIST" ? (
+                folder.objects.map((object, objectIndex) => (
+                  <ObjectRowLayout
+                    key={object.id}
+                    inAdmin={false}
+                    onClick={() => useVideo.openModal(objectIndex)}
+                    object={object}
+                    isLast={objectIndex === folder.objects.length - 1}
+                    endpoint={endpoint}
+                    width={200}
+                    shouldLoad={isFolderOpen} // Only load when folder is open
+                  />
+                ))
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+                  {folder.objects.map((object, objectIndex) => (
+                    <ObjectGridLayout
+                      key={object.id}
+                      onClick={() => useVideo.openModal(objectIndex)}
+                      object={object}
+                      endpoint={endpoint}
+                      shouldLoad={isFolderOpen} // Only load when folder is open
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <VideoCarousel
-        objects={folder.objects}
-        endpoint={endpoint}
-        useVideo={useVideo}
-      />
+      {/* Only pass video data when it has been opened once and app is ready to load accordion content */}
+      {contentLoaded && readyToLoad && (
+        <VideoCarousel
+          objects={folder.objects}
+          endpoint={endpoint}
+          useVideo={useVideo}
+        />
+      )}
     </div>
   );
 }

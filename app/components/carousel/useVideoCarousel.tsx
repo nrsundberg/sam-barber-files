@@ -17,6 +17,8 @@ export interface UseVideoCarouselReturn {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  isMediaLoaded: boolean; // New state to track media loading
+  setMediaLoaded: (loaded: boolean) => void; // New function to set media loaded state
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -43,6 +45,10 @@ export function useVideoCarousel({
   let [currentIndex, setCurrentIndex] = useState(initialObjectIndex);
   let [isPlaying, setIsPlaying] = useState(false);
   let [isScrolling, setIsScrolling] = useState(false);
+  let [isMediaLoaded, setIsMediaLoaded] = useState(false);
+
+  // Track which videos have already been loaded to avoid refetching
+  let [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
 
   // Create stable URL getters instead of regenerating URLs on every render
   const getVideoSourceUrl = (object: Object) => endpoint + object.s3fileKey;
@@ -54,7 +60,16 @@ export function useVideoCarousel({
   let touchStartY = useRef<number | null>(null);
   let scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentObject = objects.length > 0 ? objects[currentIndex] : null;
+  const currentObject =
+    objects.length > 0 && currentIndex >= 0 ? objects[currentIndex] : null;
+
+  // Reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setIsPlaying(false);
+      // We're not resetting currentIndex so we can reopen to the same item if needed
+    }
+  }, [isOpen]);
 
   // Handle video ended event
   useEffect(() => {
@@ -75,14 +90,14 @@ export function useVideoCarousel({
 
   // Control video playback
   useEffect(() => {
-    if (videoRef.current) {
+    if (videoRef.current && isMediaLoaded) {
       if (isPlaying) {
         videoRef.current.play().catch(() => setIsPlaying(false));
       } else {
         videoRef.current.pause();
       }
     }
-  }, [isPlaying, videoRef.current]);
+  }, [isPlaying, videoRef.current, isMediaLoaded]);
 
   // Clean up any timeout on unmount
   useEffect(() => {
@@ -93,33 +108,34 @@ export function useVideoCarousel({
     };
   }, []);
 
-  // Preload adjacent videos when current video is loaded
-  useEffect(() => {
-    if (!isOpen || !currentObject) return;
+  // Track media load state
+  const setMediaLoaded = (loaded: boolean) => {
+    setIsMediaLoaded(loaded);
 
-    // Preload the next video (if exists)
-    if (currentIndex < objects.length - 1) {
-      const nextObject = objects[currentIndex + 1];
-      const preloadNext = new Image();
-      if (nextObject.posterKey) {
-        preloadNext.src = getPosterUrl(nextObject) as string;
-      }
+    // If a video is successfully loaded, add its key to the loadedVideos set
+    if (loaded && currentObject) {
+      setLoadedVideos((prev) => {
+        const updated = new Set(prev);
+        updated.add(currentObject.s3fileKey);
+        return updated;
+      });
     }
-
-    // Preload the previous video (if exists)
-    if (currentIndex > 0) {
-      const prevObject = objects[currentIndex - 1];
-      const preloadPrev = new Image();
-      if (prevObject.posterKey) {
-        preloadPrev.src = getPosterUrl(prevObject) as string;
-      }
-    }
-  }, [isOpen, currentIndex, objects]);
+  };
 
   // Functions for controlling the carousel
   const openModal = (objectIndex: number) => {
     setCurrentIndex(objectIndex);
     setIsOpen(true);
+
+    // Check if this video was already loaded
+    if (
+      objects[objectIndex] &&
+      loadedVideos.has(objects[objectIndex].s3fileKey)
+    ) {
+      setIsMediaLoaded(true);
+    } else {
+      setIsMediaLoaded(false);
+    }
   };
 
   const closeModal = () => {
@@ -131,6 +147,13 @@ export function useVideoCarousel({
     if (index >= 0 && index < objects.length) {
       setIsPlaying(false);
       setCurrentIndex(index);
+
+      // Check if this video was already loaded
+      if (objects[index] && loadedVideos.has(objects[index].s3fileKey)) {
+        setIsMediaLoaded(true);
+      } else {
+        setIsMediaLoaded(false);
+      }
     }
   };
 
@@ -207,6 +230,8 @@ export function useVideoCarousel({
     videoRef,
     containerRef,
     setIsPlaying,
+    isMediaLoaded,
+    setMediaLoaded,
 
     // Actions
     openModal,

@@ -4,7 +4,7 @@ import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -32,10 +32,17 @@ export default function VideoCarousel({
     handleWheel,
     isPlaying,
     setIsPlaying,
+    isMediaLoaded, // New state from hook
+    setMediaLoaded, // New function from hook
   } = useVideo;
 
   // Create refs for all video elements
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
+
+  // Track which media items have been loaded
+  const [loadedMediaIndices, setLoadedMediaIndices] = useState<Set<number>>(
+    new Set()
+  );
 
   // Create a memoized mapping of video sources to prevent unnecessary re-renders
   const videoSources = useMemo(() => {
@@ -45,12 +52,37 @@ export default function VideoCarousel({
     }));
   }, [objects, endpoint]);
 
+  // Track which media elements should be preloaded (current, previous, next)
+  const mediaToPreload = useMemo(() => {
+    if (currentIndex === -1) return new Set<number>();
+
+    const indices = new Set<number>();
+    indices.add(currentIndex); // Current
+
+    if (currentIndex > 0) {
+      indices.add(currentIndex - 1); // Previous
+    }
+
+    if (currentIndex < objects.length - 1) {
+      indices.add(currentIndex + 1); // Next
+    }
+
+    return indices;
+  }, [currentIndex, objects.length]);
+
   // Set up ref for current video
   useEffect(() => {
     if (isOpen && currentIndex >= 0 && videoRefs.current[currentIndex]) {
       videoRef.current = videoRefs.current[currentIndex] as any;
+
+      // Mark as loaded if it was already loaded before
+      if (loadedMediaIndices.has(currentIndex)) {
+        setMediaLoaded(true);
+      } else {
+        setMediaLoaded(false);
+      }
     }
-  }, [isOpen, currentIndex, videoRef]);
+  }, [isOpen, currentIndex, videoRef, setMediaLoaded, loadedMediaIndices]);
 
   // Manage play/pause state when switching videos
   useEffect(() => {
@@ -63,7 +95,7 @@ export default function VideoCarousel({
       });
 
       // Update current video playing state
-      if (videoRef.current) {
+      if (videoRef.current && isMediaLoaded) {
         if (isPlaying) {
           videoRef.current.play().catch(() => setIsPlaying(false));
         } else {
@@ -71,7 +103,20 @@ export default function VideoCarousel({
         }
       }
     }
-  }, [isOpen, currentIndex, isPlaying, setIsPlaying]);
+  }, [isOpen, currentIndex, isPlaying, setIsPlaying, isMediaLoaded, videoRef]);
+
+  // Handle media load event
+  const handleMediaLoaded = (index: number) => {
+    setLoadedMediaIndices((prev) => {
+      const updated = new Set(prev);
+      updated.add(index);
+      return updated;
+    });
+
+    if (index === currentIndex) {
+      setMediaLoaded(true);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -113,50 +158,78 @@ export default function VideoCarousel({
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full max-w-6xl aspect-video">
-              {/* Keep all videos in DOM but only show the current one */}
-              {objects.map((object, index) => (
-                <div
-                  key={`media-container-${object.id}`}
-                  style={{ display: currentIndex === index ? "block" : "none" }}
-                  className="w-full h-full"
-                >
-                  {object.kind === ObjectKind.VIDEO ? (
-                    <video
-                      controls
-                      ref={(el) => {
-                        videoRefs.current[index] = el;
-                      }}
-                      src={videoSources[index].src}
-                      poster={videoSources[index].poster}
-                      className="w-full h-full object-contain"
-                      preload="metadata"
-                      crossOrigin="anonymous"
-                    />
-                  ) : (
-                    <div className="flex-col h-full content-end justify-items-center">
-                      {videoSources[index].poster ? (
-                        <img
-                          src={videoSources[index].poster}
-                          alt={object.fileName}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
-                      )}
-                      <audio
-                        controls
-                        ref={(el) => {
-                          videoRefs.current[index] = el;
-                        }}
-                        preload="metadata"
-                        src={videoSources[index].src}
-                        className="w-full min-h-fit py-1"
-                        crossOrigin="anonymous"
-                      />
-                    </div>
-                  )}
+              {/* Keep all videos in DOM but only show the current one and preload neighbors */}
+              {objects.map((object, index) => {
+                const shouldPreload = mediaToPreload.has(index);
+                const isCurrentMedia = currentIndex === index;
+
+                return (
+                  <div
+                    key={`media-container-${object.id}`}
+                    style={{ display: isCurrentMedia ? "block" : "none" }}
+                    className="w-full h-full"
+                  >
+                    {object.kind === ObjectKind.VIDEO ? (
+                      <>
+                        {shouldPreload && (
+                          <video
+                            controls={isCurrentMedia}
+                            ref={(el) => {
+                              videoRefs.current[index] = el;
+                            }}
+                            src={videoSources[index].src}
+                            poster={videoSources[index].poster}
+                            className="w-full h-full object-contain"
+                            preload={isCurrentMedia ? "auto" : "metadata"}
+                            crossOrigin="anonymous"
+                            onLoadedData={() => handleMediaLoaded(index)}
+                          />
+                        )}
+                        {!shouldPreload && isCurrentMedia && (
+                          <div className="flex items-center justify-center bg-gray-900 w-full h-full">
+                            <div className="w-12 h-12 rounded-full border-4 border-gray-600 border-t-gray-400 animate-spin"></div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex-col h-full content-end justify-items-center">
+                        {videoSources[index].poster ? (
+                          <img
+                            src={videoSources[index].poster}
+                            alt={object.fileName}
+                            loading="lazy"
+                            onLoad={() =>
+                              shouldPreload && handleMediaLoaded(index)
+                            }
+                          />
+                        ) : (
+                          <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                        )}
+                        {shouldPreload && (
+                          <audio
+                            controls
+                            ref={(el) => {
+                              videoRefs.current[index] = el;
+                            }}
+                            preload={isCurrentMedia ? "auto" : "metadata"}
+                            src={videoSources[index].src}
+                            className="w-full min-h-fit py-1"
+                            crossOrigin="anonymous"
+                            onLoadedData={() => handleMediaLoaded(index)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Loading indicator */}
+              {currentIndex !== -1 && !isMediaLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
+                  <div className="w-16 h-16 rounded-full border-4 border-gray-600 border-t-white animate-spin"></div>
                 </div>
-              ))}
+              )}
 
               {/* Video info overlay */}
               {currentObject && (

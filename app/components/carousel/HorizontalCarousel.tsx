@@ -19,6 +19,8 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   const carouselRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Check if arrows should be displayed initially and on resize
   useEffect(() => {
@@ -40,6 +42,49 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
     // Run on window resize
     window.addEventListener("resize", checkArrows);
     return () => window.removeEventListener("resize", checkArrows);
+  }, [objects]);
+
+  // Setup intersection observer for lazy loading
+  useEffect(() => {
+    // Cleanup previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Create new observer for lazy loading
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(
+              entry.target.getAttribute("data-index") || "0",
+              10
+            );
+            setVisibleItems((prev) => {
+              const updated = new Set(prev);
+              updated.add(index);
+              return updated;
+            });
+          }
+        });
+      },
+      {
+        root: carouselRef.current,
+        rootMargin: "100px", // Load items a bit before they come into view
+        threshold: 0.1,
+      }
+    );
+
+    // Add observed items
+    const itemElements =
+      carouselRef.current?.querySelectorAll(".carousel-item");
+    if (itemElements) {
+      itemElements.forEach((el) => observerRef.current?.observe(el));
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
   }, [objects]);
 
   const scroll = (direction: "left" | "right") => {
@@ -96,12 +141,17 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
           onScroll={handleScroll}
         >
           {objects.map((object, index) => (
-            <div key={object.id} className="flex-none w-64 md:w-80 snap-start">
+            <div
+              key={object.id}
+              className="carousel-item flex-none w-64 md:w-80 snap-start"
+              data-index={index}
+            >
               <ObjectGridLayout
                 object={object}
                 onClick={() => onItemClick(index)}
                 endpoint={endpoint}
                 width={320}
+                shouldLoad={visibleItems.has(index) || index < 3} // Always load first 3 items
               />
             </div>
           ))}

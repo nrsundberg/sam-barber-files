@@ -1,9 +1,8 @@
 import { Link } from "react-router";
 import type { Object } from "@prisma/client";
-import { Download, EyeOffIcon } from "lucide-react";
+import { EyeOffIcon } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
-import { Button, Tooltip } from "@heroui/react";
 import { formatInTimeZone } from "date-fns-tz";
 
 export default function ({
@@ -11,11 +10,13 @@ export default function ({
   onClick,
   endpoint,
   width,
+  shouldLoad = false, // Add shouldLoad prop with default false
 }: {
   object: Object;
   onClick?: () => void;
   endpoint: string;
   width?: number;
+  shouldLoad?: boolean;
 }) {
   return (
     <div
@@ -30,6 +31,7 @@ export default function ({
         endpoint={endpoint}
         isRow={false}
         width={width}
+        shouldLoad={shouldLoad} // Pass shouldLoad to Thumbnail
       />
 
       {object.hidden && (
