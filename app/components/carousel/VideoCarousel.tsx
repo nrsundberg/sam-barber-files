@@ -35,7 +35,6 @@ export default function VideoCarousel({
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
-    markVideoAsError,
   } = useVideo;
 
   // Create refs for all video elements
@@ -44,7 +43,8 @@ export default function VideoCarousel({
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
     new Set()
   );
-  // Add state for tracking media load errors
+
+  // Add this after the existing state declarations in the VideoCarousel component
   const [mediaLoadErrors, setMediaLoadErrors] = useState<
     Record<string, { timestamp: number; attempts: number }>
   >({});
@@ -105,7 +105,17 @@ export default function VideoCarousel({
     }
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef]);
 
-  // Handle media load event
+  // Add this at the end of the useEffect cleanup
+  useEffect(() => {
+    return () => {
+      // Clear all retry timeouts when component unmounts
+      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
+  // Replace the handleMediaLoaded function with this improved version
   const handleMediaLoaded = (index: number, fileKey: string) => {
     if (objects[index]) {
       // Clear any error state for this media
@@ -127,7 +137,7 @@ export default function VideoCarousel({
     }
   };
 
-  // Handle media error event
+  // Add this new function to handle media load errors
   const handleMediaError = (index: number, fileKey: string) => {
     // Update error tracking
     setMediaLoadErrors((prev) => {
@@ -141,9 +151,6 @@ export default function VideoCarousel({
         },
       };
     });
-
-    // Also notify the global error tracking
-    markVideoAsError(fileKey, index);
 
     // Clear any existing timeout for this item
     if (mediaRetryTimeouts.current[fileKey]) {
@@ -173,16 +180,6 @@ export default function VideoCarousel({
       }, delay);
     }
   };
-
-  // Clean up timeouts when unmounting
-  useEffect(() => {
-    return () => {
-      // Clear all retry timeouts when component unmounts
-      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
-    };
-  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
@@ -235,8 +232,6 @@ export default function VideoCarousel({
                 const isLoadedLocally = localLoadedKeys.has(fileKey);
                 const isLoadedGlobally = loadedVideos.has(fileKey);
                 const isIndexPreloaded = preloadedIndices.has(index);
-                const hasError = mediaLoadErrors[fileKey] !== undefined;
-
                 const shouldPreload =
                   mediaToPreload.has(index) ||
                   isLoadedLocally ||
@@ -258,7 +253,7 @@ export default function VideoCarousel({
                         src={`${videoSources[index].src}`}
                         poster={videoSources[index].poster}
                         className="w-full h-full object-contain"
-                        preload={shouldPreload && !hasError ? "auto" : "none"}
+                        preload={shouldPreload ? "auto" : "none"}
                         crossOrigin="anonymous"
                         onLoadedMetadata={() =>
                           handleMediaLoaded(index, fileKey)
@@ -287,7 +282,7 @@ export default function VideoCarousel({
                           ref={(el) => {
                             videoRefs.current[index] = el;
                           }}
-                          preload={shouldPreload && !hasError ? "auto" : "none"}
+                          preload={shouldPreload ? "auto" : "none"}
                           src={`${videoSources[index].src}`}
                           className="w-full min-h-fit py-1"
                           crossOrigin="anonymous"
