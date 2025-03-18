@@ -67,22 +67,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
             onItemClick={(index) => useVideoFavorites.openModal(index)}
           />
         )}
-        {/* {favorites.length > 0 && (
-          <div>
-            <p className="text-medium md:text-xl font-bold">FAVORITES</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-1 lg:gap-10">
-              {favorites.map((object: Object, objectIndex) => (
-                <ObjectGridLayout
-                  key={object.id}
-                  onClick={() => useVideoFavorites.openModal(objectIndex)}
-                  object={object}
-                  endpoint={cdnEndpoint}
-                  width={350}
-                />
-              ))}
-            </div>
-          </div>
-        )} */}
         <VideoCarousel
           objects={favorites}
           endpoint={cdnEndpoint}
@@ -90,20 +74,12 @@ export default function ({ loaderData }: Route.ComponentProps) {
         />
 
         {trending.length > 0 && (
-          <div className="mt-2">
-            <p className="text-medium md:text-xl font-bold">TRENDING</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-1 lg:gap-10">
-              {trending.map((object: Object, index: number) => (
-                <ObjectGridLayout
-                  key={object.id}
-                  onClick={() => useVideoTrending.openModal(index)}
-                  object={object}
-                  endpoint={cdnEndpoint}
-                  width={350}
-                />
-              ))}
-            </div>
-          </div>
+          <HorizontalCarousel
+            title="TRENDING"
+            objects={trending}
+            endpoint={cdnEndpoint}
+            onItemClick={(index) => useVideoTrending.openModal(index)}
+          />
         )}
         <VideoCarousel
           objects={trending}
