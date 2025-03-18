@@ -34,8 +34,16 @@ export default function SbAccordionItem({
   const [contentLoaded, setContentLoaded] = useState(false);
   // Track if content has been initially loaded (even if accordion is now closed)
   const [hasBeenLoaded, setHasBeenLoaded] = useState(false);
-  // New state to track which range of items should be initially loaded
+  // Track which range of items should be initially loaded
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
+  // Track failed loads to prevent mass reloading
+  const [failedLoads, setFailedLoads] = useState<Set<string>>(new Set());
+  // Track retry attempts for each file
+  const [retryAttempts, setRetryAttempts] = useState<Map<string, number>>(
+    new Map()
+  );
+  // Retry timeout
+  const retryTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const useVideo = useVideoCarousel({
     objects: folder.objects,
@@ -58,6 +66,15 @@ export default function SbAccordionItem({
       setVisibleRange({ start: 0, end: initialCount - 1 });
     }
   }, [isFolderOpen, contentLoaded, readyToLoad, folder.objects.length]);
+
+  // Clear any pending timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      retryTimeoutsRef.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   // Set up scroll event listener to load more content as user scrolls
   useEffect(() => {
@@ -84,6 +101,45 @@ export default function SbAccordionItem({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isFolderOpen, contentLoaded, folder.objects.length]);
 
+  // Handle failed loads with individual retries
+  const handleLoadError = (objectId: string) => {
+    setFailedLoads((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(objectId);
+      return newSet;
+    });
+
+    // Increment retry counter
+    setRetryAttempts((prev) => {
+      const newMap = new Map(prev);
+      const currentAttempts = prev.get(objectId) || 0;
+      newMap.set(objectId, currentAttempts + 1);
+      return newMap;
+    });
+
+    // Clear any existing timeout for this object
+    if (retryTimeoutsRef.current.has(objectId)) {
+      clearTimeout(retryTimeoutsRef.current.get(objectId));
+    }
+
+    // Schedule a retry with exponential backoff
+    const attempts = retryAttempts.get(objectId) || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
+
+    if (attempts < 5) {
+      // Max 5 retry attempts
+      const timeoutId = setTimeout(() => {
+        setFailedLoads((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(objectId);
+          return newSet;
+        });
+      }, delay);
+
+      retryTimeoutsRef.current.set(objectId, timeoutId);
+    }
+  };
+
   // Calculate which items should be rendered
   const itemsToRender =
     isFolderOpen && contentLoaded
@@ -91,7 +147,14 @@ export default function SbAccordionItem({
       : [];
 
   // Calculate which items should have their thumbnails loaded
-  const shouldLoadThumbnail = (index: number) => {
+  const shouldLoadThumbnail = (index: number, objectId: string) => {
+    // Don't load thumbnails for items that have failed multiple times
+    const attempts = retryAttempts.get(objectId) || 0;
+    if (attempts >= 5) return false;
+
+    // Don't retry loading failed thumbnails too quickly
+    if (failedLoads.has(objectId)) return false;
+
     // Always load all thumbnails for list view (they're smaller)
     if (viewMode === DisplayStyle.LIST) return true;
 
@@ -185,7 +248,8 @@ export default function SbAccordionItem({
                     isLast={objectIndex === folder.objects.length - 1}
                     endpoint={endpoint}
                     width={200}
-                    shouldLoad={shouldLoadThumbnail(objectIndex)} // Only load visible thumbnails
+                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
+                    onError={() => handleLoadError(object.id)}
                   />
                 ))}
               </div>
@@ -197,7 +261,8 @@ export default function SbAccordionItem({
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}
                     endpoint={endpoint}
-                    shouldLoad={shouldLoadThumbnail(objectIndex)} // Only load visible thumbnails
+                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
+                    onError={() => handleLoadError(object.id)}
                   />
                 ))}
               </div>

@@ -11,12 +11,14 @@ export default function ({
   endpoint,
   width,
   shouldLoad = false,
+  onError,
 }: {
   object: Object;
   onClick?: () => void;
   endpoint: string;
   width?: number;
   shouldLoad?: boolean;
+  onError?: () => void; // Add error handler prop
 }) {
   return (
     <div
@@ -35,6 +37,7 @@ export default function ({
           isRow={false}
           width={width}
           shouldLoad={shouldLoad}
+          onError={onError}
         />
 
         {object.hidden && (

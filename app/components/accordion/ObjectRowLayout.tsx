@@ -1,12 +1,6 @@
 import { Link, useSubmit } from "react-router";
 import type { Object } from "@prisma/client";
-import {
-  ChevronLeft,
-  Download,
-  EyeOffIcon,
-  Star,
-  TrendingUp,
-} from "lucide-react";
+import { ChevronLeft, EyeOffIcon, Star, TrendingUp } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -20,6 +14,7 @@ export default function ({
   endpoint,
   width,
   shouldLoad = false,
+  onError,
 }: {
   object: Object;
   inAdmin: boolean;
@@ -29,6 +24,7 @@ export default function ({
   endpoint: string;
   width?: number;
   shouldLoad?: boolean;
+  onError?: () => void; // Add error handler prop
 }) {
   let submit = useSubmit();
 
@@ -91,6 +87,7 @@ export default function ({
                 isAdmin={inAdmin}
                 width={width}
                 shouldLoad={shouldLoad}
+                onError={onError}
               />
             </div>
             <p className="ml-2 text-sm truncate min-w-0 flex-1">

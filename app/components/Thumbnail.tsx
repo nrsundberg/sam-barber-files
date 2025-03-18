@@ -11,6 +11,7 @@ export function Thumbnail({
   width,
   isAdmin = false,
   shouldLoad = false, // Control lazy loading
+  onError, // New callback for error handling
 }: {
   object: Object;
   endpoint: string;
@@ -20,10 +21,12 @@ export function Thumbnail({
   width?: number;
   isAdmin?: boolean; // New prop to control sizing in admin view
   shouldLoad?: boolean;
+  onError?: () => void; // New prop to handle loading errors
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
 
   // Setup intersection observer for visibility detection
@@ -52,8 +55,24 @@ export function Thumbnail({
     }
   }, [shouldLoad, hasAttemptedLoad]);
 
+  // Reset error state when shouldLoad changes
+  useEffect(() => {
+    if (shouldLoad) {
+      setHasError(false);
+    }
+  }, [shouldLoad]);
+
   // Render actual content when shouldLoad is true and element has attempted to load
-  const shouldRenderContent = shouldLoad && hasAttemptedLoad;
+  const shouldRenderContent = shouldLoad && hasAttemptedLoad && !hasError;
+
+  // Handle media load error
+  const handleError = () => {
+    setHasError(true);
+    // Call the parent component's error handler if provided
+    if (onError) {
+      onError();
+    }
+  };
 
   // Calculate container classes based on layout type
   const containerClasses = isRow
@@ -82,6 +101,7 @@ export function Thumbnail({
                 className="object-contain max-h-full max-w-full"
                 loading="lazy"
                 onLoad={() => setIsLoaded(true)}
+                onError={handleError}
                 alt={object.fileName || "thumbnail"}
               />
             </div>
@@ -96,6 +116,7 @@ export function Thumbnail({
                   width={width}
                   className="object-contain max-h-full max-w-full"
                   onLoad={() => setIsLoaded(true)}
+                  onError={handleError}
                   alt={object.fileName || "photo"}
                 />
               ) : (
@@ -110,15 +131,23 @@ export function Thumbnail({
                   muted
                   disablePictureInPicture
                   disableRemotePlayback
+                  onError={handleError}
                 />
               )}
             </div>
           )}
         </>
       )}
-      {!shouldRenderContent && (
-        <div className={`bg-gray-900 ${mediaContainerClasses}`}>
-          <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+      {(!shouldRenderContent || hasError) && (
+        <div className={`${mediaContainerClasses}`}>
+          {hasError ? (
+            <div className="text-gray-400 text-xs text-center">
+              <span className="block">Error</span>
+              <span className="block">Loading</span>
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+          )}
         </div>
       )}
     </div>
