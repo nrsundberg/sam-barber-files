@@ -242,7 +242,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
           {objects.map((object, index) => (
             <div
               key={object.id}
-              className="carousel-item flex-none w-64 md:w-64 snap-start h-auto"
+              className="carousel-item flex-none w-64 md:w-64 lg:w-[450px] snap-start h-auto"
               data-index={index}
             >
               <div className="w-full h-full flex flex-col">
