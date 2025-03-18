@@ -1,4 +1,3 @@
-// Optimized useVideoCarousel.tsx
 import { useState, useEffect, useRef } from "react";
 import type { Object } from "@prisma/client";
 
@@ -18,8 +17,6 @@ export interface UseVideoCarouselReturn {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
-  isMediaLoaded: boolean;
-  setMediaLoaded: (loaded: boolean) => void;
   loadedVideos: Set<string>; // Expose loaded videos set
   preloadedIndices: Set<number>; // Expose which indices have been preloaded
 
@@ -51,21 +48,19 @@ export function useVideoCarousel({
   endpoint,
 }: UseVideoCarouselProps): UseVideoCarouselReturn {
   // Generate a more stable ID for this list of objects based on their IDs
-  const listId = useRef(() => {
-    // Create a stable ID based on first few object IDs, or a fallback if empty
-    return objects.length > 0
+  const listId = useRef(
+    objects.length > 0
       ? objects
           .slice(0, 3)
           .map((obj) => obj.id)
           .join("-")
-      : "empty-list";
-  }).current;
+      : "empty-list"
+  ).current;
 
   let [isOpen, setIsOpen] = useState(false);
   let [currentIndex, setCurrentIndex] = useState(initialObjectIndex);
   let [isPlaying, setIsPlaying] = useState(false);
   let [isScrolling, setIsScrolling] = useState(false);
-  let [isMediaLoaded, setIsMediaLoaded] = useState(false);
 
   // Use the global sets instead of component state to persist across remounts
   let [loadedVideos, setLoadedVideos] =
@@ -100,7 +95,7 @@ export function useVideoCarousel({
 
   // Create stable URL getters instead of regenerating URLs on every render
   const getVideoSourceUrl = (object: Object) =>
-    `${endpoint}${object.s3fileKey}#t=0.1`;
+    `${endpoint}${object.s3fileKey}`;
   const getPosterUrl = (object: Object) =>
     object.posterKey ? endpoint + object.posterKey : undefined;
 
@@ -136,10 +131,6 @@ export function useVideoCarousel({
         listMap.set(objectKey, true);
       }
     });
-
-    if (currentIndex === index) {
-      setIsMediaLoaded(true);
-    }
   };
 
   // Reset state when modal is closed
@@ -169,14 +160,14 @@ export function useVideoCarousel({
 
   // Control video playback
   useEffect(() => {
-    if (videoRef.current && isMediaLoaded) {
+    if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.play().catch(() => setIsPlaying(false));
       } else {
         videoRef.current.pause();
       }
     }
-  }, [isPlaying, videoRef.current, isMediaLoaded]);
+  }, [isPlaying, videoRef.current]);
 
   // Clean up any timeout on unmount
   useEffect(() => {
@@ -187,33 +178,10 @@ export function useVideoCarousel({
     };
   }, []);
 
-  // Track media load state
-  const setMediaLoaded = (loaded: boolean) => {
-    setIsMediaLoaded(loaded);
-
-    // If a video is successfully loaded, add its key to the loadedVideos set
-    if (loaded && currentObject) {
-      markVideoAsLoaded(currentObject.s3fileKey, currentIndex);
-    }
-  };
-
   // Functions for controlling the carousel
   const openModal = (objectIndex: number) => {
     setCurrentIndex(objectIndex);
     setIsOpen(true);
-
-    // Check if this video was already loaded
-    const currentObject = objects[objectIndex];
-    if (currentObject) {
-      const thisListMap = globalPreloadedIndices.get(listId) as Map<
-        string,
-        boolean
-      >;
-      const isAlreadyLoaded = thisListMap.get(currentObject.s3fileKey) || false;
-      setIsMediaLoaded(isAlreadyLoaded);
-    } else {
-      setIsMediaLoaded(false);
-    }
   };
 
   const closeModal = () => {
@@ -235,20 +203,6 @@ export function useVideoCarousel({
     if (index >= 0 && index < objects.length) {
       setIsPlaying(false);
       setCurrentIndex(index);
-
-      // Check if this video was already loaded
-      const currentObject = objects[index];
-      if (currentObject) {
-        const thisListMap = globalPreloadedIndices.get(listId) as Map<
-          string,
-          boolean
-        >;
-        const isAlreadyLoaded =
-          thisListMap.get(currentObject.s3fileKey) || false;
-        setIsMediaLoaded(isAlreadyLoaded);
-      } else {
-        setIsMediaLoaded(false);
-      }
     }
   };
 
@@ -325,8 +279,6 @@ export function useVideoCarousel({
     videoRef,
     containerRef,
     setIsPlaying,
-    isMediaLoaded,
-    setMediaLoaded,
     loadedVideos,
     preloadedIndices,
 

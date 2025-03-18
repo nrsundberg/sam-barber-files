@@ -1,4 +1,4 @@
-import { Button, Modal, ModalContent } from "@heroui/react";
+import { Modal, ModalContent } from "@heroui/react";
 import { ChevronUp, ChevronDown, AudioLines } from "lucide-react";
 import { ObjectKind, type Object } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
@@ -32,8 +32,6 @@ export default function VideoCarousel({
     handleWheel,
     isPlaying,
     setIsPlaying,
-    isMediaLoaded,
-    setMediaLoaded,
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
@@ -77,24 +75,8 @@ export default function VideoCarousel({
   useEffect(() => {
     if (isOpen && currentIndex >= 0 && videoRefs.current[currentIndex]) {
       videoRef.current = videoRefs.current[currentIndex] as any;
-
-      // Mark as loaded if it was already loaded before
-      if (
-        preloadedIndices.has(currentIndex) ||
-        localLoadedKeys.has(objects[currentIndex].s3fileKey)
-      ) {
-        setMediaLoaded(true);
-      }
     }
-  }, [
-    isOpen,
-    currentIndex,
-    videoRef,
-    setMediaLoaded,
-    preloadedIndices,
-    objects,
-    localLoadedKeys,
-  ]);
+  }, [isOpen, currentIndex, videoRef]);
 
   // Manage play/pause state when switching videos
   useEffect(() => {
@@ -107,7 +89,7 @@ export default function VideoCarousel({
       });
 
       // Update current video playing state
-      if (videoRef.current && isMediaLoaded) {
+      if (videoRef.current) {
         if (isPlaying) {
           videoRef.current.play().catch(() => setIsPlaying(false));
         } else {
@@ -115,7 +97,7 @@ export default function VideoCarousel({
         }
       }
     }
-  }, [isOpen, currentIndex, isPlaying, setIsPlaying, isMediaLoaded, videoRef]);
+  }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef]);
 
   // Handle media load event
   const handleMediaLoaded = (index: number, fileKey: string) => {
@@ -201,10 +183,10 @@ export default function VideoCarousel({
                         ref={(el) => {
                           videoRefs.current[index] = el;
                         }}
-                        src={`${videoSources[index].src}#t=0.1`} // Add timestamp to only load metadata initially
+                        src={`${videoSources[index].src}`}
                         poster={videoSources[index].poster}
                         className="w-full h-full object-contain"
-                        preload={shouldPreload ? "metadata" : "none"} // Only load metadata initially
+                        preload={shouldPreload ? "auto" : "none"}
                         crossOrigin="anonymous"
                         onLoadedMetadata={() =>
                           handleMediaLoaded(index, fileKey)
@@ -231,8 +213,8 @@ export default function VideoCarousel({
                           ref={(el) => {
                             videoRefs.current[index] = el;
                           }}
-                          preload={shouldPreload ? "metadata" : "none"} // Only load metadata initially
-                          src={`${videoSources[index].src}#t=0.1`} // Add timestamp to only load metadata
+                          preload={shouldPreload ? "auto" : "none"}
+                          src={`${videoSources[index].src}`}
                           className="w-full min-h-fit py-1"
                           crossOrigin="anonymous"
                           onLoadedMetadata={() =>
@@ -245,13 +227,6 @@ export default function VideoCarousel({
                   </div>
                 );
               })}
-
-              {/* Loading indicator */}
-              {currentIndex !== -1 && !isMediaLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
-                  <div className="w-16 h-16 rounded-full border-4 border-gray-600 border-t-white animate-spin"></div>
-                </div>
-              )}
 
               {/* Video info overlay */}
               {currentObject && (
