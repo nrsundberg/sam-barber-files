@@ -27,6 +27,7 @@ export function Thumbnail({
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isTallMedia, setIsTallMedia] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
 
   // Keep track of error state specifically for this thumbnail
@@ -50,6 +51,11 @@ export function Thumbnail({
     observer.observe(elementRef.current);
     return () => observer.disconnect();
   }, [shouldLoad]);
+
+  // Function to determine if media is extremely tall/vertical (aspect ratio < 0.6)
+  const isExtremelyTall = (width: number, height: number) => {
+    return width / height < 0.6;
+  };
 
   // Set hasAttemptedLoad directly if shouldLoad is true
   useEffect(() => {
@@ -89,9 +95,10 @@ export function Thumbnail({
     : "w-full h-full flex items-center justify-center";
 
   // Calculate image/video container classes based on layout type
+  // Use the same aspect ratio for all media types
   const mediaContainerClasses = isRow
     ? "w-full h-full flex items-center justify-center overflow-hidden"
-    : "aspect-video w-full flex items-center justify-center overflow-hidden";
+    : "aspect-video w-full h-full flex items-center justify-center overflow-hidden";
 
   return (
     <div ref={elementRef} className={containerClasses} onClick={onClick}>
@@ -99,61 +106,99 @@ export function Thumbnail({
         <>
           {object.posterKey ? (
             <div className={mediaContainerClasses}>
-              <img
-                src={endpoint + object.posterKey}
-                height={height}
-                width={width}
-                className="object-contain max-h-full max-w-full"
-                loading="lazy"
-                onLoad={() => {
-                  setIsLoaded(true);
-                  // Clear error state on successful load
-                  setHasError(false);
-                  errorStateRef.current = false;
-                }}
-                onError={handleError}
-                alt={object.fileName || "thumbnail"}
-              />
+              <div
+                className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
+              >
+                <img
+                  src={endpoint + object.posterKey}
+                  height={height}
+                  width={width}
+                  className={
+                    isTallMedia
+                      ? "object-contain max-h-full max-w-full"
+                      : "object-cover absolute inset-0 w-full h-full"
+                  }
+                  loading="lazy"
+                  onLoad={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    setIsTallMedia(
+                      isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                    );
+                    setIsLoaded(true);
+                    // Clear error state on successful load
+                    setHasError(false);
+                    errorStateRef.current = false;
+                  }}
+                  onError={handleError}
+                  alt={object.fileName || "thumbnail"}
+                />
+              </div>
             </div>
           ) : (
             <div className={mediaContainerClasses}>
               {object.kind === "AUDIO" ? (
-                <AudioLines className="text-gray-400 w-12 h-12" />
+                <div className="w-full h-full flex items-center justify-center">
+                  <AudioLines className="text-gray-400 w-12 h-12" />
+                </div>
               ) : object.kind === "PHOTO" ? (
-                <img
-                  src={endpoint + object.s3fileKey}
-                  loading="lazy"
-                  width={width}
-                  className="object-contain max-h-full max-w-full"
-                  onLoad={() => {
-                    setIsLoaded(true);
-                    // Clear error state on successful load
-                    setHasError(false);
-                    errorStateRef.current = false;
-                  }}
-                  onError={handleError}
-                  alt={object.fileName || "photo"}
-                />
+                <div
+                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
+                >
+                  <img
+                    src={endpoint + object.s3fileKey}
+                    loading="lazy"
+                    width={width}
+                    className={
+                      isTallMedia
+                        ? "object-contain max-h-full max-w-full"
+                        : "object-cover absolute inset-0 w-full h-full"
+                    }
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      setIsTallMedia(
+                        isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                      );
+                      setIsLoaded(true);
+                      // Clear error state on successful load
+                      setHasError(false);
+                      errorStateRef.current = false;
+                    }}
+                    onError={handleError}
+                    alt={object.fileName || "photo"}
+                  />
+                </div>
               ) : (
                 // Video thumbnail - use poster frame or just first frame
-                <video
-                  preload="metadata"
-                  src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
-                  className="object-contain max-h-full max-w-full"
-                  poster={
-                    object.posterKey ? endpoint + object.posterKey : undefined
-                  }
-                  muted
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  onError={handleError}
-                  onLoadedMetadata={() => {
-                    setIsLoaded(true);
-                    // Clear error state on successful load
-                    setHasError(false);
-                    errorStateRef.current = false;
-                  }}
-                />
+                <div
+                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
+                >
+                  <video
+                    preload="metadata"
+                    src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
+                    className={
+                      isTallMedia
+                        ? "object-contain max-h-full max-w-full"
+                        : "object-cover absolute inset-0 w-full h-full"
+                    }
+                    poster={
+                      object.posterKey ? endpoint + object.posterKey : undefined
+                    }
+                    muted
+                    disablePictureInPicture
+                    disableRemotePlayback
+                    onError={handleError}
+                    onLoadedMetadata={(e) => {
+                      const video = e.target as HTMLVideoElement;
+                      setIsTallMedia(
+                        isExtremelyTall(video.videoWidth, video.videoHeight)
+                      );
+                      setIsLoaded(true);
+                      // Clear error state on successful load
+                      setHasError(false);
+                      errorStateRef.current = false;
+                    }}
+                  />
+                </div>
               )}
             </div>
           )}
