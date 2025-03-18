@@ -32,27 +32,17 @@ export default function VideoCarousel({
     handleWheel,
     isPlaying,
     setIsPlaying,
-    isMediaLoaded, // New state from hook
-    setMediaLoaded, // New function from hook
+    isMediaLoaded,
+    setMediaLoaded,
+    loadedVideos,
+    preloadedIndices,
+    markVideoAsLoaded,
   } = useVideo;
 
   // Create refs for all video elements
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
 
-  // Track which media items have been loaded
-  const [loadedMediaIndices, setLoadedMediaIndices] = useState<Set<number>>(
-    new Set()
-  );
-
-  // Create a memoized mapping of video sources to prevent unnecessary re-renders
-  const videoSources = useMemo(() => {
-    return objects.map((obj) => ({
-      src: endpoint + obj.s3fileKey,
-      poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
-    }));
-  }, [objects, endpoint]);
-
-  // Track which media elements should be preloaded (current, previous, next)
+  // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
     if (currentIndex === -1) return new Set<number>();
 
@@ -70,19 +60,25 @@ export default function VideoCarousel({
     return indices;
   }, [currentIndex, objects.length]);
 
+  // Create a memoized mapping of video sources to prevent unnecessary re-renders
+  const videoSources = useMemo(() => {
+    return objects.map((obj) => ({
+      src: endpoint + obj.s3fileKey,
+      poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
+    }));
+  }, [objects, endpoint]);
+
   // Set up ref for current video
   useEffect(() => {
     if (isOpen && currentIndex >= 0 && videoRefs.current[currentIndex]) {
       videoRef.current = videoRefs.current[currentIndex] as any;
 
       // Mark as loaded if it was already loaded before
-      if (loadedMediaIndices.has(currentIndex)) {
+      if (preloadedIndices.has(currentIndex)) {
         setMediaLoaded(true);
-      } else {
-        setMediaLoaded(false);
       }
     }
-  }, [isOpen, currentIndex, videoRef, setMediaLoaded, loadedMediaIndices]);
+  }, [isOpen, currentIndex, videoRef, setMediaLoaded, preloadedIndices]);
 
   // Manage play/pause state when switching videos
   useEffect(() => {
@@ -107,17 +103,12 @@ export default function VideoCarousel({
 
   // Handle media load event
   const handleMediaLoaded = (index: number) => {
-    setLoadedMediaIndices((prev) => {
-      const updated = new Set(prev);
-      updated.add(index);
-      return updated;
-    });
-
-    if (index === currentIndex) {
-      setMediaLoaded(true);
+    if (objects[index]) {
+      markVideoAsLoaded(objects[index].s3fileKey, index);
     }
   };
 
+  // No need to render modal if it's not open
   if (!isOpen) return null;
 
   return (
@@ -158,10 +149,14 @@ export default function VideoCarousel({
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full max-w-6xl aspect-video">
-              {/* Keep all videos in DOM but only show the current one and preload neighbors */}
+              {/* We render all videos but keep most hidden */}
               {objects.map((object, index) => {
-                const shouldPreload = mediaToPreload.has(index);
+                const shouldRender = true; // Always render but might be hidden
                 const isCurrentMedia = currentIndex === index;
+
+                // Determine if this video has been loaded already or should preload
+                const shouldPreload =
+                  mediaToPreload.has(index) || preloadedIndices.has(index);
 
                 return (
                   <div
@@ -170,27 +165,19 @@ export default function VideoCarousel({
                     className="w-full h-full"
                   >
                     {object.kind === ObjectKind.VIDEO ? (
-                      <>
-                        {shouldPreload && (
-                          <video
-                            controls={isCurrentMedia}
-                            ref={(el) => {
-                              videoRefs.current[index] = el;
-                            }}
-                            src={videoSources[index].src}
-                            poster={videoSources[index].poster}
-                            className="w-full h-full object-contain"
-                            preload={isCurrentMedia ? "auto" : "metadata"}
-                            crossOrigin="anonymous"
-                            onLoadedData={() => handleMediaLoaded(index)}
-                          />
-                        )}
-                        {!shouldPreload && isCurrentMedia && (
-                          <div className="flex items-center justify-center bg-gray-900 w-full h-full">
-                            <div className="w-12 h-12 rounded-full border-4 border-gray-600 border-t-gray-400 animate-spin"></div>
-                          </div>
-                        )}
-                      </>
+                      <video
+                        controls={isCurrentMedia}
+                        ref={(el) => {
+                          videoRefs.current[index] = el;
+                        }}
+                        src={videoSources[index].src}
+                        poster={videoSources[index].poster}
+                        className="w-full h-full object-contain"
+                        preload={shouldPreload ? "auto" : "metadata"}
+                        crossOrigin="anonymous"
+                        onLoadedData={() => handleMediaLoaded(index)}
+                        style={{ display: shouldRender ? "block" : "none" }}
+                      />
                     ) : (
                       <div className="flex-col h-full content-end justify-items-center">
                         {videoSources[index].poster ? (
@@ -201,23 +188,23 @@ export default function VideoCarousel({
                             onLoad={() =>
                               shouldPreload && handleMediaLoaded(index)
                             }
+                            style={{ display: shouldRender ? "block" : "none" }}
                           />
                         ) : (
                           <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
                         )}
-                        {shouldPreload && (
-                          <audio
-                            controls
-                            ref={(el) => {
-                              videoRefs.current[index] = el;
-                            }}
-                            preload={isCurrentMedia ? "auto" : "metadata"}
-                            src={videoSources[index].src}
-                            className="w-full min-h-fit py-1"
-                            crossOrigin="anonymous"
-                            onLoadedData={() => handleMediaLoaded(index)}
-                          />
-                        )}
+                        <audio
+                          controls
+                          ref={(el) => {
+                            videoRefs.current[index] = el;
+                          }}
+                          preload={shouldPreload ? "auto" : "metadata"}
+                          src={videoSources[index].src}
+                          className="w-full min-h-fit py-1"
+                          crossOrigin="anonymous"
+                          onLoadedData={() => handleMediaLoaded(index)}
+                          style={{ display: shouldRender ? "block" : "none" }}
+                        />
                       </div>
                     )}
                   </div>

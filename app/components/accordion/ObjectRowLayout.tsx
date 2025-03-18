@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
-import { Button, Tooltip } from "@heroui/react";
 import { formatInTimeZone } from "date-fns-tz";
 
 export default function ({
@@ -52,7 +51,7 @@ export default function ({
     <div
       onClick={onClick ? onClick : undefined}
       key={object.id}
-      className={`flex items-center justify-between py-2 border-b border-gray-500
+      className={`flex items-center justify-between py-3 border-b border-gray-500
                        md:hover:bg-gray-800 transition duration-300 text-gray-400
                         md:hover:text-sb-restless md:hover:shadow-[0_0_4px_theme(colors.sb-restless)] group ${
                           isLast ? "last-child" : ""
@@ -83,7 +82,7 @@ export default function ({
             object={object}
             endpoint={endpoint}
             isRow={true}
-            width={width ? width : inAdmin ? 150 : undefined}
+            width={width ? width : inAdmin ? 100 : undefined}
             shouldLoad={shouldLoad} // Pass shouldLoad to Thumbnail
           />
         </div>

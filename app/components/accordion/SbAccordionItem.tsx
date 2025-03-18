@@ -17,7 +17,7 @@ export interface AccordionItemProps {
   onClick: () => void;
   passRef: (el: any, key: number) => void;
   endpoint: string;
-  readyToLoad?: boolean; // Add readyToLoad prop
+  readyToLoad?: boolean;
 }
 
 export default function ({
@@ -32,6 +32,8 @@ export default function ({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
   const [contentLoaded, setContentLoaded] = useState(false);
+  // New state to track if content has been initially loaded (even if accordion is now closed)
+  const [hasBeenLoaded, setHasBeenLoaded] = useState(false);
 
   const useVideo = useVideoCarousel({
     objects: folder.objects,
@@ -42,10 +44,11 @@ export default function ({
     setViewMode(view);
   };
 
-  // Only load content when folder is open for the first time and when app is ready to load accordion content
+  // Load content when folder is open for the first time and app is ready
   useEffect(() => {
     if (isFolderOpen && !contentLoaded && readyToLoad) {
       setContentLoaded(true);
+      setHasBeenLoaded(true);
     }
   }, [isFolderOpen, contentLoaded, readyToLoad]);
 
@@ -101,7 +104,7 @@ export default function ({
                     selected ? DisplayStyle.GRID : DisplayStyle.LIST
                   )
                 }
-                isSelected={viewMode === DisplayStyle.GRID}
+                checked={viewMode == "GRID"}
                 color="default"
                 className="justify-self-center"
                 endContent={<Grid className="w-5 h-5" />}
@@ -112,17 +115,21 @@ export default function ({
         </button>
       </div>
 
+      {/* Use CSS to hide/show content rather than removing from DOM */}
       <div
-        className={`transition-[grid-template-rows] duration-300 ${
-          isFolderOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        } grid overflow-hidden`}
+        className={`transition-all duration-300 overflow-hidden ${
+          isFolderOpen
+            ? "opacity-100 max-h-[100000px]" // Large max-height to accommodate any content size
+            : "opacity-0 max-h-0 pointer-events-none"
+        }`}
+        aria-hidden={!isFolderOpen}
       >
-        <div className="overflow-hidden">
-          {/* Only render content if folder has been opened at least once and app is ready to load accordion content */}
-          {contentLoaded && readyToLoad && (
-            <>
-              {viewMode == "LIST" ? (
-                folder.objects.map((object, objectIndex) => (
+        {/* Once content is loaded (even once), it stays in the DOM */}
+        {(contentLoaded || hasBeenLoaded) && readyToLoad && (
+          <>
+            {viewMode == "LIST" ? (
+              <div className="accordion-content">
+                {folder.objects.map((object, objectIndex) => (
                   <ObjectRowLayout
                     key={object.id}
                     inAdmin={false}
@@ -131,29 +138,29 @@ export default function ({
                     isLast={objectIndex === folder.objects.length - 1}
                     endpoint={endpoint}
                     width={200}
-                    shouldLoad={isFolderOpen} // Only load when folder is open
+                    shouldLoad={true} // Always load once the accordion has been opened once
                   />
-                ))
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-                  {folder.objects.map((object, objectIndex) => (
-                    <ObjectGridLayout
-                      key={object.id}
-                      onClick={() => useVideo.openModal(objectIndex)}
-                      object={object}
-                      endpoint={endpoint}
-                      shouldLoad={isFolderOpen} // Only load when folder is open
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 accordion-content">
+                {folder.objects.map((object, objectIndex) => (
+                  <ObjectGridLayout
+                    key={object.id}
+                    onClick={() => useVideo.openModal(objectIndex)}
+                    object={object}
+                    endpoint={endpoint}
+                    shouldLoad={true} // Always load once the accordion has been opened once
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Only pass video data when it has been opened once and app is ready to load accordion content */}
-      {contentLoaded && readyToLoad && (
+      {/* Video carousel is always rendered once loaded, just not visible */}
+      {(contentLoaded || hasBeenLoaded) && readyToLoad && (
         <VideoCarousel
           objects={folder.objects}
           endpoint={endpoint}

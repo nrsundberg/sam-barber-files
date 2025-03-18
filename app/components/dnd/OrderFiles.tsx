@@ -15,12 +15,16 @@ import ObjectRowLayout from "../accordion/ObjectRowLayout";
 export default function ({
   objectList,
   endpoint,
+  readyToLoad = true, // Set default to true to ensure content displays
 }: {
   objectList: Object[];
   endpoint: string;
+  readyToLoad?: boolean;
 }) {
   let [objects, setObjects] = useState(objectList);
   let submit = useSubmit();
+
+  // No need for the contentLoaded state since we're defaulting readyToLoad to true
 
   useEffect(() => setObjects(objectList), [objectList]);
 
@@ -55,6 +59,7 @@ export default function ({
     }
   };
 
+  // Always render the content, regardless of readyToLoad
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext
@@ -66,6 +71,7 @@ export default function ({
             key={index}
             object={object}
             endpoint={endpoint}
+            shouldLoad={readyToLoad} // Pass readyToLoad directly
           />
         ))}
       </SortableContext>
@@ -76,9 +82,11 @@ export default function ({
 export function SortableSbObjectAccordionItem({
   object,
   endpoint,
+  shouldLoad = true, // Default to true to ensure content displays
 }: {
   object: Object;
   endpoint: string;
+  shouldLoad?: boolean;
 }) {
   let folders = useRouteLoaderData("routes/admin/admin");
 
@@ -97,6 +105,7 @@ export function SortableSbObjectAccordionItem({
           isLast={false}
           dragHandleProps={{ ...attributes, ...listeners }}
           endpoint={endpoint}
+          shouldLoad={shouldLoad}
         />
       </SbContextMenu>
     </div>

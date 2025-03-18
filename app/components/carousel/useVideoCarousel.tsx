@@ -17,8 +17,10 @@ export interface UseVideoCarouselReturn {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
-  isMediaLoaded: boolean; // New state to track media loading
-  setMediaLoaded: (loaded: boolean) => void; // New function to set media loaded state
+  isMediaLoaded: boolean;
+  setMediaLoaded: (loaded: boolean) => void;
+  loadedVideos: Set<string>; // Expose loaded videos set
+  preloadedIndices: Set<number>; // Expose which indices have been preloaded
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -28,6 +30,7 @@ export interface UseVideoCarouselReturn {
   handlePrev: () => void;
   getVideoSourceUrl: (object: Object) => string;
   getPosterUrl: (object: Object) => string | undefined;
+  markVideoAsLoaded: (objectKey: string, index: number) => void; // New method to mark videos as loaded
 
   // Event handlers
   handleTouchStart: (e: React.TouchEvent) => void;
@@ -36,19 +39,34 @@ export interface UseVideoCarouselReturn {
   handleWheel: (e: React.WheelEvent) => void;
 }
 
+// Create a singleton to track loaded videos across component remounts
+// This will be shared across all instances of useVideoCarousel
+let globalLoadedVideos = new Set<string>();
+let globalPreloadedIndices = new Map<string, Set<number>>(); // Map folder/list ID to preloaded indices
+
 export function useVideoCarousel({
   objects,
   initialObjectIndex = 0,
   endpoint,
 }: UseVideoCarouselProps): UseVideoCarouselReturn {
+  // Generate a unique ID for this list of objects to track preloaded indices
+  const listId = useRef(Math.random().toString(36).substring(2, 9)).current;
+
   let [isOpen, setIsOpen] = useState(false);
   let [currentIndex, setCurrentIndex] = useState(initialObjectIndex);
   let [isPlaying, setIsPlaying] = useState(false);
   let [isScrolling, setIsScrolling] = useState(false);
   let [isMediaLoaded, setIsMediaLoaded] = useState(false);
 
-  // Track which videos have already been loaded to avoid refetching
-  let [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
+  // Use the global sets instead of component state to persist across remounts
+  let [loadedVideos, setLoadedVideos] =
+    useState<Set<string>>(globalLoadedVideos);
+  let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(() => {
+    if (!globalPreloadedIndices.has(listId)) {
+      globalPreloadedIndices.set(listId, new Set<number>());
+    }
+    return globalPreloadedIndices.get(listId) || new Set<number>();
+  });
 
   // Create stable URL getters instead of regenerating URLs on every render
   const getVideoSourceUrl = (object: Object) => endpoint + object.s3fileKey;
@@ -62,6 +80,22 @@ export function useVideoCarousel({
 
   const currentObject =
     objects.length > 0 && currentIndex >= 0 ? objects[currentIndex] : null;
+
+  // Function to mark videos as loaded both locally and globally
+  const markVideoAsLoaded = (objectKey: string, index: number) => {
+    globalLoadedVideos.add(objectKey);
+    setLoadedVideos(new Set(globalLoadedVideos));
+
+    const currentPreloadedIndices =
+      globalPreloadedIndices.get(listId) || new Set<number>();
+    currentPreloadedIndices.add(index);
+    globalPreloadedIndices.set(listId, currentPreloadedIndices);
+    setPreloadedIndices(new Set(currentPreloadedIndices));
+
+    if (currentIndex === index) {
+      setIsMediaLoaded(true);
+    }
+  };
 
   // Reset state when modal is closed
   useEffect(() => {
@@ -114,11 +148,7 @@ export function useVideoCarousel({
 
     // If a video is successfully loaded, add its key to the loadedVideos set
     if (loaded && currentObject) {
-      setLoadedVideos((prev) => {
-        const updated = new Set(prev);
-        updated.add(currentObject.s3fileKey);
-        return updated;
-      });
+      markVideoAsLoaded(currentObject.s3fileKey, currentIndex);
     }
   };
 
@@ -128,10 +158,7 @@ export function useVideoCarousel({
     setIsOpen(true);
 
     // Check if this video was already loaded
-    if (
-      objects[objectIndex] &&
-      loadedVideos.has(objects[objectIndex].s3fileKey)
-    ) {
+    if (objects[objectIndex] && preloadedIndices.has(objectIndex)) {
       setIsMediaLoaded(true);
     } else {
       setIsMediaLoaded(false);
@@ -149,7 +176,7 @@ export function useVideoCarousel({
       setCurrentIndex(index);
 
       // Check if this video was already loaded
-      if (objects[index] && loadedVideos.has(objects[index].s3fileKey)) {
+      if (preloadedIndices.has(index)) {
         setIsMediaLoaded(true);
       } else {
         setIsMediaLoaded(false);
@@ -232,6 +259,8 @@ export function useVideoCarousel({
     setIsPlaying,
     isMediaLoaded,
     setMediaLoaded,
+    loadedVideos,
+    preloadedIndices,
 
     // Actions
     openModal,
@@ -241,6 +270,7 @@ export function useVideoCarousel({
     handlePrev,
     getVideoSourceUrl,
     getPosterUrl,
+    markVideoAsLoaded,
 
     // Event handlers
     handleTouchStart,
