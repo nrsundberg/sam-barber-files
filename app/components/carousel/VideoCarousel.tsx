@@ -41,6 +41,10 @@ export default function VideoCarousel({
 
   // Create refs for all video elements
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
+  // Track which videos have been loaded in this specific carousel instance
+  const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
+    new Set()
+  );
 
   // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
@@ -65,6 +69,7 @@ export default function VideoCarousel({
     return objects.map((obj) => ({
       src: endpoint + obj.s3fileKey,
       poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
+      key: obj.s3fileKey, // Store the key for tracking purposes
     }));
   }, [objects, endpoint]);
 
@@ -74,11 +79,22 @@ export default function VideoCarousel({
       videoRef.current = videoRefs.current[currentIndex] as any;
 
       // Mark as loaded if it was already loaded before
-      if (preloadedIndices.has(currentIndex)) {
+      if (
+        preloadedIndices.has(currentIndex) ||
+        localLoadedKeys.has(objects[currentIndex].s3fileKey)
+      ) {
         setMediaLoaded(true);
       }
     }
-  }, [isOpen, currentIndex, videoRef, setMediaLoaded, preloadedIndices]);
+  }, [
+    isOpen,
+    currentIndex,
+    videoRef,
+    setMediaLoaded,
+    preloadedIndices,
+    objects,
+    localLoadedKeys,
+  ]);
 
   // Manage play/pause state when switching videos
   useEffect(() => {
@@ -102,9 +118,17 @@ export default function VideoCarousel({
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, isMediaLoaded, videoRef]);
 
   // Handle media load event
-  const handleMediaLoaded = (index: number) => {
+  const handleMediaLoaded = (index: number, fileKey: string) => {
     if (objects[index]) {
-      markVideoAsLoaded(objects[index].s3fileKey, index);
+      // Store in local state that we've loaded this media
+      setLocalLoadedKeys((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(fileKey);
+        return newSet;
+      });
+
+      // Also notify the global tracking system
+      markVideoAsLoaded(fileKey, index);
     }
   };
 
@@ -153,10 +177,17 @@ export default function VideoCarousel({
               {objects.map((object, index) => {
                 const shouldRender = true; // Always render but might be hidden
                 const isCurrentMedia = currentIndex === index;
+                const fileKey = object.s3fileKey;
 
-                // Determine if this video has been loaded already or should preload
+                // Use either local or global tracking to determine if this video has been loaded
+                const isLoadedLocally = localLoadedKeys.has(fileKey);
+                const isLoadedGlobally = loadedVideos.has(fileKey);
+                const isIndexPreloaded = preloadedIndices.has(index);
                 const shouldPreload =
-                  mediaToPreload.has(index) || preloadedIndices.has(index);
+                  mediaToPreload.has(index) ||
+                  isLoadedLocally ||
+                  isLoadedGlobally ||
+                  isIndexPreloaded;
 
                 return (
                   <div
@@ -175,7 +206,7 @@ export default function VideoCarousel({
                         className="w-full h-full object-contain"
                         preload={shouldPreload ? "auto" : "metadata"}
                         crossOrigin="anonymous"
-                        onLoadedData={() => handleMediaLoaded(index)}
+                        onLoadedData={() => handleMediaLoaded(index, fileKey)}
                         style={{ display: shouldRender ? "block" : "none" }}
                       />
                     ) : (
@@ -186,7 +217,7 @@ export default function VideoCarousel({
                             alt={object.fileName}
                             loading="lazy"
                             onLoad={() =>
-                              shouldPreload && handleMediaLoaded(index)
+                              shouldPreload && handleMediaLoaded(index, fileKey)
                             }
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
@@ -202,7 +233,7 @@ export default function VideoCarousel({
                           src={videoSources[index].src}
                           className="w-full min-h-fit py-1"
                           crossOrigin="anonymous"
-                          onLoadedData={() => handleMediaLoaded(index)}
+                          onLoadedData={() => handleMediaLoaded(index, fileKey)}
                           style={{ display: shouldRender ? "block" : "none" }}
                         />
                       </div>

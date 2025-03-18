@@ -1,3 +1,4 @@
+// Modified useVideoCarousel.tsx
 import { useState, useEffect, useRef } from "react";
 import type { Object } from "@prisma/client";
 
@@ -42,15 +43,23 @@ export interface UseVideoCarouselReturn {
 // Create a singleton to track loaded videos across component remounts
 // This will be shared across all instances of useVideoCarousel
 let globalLoadedVideos = new Set<string>();
-let globalPreloadedIndices = new Map<string, Set<number>>(); // Map folder/list ID to preloaded indices
+let globalPreloadedIndices = new Map<string, Map<string, boolean>>(); // Map folder/list ID -> Map of s3fileKey -> loaded status
 
 export function useVideoCarousel({
   objects,
   initialObjectIndex = 0,
   endpoint,
 }: UseVideoCarouselProps): UseVideoCarouselReturn {
-  // Generate a unique ID for this list of objects to track preloaded indices
-  const listId = useRef(Math.random().toString(36).substring(2, 9)).current;
+  // Generate a more stable ID for this list of objects based on their IDs
+  const listId = useRef(() => {
+    // Create a stable ID based on first few object IDs, or a fallback if empty
+    return objects.length > 0
+      ? objects
+          .slice(0, 3)
+          .map((obj) => obj.id)
+          .join("-")
+      : "empty-list";
+  }).current;
 
   let [isOpen, setIsOpen] = useState(false);
   let [currentIndex, setCurrentIndex] = useState(initialObjectIndex);
@@ -61,12 +70,33 @@ export function useVideoCarousel({
   // Use the global sets instead of component state to persist across remounts
   let [loadedVideos, setLoadedVideos] =
     useState<Set<string>>(globalLoadedVideos);
-  let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(() => {
+  let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(
+    new Set<number>()
+  );
+
+  // Initialize our tracking map for this list if it doesn't exist
+  useEffect(() => {
     if (!globalPreloadedIndices.has(listId)) {
-      globalPreloadedIndices.set(listId, new Set<number>());
+      globalPreloadedIndices.set(listId, new Map<string, boolean>());
     }
-    return globalPreloadedIndices.get(listId) || new Set<number>();
-  });
+
+    // Check if any videos in this list are already loaded globally and mark them
+    const thisListMap = globalPreloadedIndices.get(listId) as Map<
+      string,
+      boolean
+    >;
+    const newPreloadedIndices = new Set<number>();
+
+    objects.forEach((obj, index) => {
+      if (globalLoadedVideos.has(obj.s3fileKey)) {
+        // This video is already loaded globally, mark it in this list too
+        thisListMap.set(obj.s3fileKey, true);
+        newPreloadedIndices.add(index);
+      }
+    });
+
+    setPreloadedIndices(newPreloadedIndices);
+  }, [objects, listId]);
 
   // Create stable URL getters instead of regenerating URLs on every render
   const getVideoSourceUrl = (object: Object) => endpoint + object.s3fileKey;
@@ -83,14 +113,28 @@ export function useVideoCarousel({
 
   // Function to mark videos as loaded both locally and globally
   const markVideoAsLoaded = (objectKey: string, index: number) => {
+    // Add to global set of loaded video keys
     globalLoadedVideos.add(objectKey);
     setLoadedVideos(new Set(globalLoadedVideos));
 
-    const currentPreloadedIndices =
-      globalPreloadedIndices.get(listId) || new Set<number>();
-    currentPreloadedIndices.add(index);
-    globalPreloadedIndices.set(listId, currentPreloadedIndices);
-    setPreloadedIndices(new Set(currentPreloadedIndices));
+    // Mark as loaded in this specific list
+    const thisListMap = globalPreloadedIndices.get(listId) as Map<
+      string,
+      boolean
+    >;
+    thisListMap.set(objectKey, true);
+
+    // Update preloaded indices for current component
+    const newPreloadedIndices = new Set(preloadedIndices);
+    newPreloadedIndices.add(index);
+    setPreloadedIndices(newPreloadedIndices);
+
+    // Important: Also mark this video as preloaded in all other lists that contain it
+    globalPreloadedIndices.forEach((listMap, otherListId) => {
+      if (otherListId !== listId) {
+        listMap.set(objectKey, true);
+      }
+    });
 
     if (currentIndex === index) {
       setIsMediaLoaded(true);
@@ -158,8 +202,14 @@ export function useVideoCarousel({
     setIsOpen(true);
 
     // Check if this video was already loaded
-    if (objects[objectIndex] && preloadedIndices.has(objectIndex)) {
-      setIsMediaLoaded(true);
+    const currentObject = objects[objectIndex];
+    if (currentObject) {
+      const thisListMap = globalPreloadedIndices.get(listId) as Map<
+        string,
+        boolean
+      >;
+      const isAlreadyLoaded = thisListMap.get(currentObject.s3fileKey) || false;
+      setIsMediaLoaded(isAlreadyLoaded);
     } else {
       setIsMediaLoaded(false);
     }
@@ -176,8 +226,15 @@ export function useVideoCarousel({
       setCurrentIndex(index);
 
       // Check if this video was already loaded
-      if (preloadedIndices.has(index)) {
-        setIsMediaLoaded(true);
+      const currentObject = objects[index];
+      if (currentObject) {
+        const thisListMap = globalPreloadedIndices.get(listId) as Map<
+          string,
+          boolean
+        >;
+        const isAlreadyLoaded =
+          thisListMap.get(currentObject.s3fileKey) || false;
+        setIsMediaLoaded(isAlreadyLoaded);
       } else {
         setIsMediaLoaded(false);
       }
