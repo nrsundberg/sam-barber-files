@@ -52,7 +52,7 @@ export function Thumbnail({
 
   // Render actual content when shouldLoad is true and element has attempted to load at least once
   const shouldRenderContent = shouldLoad && hasAttemptedLoad;
-  console.log("shouldRenderContent", shouldRenderContent);
+
   return (
     <div
       ref={elementRef}
