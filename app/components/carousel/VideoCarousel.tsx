@@ -35,6 +35,7 @@ export default function VideoCarousel({
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
+    markVideoAsError,
   } = useVideo;
 
   // Create refs for all video elements
@@ -43,8 +44,7 @@ export default function VideoCarousel({
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
     new Set()
   );
-
-  // Add this after the existing state declarations in the VideoCarousel component
+  // Add state for tracking media load errors
   const [mediaLoadErrors, setMediaLoadErrors] = useState<
     Record<string, { timestamp: number; attempts: number }>
   >({});
@@ -105,17 +105,7 @@ export default function VideoCarousel({
     }
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef]);
 
-  // Add this at the end of the useEffect cleanup
-  useEffect(() => {
-    return () => {
-      // Clear all retry timeouts when component unmounts
-      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
-    };
-  }, []);
-
-  // Replace the handleMediaLoaded function with this improved version
+  // Handle media load event
   const handleMediaLoaded = (index: number, fileKey: string) => {
     if (objects[index]) {
       // Clear any error state for this media
@@ -137,7 +127,7 @@ export default function VideoCarousel({
     }
   };
 
-  // Add this new function to handle media load errors
+  // Handle media error event
   const handleMediaError = (index: number, fileKey: string) => {
     // Update error tracking
     setMediaLoadErrors((prev) => {
@@ -151,6 +141,9 @@ export default function VideoCarousel({
         },
       };
     });
+
+    // Also notify the global error tracking
+    markVideoAsError(fileKey, index);
 
     // Clear any existing timeout for this item
     if (mediaRetryTimeouts.current[fileKey]) {
@@ -181,6 +174,16 @@ export default function VideoCarousel({
     }
   };
 
+  // Clean up timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      // Clear all retry timeouts when component unmounts
+      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
   // No need to render modal if it's not open
   if (!isOpen) return null;
 
@@ -188,17 +191,18 @@ export default function VideoCarousel({
     <Modal
       isOpen={isOpen}
       onClose={closeModal}
-      size={"3xl"}
+      size={"full"}
       backdrop={"blur"}
       className="bg-transparent shadow-none"
       classNames={{
-        wrapper: "flex items-center justify-center h-full",
+        wrapper: "flex items-center justify-center h-full w-full",
+        base: "w-full h-full max-h-screen flex items-center justify-center",
       }}
     >
-      <ModalContent>
+      <ModalContent className="min-h-screen flex items-center justify-center">
         <div
           ref={containerRef}
-          className="relative h-screen flex flex-col items-center"
+          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -207,7 +211,7 @@ export default function VideoCarousel({
           {/* Previous video preview (partially visible) */}
           {currentIndex > 0 && (
             <div
-              className="absolute top-0 w-full h-20 bg-opacity-70 flex items-center justify-center cursor-pointer"
+              className="absolute top-0 w-full h-12 md:h-16 flex items-center justify-center cursor-pointer z-10"
               onClick={handlePrev}
             >
               <div className="flex flex-col items-center">
@@ -221,70 +225,43 @@ export default function VideoCarousel({
 
           {/* Current video */}
           <div className="flex-1 w-full flex flex-col items-center justify-center">
-            <div className="relative w-full max-w-6xl aspect-video">
-              {/* We render all videos but keep most hidden */}
-              {objects.map((object, index) => {
-                const shouldRender = true; // Always render but might be hidden
-                const isCurrentMedia = currentIndex === index;
-                const fileKey = object.s3fileKey;
+            <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
+              {/* Mobile: full width, 50% of screen height / Desktop: larger size */}
+              <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black">
+                {/* We render all videos but keep most hidden */}
+                {objects.map((object, index) => {
+                  const shouldRender = true; // Always render but might be hidden
+                  const isCurrentMedia = currentIndex === index;
+                  const fileKey = object.s3fileKey;
 
-                // Use either local or global tracking to determine if this video has been loaded
-                const isLoadedLocally = localLoadedKeys.has(fileKey);
-                const isLoadedGlobally = loadedVideos.has(fileKey);
-                const isIndexPreloaded = preloadedIndices.has(index);
-                const shouldPreload =
-                  mediaToPreload.has(index) ||
-                  isLoadedLocally ||
-                  isLoadedGlobally ||
-                  isIndexPreloaded;
+                  // Use either local or global tracking to determine if this video has been loaded
+                  const isLoadedLocally = localLoadedKeys.has(fileKey);
+                  const isLoadedGlobally = loadedVideos.has(fileKey);
+                  const isIndexPreloaded = preloadedIndices.has(index);
+                  const hasError = mediaLoadErrors[fileKey] !== undefined;
 
-                return (
-                  <div
-                    key={`media-container-${object.id}`}
-                    style={{ display: isCurrentMedia ? "block" : "none" }}
-                    className="w-full h-full"
-                  >
-                    {object.kind === ObjectKind.VIDEO ? (
-                      <video
-                        controls={isCurrentMedia}
-                        ref={(el) => {
-                          videoRefs.current[index] = el;
-                        }}
-                        src={`${videoSources[index].src}`}
-                        poster={videoSources[index].poster}
-                        className="w-full h-full object-contain"
-                        preload={shouldPreload ? "auto" : "none"}
-                        crossOrigin="anonymous"
-                        onLoadedMetadata={() =>
-                          handleMediaLoaded(index, fileKey)
-                        }
-                        onError={() => handleMediaError(index, fileKey)}
-                        style={{ display: shouldRender ? "block" : "none" }}
-                      />
-                    ) : (
-                      <div className="flex-col h-full content-end justify-items-center">
-                        {videoSources[index].poster ? (
-                          <img
-                            src={videoSources[index].poster}
-                            alt={object.fileName}
-                            loading="lazy"
-                            onLoad={() =>
-                              shouldPreload && handleMediaLoaded(index, fileKey)
-                            }
-                            onError={() => handleMediaError(index, fileKey)}
-                            style={{ display: shouldRender ? "block" : "none" }}
-                          />
-                        ) : (
-                          <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
-                        )}
-                        <audio
-                          controls
+                  const shouldPreload =
+                    mediaToPreload.has(index) ||
+                    isLoadedLocally ||
+                    isLoadedGlobally ||
+                    isIndexPreloaded;
+
+                  return (
+                    <div
+                      key={`media-container-${object.id}`}
+                      style={{ display: isCurrentMedia ? "block" : "none" }}
+                      className="w-full h-full"
+                    >
+                      {object.kind === ObjectKind.VIDEO ? (
+                        <video
+                          controls={isCurrentMedia}
                           ref={(el) => {
                             videoRefs.current[index] = el;
                           }}
-                          preload={shouldPreload ? "auto" : "none"}
                           src={`${videoSources[index].src}`}
-                          className="w-full min-h-fit py-1"
+                          poster={videoSources[index].poster}
+                          className="w-full h-full object-contain bg-black max-h-[70vh]"
+                          preload={shouldPreload && !hasError ? "auto" : "none"}
                           crossOrigin="anonymous"
                           onLoadedMetadata={() =>
                             handleMediaLoaded(index, fileKey)
@@ -292,20 +269,58 @@ export default function VideoCarousel({
                           onError={() => handleMediaError(index, fileKey)}
                           style={{ display: shouldRender ? "block" : "none" }}
                         />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      ) : (
+                        <div className="flex-col h-full w-full flex items-center justify-center bg-gray-900">
+                          {videoSources[index].poster ? (
+                            <img
+                              src={videoSources[index].poster}
+                              alt={object.fileName}
+                              loading="lazy"
+                              className="max-h-full max-w-full object-contain"
+                              onLoad={() =>
+                                shouldPreload &&
+                                handleMediaLoaded(index, fileKey)
+                              }
+                              onError={() => handleMediaError(index, fileKey)}
+                              style={{
+                                display: shouldRender ? "block" : "none",
+                              }}
+                            />
+                          ) : (
+                            <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                          )}
+                          <audio
+                            controls
+                            ref={(el) => {
+                              videoRefs.current[index] = el;
+                            }}
+                            preload={
+                              shouldPreload && !hasError ? "auto" : "none"
+                            }
+                            src={`${videoSources[index].src}`}
+                            className="w-full min-h-fit py-1"
+                            crossOrigin="anonymous"
+                            onLoadedMetadata={() =>
+                              handleMediaLoaded(index, fileKey)
+                            }
+                            onError={() => handleMediaError(index, fileKey)}
+                            style={{ display: shouldRender ? "block" : "none" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Video info overlay */}
               {currentObject && (
-                <div className="grid grid-cols-3 py-1">
-                  <div className="bg-opacity-50 text-white">
-                    <h3 className="text-lg font-bold">
+                <div className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full">
+                  <div className="sm:col-span-1">
+                    <h3 className="text-sm sm:text-lg font-bold truncate">
                       {currentObject.fileName}
                     </h3>
-                    <p className="text-sm">
+                    <p className="text-xs sm:text-sm">
                       {formatInTimeZone(
                         currentObject.createdDate,
                         "UTC",
@@ -314,12 +329,15 @@ export default function VideoCarousel({
                     </p>
                   </div>
 
-                  <p className="text-gray-500 text-center">
+                  <p className="text-gray-300 text-center self-center hidden sm:block">
                     {currentIndex + 1} of {objects.length}
                   </p>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-row sm:flex-col gap-1 justify-between sm:items-end mt-1 sm:mt-0">
+                    <p className="text-xs sm:text-sm">
+                      {currentObject && formatBytes(currentObject.size)}
+                    </p>
                     <button
-                      className="my-3 rounded-md bg-sb-banner text-white px-4 py-2 sm:hidden"
+                      className="rounded-md bg-sb-banner text-white px-2 py-1 sm:hidden text-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         closeModal();
@@ -327,9 +345,6 @@ export default function VideoCarousel({
                     >
                       Close
                     </button>
-                    <p className="text-sm self-end place-self-end">
-                      {currentObject && formatBytes(currentObject.size)}
-                    </p>
                   </div>
                 </div>
               )}
@@ -339,7 +354,7 @@ export default function VideoCarousel({
           {/* Next video preview (partially visible) */}
           {currentIndex < objects.length - 1 && (
             <div
-              className="absolute bottom-0 w-full h-20 bg-opacity-70 flex items-center justify-center cursor-pointer"
+              className="absolute bottom-0 w-full h-12 md:h-16 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10"
               onClick={handleNext}
             >
               <div className="flex flex-col items-center">
