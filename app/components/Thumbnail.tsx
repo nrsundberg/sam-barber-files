@@ -11,7 +11,7 @@ export function Thumbnail({
   width,
   isAdmin = false,
   shouldLoad = false, // Control lazy loading
-  onError, // New callback for error handling
+  onError, // Callback for error handling
 }: {
   object: Object;
   endpoint: string;
@@ -19,15 +19,18 @@ export function Thumbnail({
   isRow?: boolean;
   height?: number;
   width?: number;
-  isAdmin?: boolean; // New prop to control sizing in admin view
+  isAdmin?: boolean;
   shouldLoad?: boolean;
-  onError?: () => void; // New prop to handle loading errors
+  onError?: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
+
+  // Keep track of error state specifically for this thumbnail
+  const errorStateRef = useRef<boolean>(false);
 
   // Setup intersection observer for visibility detection
   useEffect(() => {
@@ -55,10 +58,12 @@ export function Thumbnail({
     }
   }, [shouldLoad, hasAttemptedLoad]);
 
-  // Reset error state when shouldLoad changes
+  // Reset error state when shouldLoad changes from false to true
+  // This is a retry mechanism - when parent decides this item should try loading again
   useEffect(() => {
-    if (shouldLoad) {
+    if (shouldLoad && errorStateRef.current) {
       setHasError(false);
+      errorStateRef.current = false;
     }
   }, [shouldLoad]);
 
@@ -67,8 +72,12 @@ export function Thumbnail({
 
   // Handle media load error
   const handleError = () => {
+    // Set local error state
     setHasError(true);
+    errorStateRef.current = true;
+
     // Call the parent component's error handler if provided
+    // This should only be called once per error
     if (onError) {
       onError();
     }
@@ -85,11 +94,7 @@ export function Thumbnail({
     : "aspect-video w-full flex items-center justify-center overflow-hidden";
 
   return (
-    <div
-      ref={elementRef}
-      className={containerClasses}
-      onClick={onClick && onClick}
-    >
+    <div ref={elementRef} className={containerClasses} onClick={onClick}>
       {shouldRenderContent && (
         <>
           {object.posterKey ? (
@@ -100,7 +105,12 @@ export function Thumbnail({
                 width={width}
                 className="object-contain max-h-full max-w-full"
                 loading="lazy"
-                onLoad={() => setIsLoaded(true)}
+                onLoad={() => {
+                  setIsLoaded(true);
+                  // Clear error state on successful load
+                  setHasError(false);
+                  errorStateRef.current = false;
+                }}
                 onError={handleError}
                 alt={object.fileName || "thumbnail"}
               />
@@ -115,7 +125,12 @@ export function Thumbnail({
                   loading="lazy"
                   width={width}
                   className="object-contain max-h-full max-w-full"
-                  onLoad={() => setIsLoaded(true)}
+                  onLoad={() => {
+                    setIsLoaded(true);
+                    // Clear error state on successful load
+                    setHasError(false);
+                    errorStateRef.current = false;
+                  }}
                   onError={handleError}
                   alt={object.fileName || "photo"}
                 />
@@ -132,6 +147,12 @@ export function Thumbnail({
                   disablePictureInPicture
                   disableRemotePlayback
                   onError={handleError}
+                  onLoadedMetadata={() => {
+                    setIsLoaded(true);
+                    // Clear error state on successful load
+                    setHasError(false);
+                    errorStateRef.current = false;
+                  }}
                 />
               )}
             </div>
@@ -139,7 +160,7 @@ export function Thumbnail({
         </>
       )}
       {(!shouldRenderContent || hasError) && (
-        <div className={`${mediaContainerClasses}`}>
+        <div className={mediaContainerClasses}>
           {hasError ? (
             <div className="text-gray-400 text-xs text-center">
               <span className="block">Error</span>

@@ -35,6 +35,7 @@ export default function VideoCarousel({
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
+    markVideoAsError,
   } = useVideo;
 
   // Create refs for all video elements
@@ -43,6 +44,11 @@ export default function VideoCarousel({
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
     new Set()
   );
+  // Add state for tracking media load errors
+  const [mediaLoadErrors, setMediaLoadErrors] = useState<
+    Record<string, { timestamp: number; attempts: number }>
+  >({});
+  const mediaRetryTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
@@ -102,6 +108,13 @@ export default function VideoCarousel({
   // Handle media load event
   const handleMediaLoaded = (index: number, fileKey: string) => {
     if (objects[index]) {
+      // Clear any error state for this media
+      setMediaLoadErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[fileKey];
+        return updated;
+      });
+
       // Store in local state that we've loaded this media
       setLocalLoadedKeys((prev) => {
         const newSet = new Set(prev);
@@ -113,6 +126,63 @@ export default function VideoCarousel({
       markVideoAsLoaded(fileKey, index);
     }
   };
+
+  // Handle media error event
+  const handleMediaError = (index: number, fileKey: string) => {
+    // Update error tracking
+    setMediaLoadErrors((prev) => {
+      const now = Date.now();
+      const current = prev[fileKey] || { timestamp: now, attempts: 0 };
+      return {
+        ...prev,
+        [fileKey]: {
+          timestamp: now,
+          attempts: current.attempts + 1,
+        },
+      };
+    });
+
+    // Also notify the global error tracking
+    markVideoAsError(fileKey, index);
+
+    // Clear any existing timeout for this item
+    if (mediaRetryTimeouts.current[fileKey]) {
+      clearTimeout(mediaRetryTimeouts.current[fileKey]);
+    }
+
+    // Schedule a retry with exponential backoff
+    const attempts = mediaLoadErrors[fileKey]?.attempts || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
+
+    if (attempts < 5) {
+      // Max 5 retry attempts
+      mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
+        // Force reload of this specific media
+        setLocalLoadedKeys((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(fileKey); // Remove from loaded keys to force reload
+          return newSet;
+        });
+
+        // Remove from error tracking to allow retry
+        setMediaLoadErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[fileKey];
+          return updated;
+        });
+      }, delay);
+    }
+  };
+
+  // Clean up timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      // Clear all retry timeouts when component unmounts
+      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
@@ -165,6 +235,8 @@ export default function VideoCarousel({
                 const isLoadedLocally = localLoadedKeys.has(fileKey);
                 const isLoadedGlobally = loadedVideos.has(fileKey);
                 const isIndexPreloaded = preloadedIndices.has(index);
+                const hasError = mediaLoadErrors[fileKey] !== undefined;
+
                 const shouldPreload =
                   mediaToPreload.has(index) ||
                   isLoadedLocally ||
@@ -186,11 +258,12 @@ export default function VideoCarousel({
                         src={`${videoSources[index].src}`}
                         poster={videoSources[index].poster}
                         className="w-full h-full object-contain"
-                        preload={shouldPreload ? "auto" : "none"}
+                        preload={shouldPreload && !hasError ? "auto" : "none"}
                         crossOrigin="anonymous"
                         onLoadedMetadata={() =>
                           handleMediaLoaded(index, fileKey)
                         }
+                        onError={() => handleMediaError(index, fileKey)}
                         style={{ display: shouldRender ? "block" : "none" }}
                       />
                     ) : (
@@ -203,6 +276,7 @@ export default function VideoCarousel({
                             onLoad={() =>
                               shouldPreload && handleMediaLoaded(index, fileKey)
                             }
+                            onError={() => handleMediaError(index, fileKey)}
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
                         ) : (
@@ -213,13 +287,14 @@ export default function VideoCarousel({
                           ref={(el) => {
                             videoRefs.current[index] = el;
                           }}
-                          preload={shouldPreload ? "auto" : "none"}
+                          preload={shouldPreload && !hasError ? "auto" : "none"}
                           src={`${videoSources[index].src}`}
                           className="w-full min-h-fit py-1"
                           crossOrigin="anonymous"
                           onLoadedMetadata={() =>
                             handleMediaLoaded(index, fileKey)
                           }
+                          onError={() => handleMediaError(index, fileKey)}
                           style={{ display: shouldRender ? "block" : "none" }}
                         />
                       </div>

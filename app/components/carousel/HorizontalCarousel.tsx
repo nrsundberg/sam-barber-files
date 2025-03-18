@@ -24,6 +24,12 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   ); // Preload first 3 items
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Add state to track item errors
+  const [itemErrors, setItemErrors] = useState<
+    Record<string, { timestamp: number; attempts: number }>
+  >({});
+  const errorTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   // Check if arrows should be displayed initially and on resize
   useEffect(() => {
     const checkArrows = () => {
@@ -89,6 +95,61 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
     };
   }, [objects]);
 
+  // Clean up timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      // Clear all timeouts when component unmounts
+      Object.values(errorTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
+  // Add a handler for item loading errors
+  const handleItemError = (objectId: string) => {
+    setItemErrors((prev) => {
+      const now = Date.now();
+      const current = prev[objectId] || { timestamp: now, attempts: 0 };
+
+      // If we already have a timeout for this item, clear it
+      if (errorTimeoutsRef.current[objectId]) {
+        clearTimeout(errorTimeoutsRef.current[objectId]);
+      }
+
+      // Schedule a retry with exponential backoff
+      const nextAttempts = current.attempts + 1;
+      if (nextAttempts < 5) {
+        // Max 5 retry attempts
+        const delay = Math.min(1000 * Math.pow(2, current.attempts), 30000); // Cap at 30 seconds
+
+        errorTimeoutsRef.current[objectId] = setTimeout(() => {
+          // Remove from error tracking to allow retry
+          setItemErrors((current) => {
+            const updated = { ...current };
+            delete updated[objectId];
+            return updated;
+          });
+
+          // Force visibleItems update to reload this item
+          setVisibleItems((prev) => {
+            const updated = new Set(prev);
+            // This will force it to be reloaded when it comes back into view
+            updated.delete(parseInt(objectId));
+            return updated;
+          });
+        }, delay);
+      }
+
+      return {
+        ...prev,
+        [objectId]: {
+          timestamp: now,
+          attempts: nextAttempts,
+        },
+      };
+    });
+  };
+
   const scroll = (direction: "left" | "right") => {
     if (!carouselRef.current) return;
 
@@ -115,6 +176,42 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
     // Only show right arrow if there's more content to scroll
     // Add a small buffer (5px) to handle rounding errors
     setShowRightArrow(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 5);
+
+    // Check if we should load more items as we scroll
+    const scrollPosition = scrollLeft + clientWidth;
+    const scrollPercentage = scrollPosition / scrollWidth;
+
+    // If we're more than 70% through the scrollable area, preload more items
+    if (scrollPercentage > 0.7) {
+      const currentlyVisibleIndices = Array.from(visibleItems);
+      const maxVisible = Math.max(...currentlyVisibleIndices);
+
+      if (maxVisible < objects.length - 1) {
+        // Preload a few more items
+        const newVisibleItems = new Set(visibleItems);
+        for (
+          let i = maxVisible + 1;
+          i <= Math.min(maxVisible + 3, objects.length - 1);
+          i++
+        ) {
+          newVisibleItems.add(i);
+        }
+        setVisibleItems(newVisibleItems);
+      }
+    }
+  };
+
+  // Helper function to determine if an item should load
+  const shouldItemLoad = (index: number, objectId: string) => {
+    // Don't load items with too many failed attempts
+    const errorInfo = itemErrors[objectId];
+    if (errorInfo && errorInfo.attempts >= 5) return false;
+
+    // Don't load items that are currently in error state and waiting for retry
+    if (errorInfo) return false;
+
+    // Otherwise load if visible or one of the first 3 items
+    return visibleItems.has(index) || index < 3;
   };
 
   // No need to render if there are no objects
@@ -154,7 +251,8 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
                   onClick={() => onItemClick(index)}
                   endpoint={endpoint}
                   width={320}
-                  shouldLoad={visibleItems.has(index) || index < 3} // Always load first 3 items
+                  shouldLoad={shouldItemLoad(index, object.id)}
+                  onError={() => handleItemError(object.id)}
                 />
               </div>
             </div>

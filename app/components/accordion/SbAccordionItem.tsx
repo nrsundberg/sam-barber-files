@@ -101,13 +101,18 @@ export default function SbAccordionItem({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isFolderOpen, contentLoaded, folder.objects.length]);
 
-  // Handle failed loads with individual retries
+  // SbAccordionItem.tsx
+  // This is the modified version of the handleLoadError function
+
   const handleLoadError = (objectId: string) => {
-    setFailedLoads((prev) => {
-      const newSet = new Set(prev);
-      newSet.add(objectId);
-      return newSet;
-    });
+    // Only add to failedLoads set if not already there
+    if (!failedLoads.has(objectId)) {
+      setFailedLoads((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(objectId);
+        return newSet;
+      });
+    }
 
     // Increment retry counter
     setRetryAttempts((prev) => {
@@ -129,6 +134,7 @@ export default function SbAccordionItem({
     if (attempts < 5) {
       // Max 5 retry attempts
       const timeoutId = setTimeout(() => {
+        // Only remove this specific objectId from failedLoads
         setFailedLoads((prev) => {
           const newSet = new Set(prev);
           newSet.delete(objectId);
@@ -140,27 +146,28 @@ export default function SbAccordionItem({
     }
   };
 
-  // Calculate which items should be rendered
-  const itemsToRender =
-    isFolderOpen && contentLoaded
-      ? folder.objects.slice(0, visibleRange.end + 1)
-      : [];
-
-  // Calculate which items should have their thumbnails loaded
+  // Modify the shouldLoadThumbnail function to be more precise
   const shouldLoadThumbnail = (index: number, objectId: string) => {
-    // Don't load thumbnails for items that have failed multiple times
+    // Don't load thumbnails for items that have failed too many times
     const attempts = retryAttempts.get(objectId) || 0;
     if (attempts >= 5) return false;
 
-    // Don't retry loading failed thumbnails too quickly
+    // Don't retry loading failed thumbnails that are in the failedLoads set
+    // and waiting for their timeout to trigger a retry
     if (failedLoads.has(objectId)) return false;
 
     // Always load all thumbnails for list view (they're smaller)
     if (viewMode === DisplayStyle.LIST) return true;
 
-    // For grid view, be more selective
+    // For grid view, be more selective based on visibility range
     return index <= visibleRange.end;
   };
+
+  // Calculate which items should be rendered
+  const itemsToRender =
+    isFolderOpen && contentLoaded
+      ? folder.objects.slice(0, visibleRange.end + 1)
+      : [];
 
   return (
     <div

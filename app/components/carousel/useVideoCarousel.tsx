@@ -19,6 +19,7 @@ export interface UseVideoCarouselReturn {
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   loadedVideos: Set<string>; // Expose loaded videos set
   preloadedIndices: Set<number>; // Expose which indices have been preloaded
+  fileErrors: Map<string, { attempts: number; lastAttempt: number }>;
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -29,6 +30,8 @@ export interface UseVideoCarouselReturn {
   getVideoSourceUrl: (object: Object) => string;
   getPosterUrl: (object: Object) => string | undefined;
   markVideoAsLoaded: (objectKey: string, index: number) => void; // Method to mark videos as loaded
+  markVideoAsError: (objectKey: string, index: number) => void;
+  clearVideoError: (objectKey: string) => void;
 
   // Event handlers
   handleTouchStart: (e: React.TouchEvent) => void;
@@ -67,6 +70,14 @@ export function useVideoCarousel({
     useState<Set<string>>(globalLoadedVideos);
   let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(
     new Set<number>()
+  );
+
+  // Track file errors with their retry attempts
+  const [fileErrors, setFileErrors] = useState<
+    Map<string, { attempts: number; lastAttempt: number }>
+  >(new Map());
+  const fileErrorTimeouts = useRef<Map<string, NodeJS.Timeout>>(
+    new Map<string, NodeJS.Timeout>()
   );
 
   // Initialize our tracking map for this list if it doesn't exist
@@ -125,12 +136,61 @@ export function useVideoCarousel({
     newPreloadedIndices.add(index);
     setPreloadedIndices(newPreloadedIndices);
 
+    // Clear any error state for this file
+    clearVideoError(objectKey);
+
     // Important: Also mark this video as preloaded in all other lists that contain it
     globalPreloadedIndices.forEach((listMap, otherListId) => {
       if (otherListId !== listId) {
         listMap.set(objectKey, true);
       }
     });
+  };
+
+  // Functions for error handling
+  const markVideoAsError = (objectKey: string, index: number) => {
+    setFileErrors((prev) => {
+      const newMap = new Map(prev);
+      const current = prev.get(objectKey);
+      newMap.set(objectKey, {
+        attempts: current ? current.attempts + 1 : 1,
+        lastAttempt: Date.now(),
+      });
+      return newMap;
+    });
+
+    // Clear any existing timeout for this file
+    if (fileErrorTimeouts.current.has(objectKey)) {
+      clearTimeout(fileErrorTimeouts.current.get(objectKey));
+    }
+
+    // Schedule retry with exponential backoff
+    const attempts = fileErrors.get(objectKey)?.attempts || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
+
+    if (attempts < 5) {
+      // Max 5 retry attempts
+      const timeoutId = setTimeout(() => {
+        clearVideoError(objectKey);
+      }, delay);
+
+      fileErrorTimeouts.current.set(objectKey, timeoutId);
+    }
+  };
+
+  const clearVideoError = (objectKey: string) => {
+    // Remove from error tracking
+    setFileErrors((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(objectKey);
+      return newMap;
+    });
+
+    // Clear timeout if exists
+    if (fileErrorTimeouts.current.has(objectKey)) {
+      clearTimeout(fileErrorTimeouts.current.get(objectKey));
+      fileErrorTimeouts.current.delete(objectKey);
+    }
   };
 
   // Reset state when modal is closed
@@ -175,6 +235,11 @@ export function useVideoCarousel({
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
+
+      // Clear all error timeouts
+      fileErrorTimeouts.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
     };
   }, []);
 
@@ -281,6 +346,7 @@ export function useVideoCarousel({
     setIsPlaying,
     loadedVideos,
     preloadedIndices,
+    fileErrors,
 
     // Actions
     openModal,
@@ -291,6 +357,8 @@ export function useVideoCarousel({
     getVideoSourceUrl,
     getPosterUrl,
     markVideoAsLoaded,
+    markVideoAsError,
+    clearVideoError,
 
     // Event handlers
     handleTouchStart,
