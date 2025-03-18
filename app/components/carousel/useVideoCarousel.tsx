@@ -24,6 +24,8 @@ export interface UseVideoCarouselReturn {
   navigateToVideo: (index: number) => void;
   handleNext: () => void;
   handlePrev: () => void;
+  getVideoSourceUrl: (object: Object) => string;
+  getPosterUrl: (object: Object) => string | undefined;
 
   // Event handlers
   handleTouchStart: (e: React.TouchEvent) => void;
@@ -42,9 +44,15 @@ export function useVideoCarousel({
   let [isPlaying, setIsPlaying] = useState(false);
   let [isScrolling, setIsScrolling] = useState(false);
 
+  // Create stable URL getters instead of regenerating URLs on every render
+  const getVideoSourceUrl = (object: Object) => endpoint + object.s3fileKey;
+  const getPosterUrl = (object: Object) =>
+    object.posterKey ? endpoint + object.posterKey : undefined;
+
   let videoRef = useRef<HTMLVideoElement | null>(null);
   let containerRef = useRef<HTMLDivElement | null>(null);
   let touchStartY = useRef<number | null>(null);
+  let scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentObject = objects.length > 0 ? objects[currentIndex] : null;
 
@@ -74,7 +82,39 @@ export function useVideoCarousel({
         videoRef.current.pause();
       }
     }
-  }, [isPlaying]);
+  }, [isPlaying, videoRef.current]);
+
+  // Clean up any timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Preload adjacent videos when current video is loaded
+  useEffect(() => {
+    if (!isOpen || !currentObject) return;
+
+    // Preload the next video (if exists)
+    if (currentIndex < objects.length - 1) {
+      const nextObject = objects[currentIndex + 1];
+      const preloadNext = new Image();
+      if (nextObject.posterKey) {
+        preloadNext.src = getPosterUrl(nextObject) as string;
+      }
+    }
+
+    // Preload the previous video (if exists)
+    if (currentIndex > 0) {
+      const prevObject = objects[currentIndex - 1];
+      const preloadPrev = new Image();
+      if (prevObject.posterKey) {
+        preloadPrev.src = getPosterUrl(prevObject) as string;
+      }
+    }
+  }, [isOpen, currentIndex, objects]);
 
   // Functions for controlling the carousel
   const openModal = (objectIndex: number) => {
@@ -103,7 +143,7 @@ export function useVideoCarousel({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
+    if (touchStartY.current === null || isScrolling) return;
 
     const touchY = e.touches[0].clientY;
     const diff = touchStartY.current - touchY;
@@ -118,12 +158,20 @@ export function useVideoCarousel({
         handlePrev();
       }
       touchStartY.current = null;
+
+      // Reset scrolling state after a delay
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 500);
     }
   };
 
   const handleTouchEnd = () => {
     touchStartY.current = null;
-    setIsScrolling(false);
   };
 
   // Handle wheel events for desktop scrolling
@@ -131,7 +179,12 @@ export function useVideoCarousel({
     if (isScrolling) return;
 
     setIsScrolling(true);
-    const timer = setTimeout(() => {
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
     }, 500);
 
@@ -142,8 +195,6 @@ export function useVideoCarousel({
       // Scrolling up - go to previous video
       handlePrev();
     }
-
-    return () => clearTimeout(timer);
   };
 
   return {
@@ -163,6 +214,8 @@ export function useVideoCarousel({
     navigateToVideo,
     handleNext,
     handlePrev,
+    getVideoSourceUrl,
+    getPosterUrl,
 
     // Event handlers
     handleTouchStart,
