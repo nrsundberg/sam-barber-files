@@ -16,8 +16,11 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
   let [selectedFolderId, setSelectedFolderId] = useState<string>("");
   let [selectedObjectKind, setSelectedObjectKind] =
     useState<ObjectKind>("VIDEO");
+  let [fileName, setFileName] = useState<string>("");
   let [searchTerm, setSearchTerm] = useState("");
   let [showOnlyUnlinked, setShowOnlyUnlinked] = useState(false);
+  let [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   let actionData = useActionData();
 
@@ -31,31 +34,63 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
         setLinkedObject(linkedObject);
         setSelectedFolderId(linkedObject.folderId);
         setSelectedObjectKind(linkedObject.kind);
+        setFileName(linkedObject.fileName);
       } else {
         setLinkedObject(null);
         setSelectedFolderId("");
         setSelectedObjectKind("VIDEO");
+        setFileName(selectedFile.key.split("/").pop() || "");
       }
     }
   }, [selectedFile, dbObjects]);
 
-  // Filter files based on search term and linked status
-  const filteredFiles = files.filter((file) => {
-    // Apply search filter
-    const matchesSearch = file.key
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showOnlyUnlinked]);
 
-    // Apply linked status filter if needed
-    if (showOnlyUnlinked) {
-      const isLinked = dbObjects.some(
-        (obj) => obj.s3fileKey === file.key || obj.posterKey === file.key
+  // Sort files by lastModified (newest first)
+  const sortedFiles = useMemo(() => {
+    return [...files].sort((a, b) => {
+      return (
+        new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
       );
-      return matchesSearch && !isLinked;
-    }
+    });
+  }, [files]);
 
-    return matchesSearch;
-  });
+  // Filter files based on search term and linked status
+  const filteredFiles = useMemo(() => {
+    return sortedFiles.filter((file) => {
+      // Apply search filter to the entire file key (including prefixes)
+      const matchesSearch =
+        searchTerm.trim() === "" ||
+        file.key.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Apply linked status filter if needed
+      if (showOnlyUnlinked) {
+        const isLinked = dbObjects.some(
+          (obj) => obj.s3fileKey === file.key || obj.posterKey === file.key
+        );
+        return matchesSearch && !isLinked;
+      }
+
+      return matchesSearch;
+    });
+  }, [sortedFiles, searchTerm, showOnlyUnlinked, dbObjects]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
+  const paginatedFiles = filteredFiles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Pagination navigation
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   // Check if a file is already linked to a database object
   const getFileStatus = (fileKey: string) => {
@@ -85,7 +120,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search files..."
+              placeholder="Search files (full path including prefixes)..."
               className="w-full p-2 border rounded"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -126,7 +161,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredFiles.map((item) => {
+              {paginatedFiles.map((item) => {
                 const fileStatus = getFileStatus(item.key);
                 return (
                   <tr
@@ -172,9 +207,56 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 text-sm text-gray-500">
-          Showing {filteredFiles.length} of {files.length} items
-        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-wrap justify-between items-center mt-4 mb-6">
+            <div className="text-sm text-gray-500">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, filteredFiles.length)} of{" "}
+              {filteredFiles.length} items
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => goToPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                &laquo;
+              </button>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                &lsaquo;
+              </button>
+              <span className="px-3 py-1">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                &rsaquo;
+              </button>
+              <button
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+              >
+                &raquo;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {totalPages === 0 && (
+          <div className="text-center py-4 text-gray-500">
+            No files match your search criteria
+          </div>
+        )}
       </div>
 
       <div>
@@ -220,11 +302,8 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                           <input
                             type="text"
                             name="fileName"
-                            defaultValue={
-                              linkedObject?.fileName ||
-                              selectedFile.key.split("/").pop() ||
-                              ""
-                            }
+                            value={fileName}
+                            onChange={(e) => setFileName(e.target.value)}
                             className="w-full p-2 border rounded"
                             required
                           />
