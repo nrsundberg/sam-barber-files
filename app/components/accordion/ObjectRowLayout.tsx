@@ -1,6 +1,6 @@
 import { Link, useSubmit } from "react-router";
 import type { Object } from "@prisma/client";
-import { ChevronLeft, EyeOffIcon, Star, TrendingUp } from "lucide-react";
+import { ChevronLeft, EyeOffIcon, Lock, Star, TrendingUp } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -28,20 +28,21 @@ export default function ({
 }) {
   let submit = useSubmit();
 
-  const updateTrendingOrFavorite = (
-    trendingField: boolean,
-    e: React.MouseEvent
+  const updateObject = (
+    field: "trending" | "favorite" | "locked",
+    e: React.MouseEvent<SVGSVGElement>,
   ) => {
     e.stopPropagation(); // Prevent the carousel from opening
 
     let formData = new FormData();
     formData.set("isTrending", (!object.isTrending).toString());
     formData.set("isFavorite", (!object.isFavorite).toString());
+    formData.set("isLocked", (!object.isLocked).toString());
 
     return submit(formData, {
       method: "POST",
       encType: "multipart/form-data",
-      action: `/data/edit/object/${object.id}/${trendingField ? "trending" : "favorite"}`,
+      action: `/data/edit/object/${object.id}/${field}`,
       navigate: false,
       preventScrollReset: true,
     });
@@ -66,13 +67,17 @@ export default function ({
         >
           {inAdmin ? (
             <div className="inline-flex gap-2 mr-2 flex-shrink-0">
+              <Lock
+                className={`${object.isLocked ? "text-red-500" : ""}`}
+                onClickCapture={(e) => updateObject("locked", e)}
+              />
               <TrendingUp
                 className={`${object.isTrending ? "text-green-500" : ""}`}
-                onClickCapture={(e) => updateTrendingOrFavorite(true, e)}
+                onClickCapture={(e) => updateObject("trending", e)}
               />
               <Star
                 className={`${object.isFavorite ? "text-yellow-300" : ""}`}
-                onClickCapture={(e) => updateTrendingOrFavorite(false, e)}
+                onClickCapture={(e) => updateObject("favorite", e)}
               />
             </div>
           ) : (

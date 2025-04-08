@@ -44,8 +44,9 @@ model Object {
   filePosition Int
   s3fileKey    String     @unique
   posterKey    String?
-  folder       Folder     @relation(fields: [folderId], references: [id])
+  folder       Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
   folderId     String
+  isLocked     Boolean    @default(false)
 }
 
 enum ObjectKind {

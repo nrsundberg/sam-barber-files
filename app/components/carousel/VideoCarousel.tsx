@@ -1,10 +1,10 @@
 import { Modal, ModalContent } from "@heroui/react";
-import { ChevronUp, ChevronDown, AudioLines } from "lucide-react";
-import { ObjectKind, type Object } from "@prisma/client";
+import { AudioLines, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -42,7 +42,7 @@ export default function VideoCarousel({
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
   // Track which videos have been loaded in this specific carousel instance
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   // Add state for tracking media load errors
   const [mediaLoadErrors, setMediaLoadErrors] = useState<
@@ -94,16 +94,24 @@ export default function VideoCarousel({
         }
       });
 
-      // Update current video playing state
-      if (videoRef.current) {
-        if (isPlaying) {
-          videoRef.current.play().catch(() => setIsPlaying(false));
-        } else {
+      // If current object is locked, force pause and prevent playing
+      if (currentObject?.isLocked) {
+        setIsPlaying(false);
+        if (videoRef.current) {
           videoRef.current.pause();
+        }
+      } else {
+        // Update current video playing state
+        if (videoRef.current) {
+          if (isPlaying) {
+            videoRef.current.play().catch(() => setIsPlaying(false));
+          } else {
+            videoRef.current.pause();
+          }
         }
       }
     }
-  }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef]);
+  }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef, currentObject]);
 
   // Handle media load event
   const handleMediaLoaded = (index: number, fileKey: string) => {
@@ -184,6 +192,13 @@ export default function VideoCarousel({
     };
   }, []);
 
+  // Handler for play/pause that respects locked status
+  const handlePlayPause = () => {
+    if (currentObject && !currentObject.isLocked) {
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   // No need to render modal if it's not open
   if (!isOpen) return null;
 
@@ -233,6 +248,7 @@ export default function VideoCarousel({
                   const shouldRender = true; // Always render but might be hidden
                   const isCurrentMedia = currentIndex === index;
                   const fileKey = object.s3fileKey;
+                  const isLocked = object.isLocked;
 
                   // Use either local or global tracking to determine if this video has been loaded
                   const isLoadedLocally = localLoadedKeys.has(fileKey);
@@ -250,47 +266,74 @@ export default function VideoCarousel({
                     <div
                       key={`media-container-${object.id}`}
                       style={{ display: isCurrentMedia ? "block" : "none" }}
-                      className="w-full h-full"
+                      className="w-full h-full relative"
                     >
                       {object.kind === ObjectKind.VIDEO ? (
-                        <video
-                          controls={isCurrentMedia}
-                          ref={(el) => {
-                            videoRefs.current[index] = el;
-                          }}
-                          src={`${videoSources[index].src}`}
-                          poster={videoSources[index].poster}
-                          className="w-full h-full object-contain bg-black max-h-[70vh]"
-                          preload={shouldPreload && !hasError ? "auto" : "none"}
-                          crossOrigin="anonymous"
-                          onLoadedMetadata={() =>
-                            handleMediaLoaded(index, fileKey)
-                          }
-                          onError={() => handleMediaError(index, fileKey)}
-                          style={{ display: shouldRender ? "block" : "none" }}
-                        />
+                        <div className="relative w-full h-full">
+                          <video
+                            controls={isCurrentMedia && !isLocked}
+                            ref={(el) => {
+                              videoRefs.current[index] = el;
+                            }}
+                            src={`${videoSources[index].src}`}
+                            poster={videoSources[index].poster}
+                            className={`w-full h-full object-contain bg-black max-h-[70vh] ${
+                              isLocked ? "blur-sm opacity-70" : ""
+                            }`}
+                            preload={
+                              shouldPreload && !hasError ? "auto" : "none"
+                            }
+                            crossOrigin="anonymous"
+                            onLoadedMetadata={() =>
+                              handleMediaLoaded(index, fileKey)
+                            }
+                            onError={() => handleMediaError(index, fileKey)}
+                            style={{ display: shouldRender ? "block" : "none" }}
+                          />
+                          {isLocked && isCurrentMedia && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                              <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="flex-col h-full w-full flex items-center justify-center bg-gray-900">
+                        <div className="flex-col h-full w-full flex items-center justify-center bg-gray-900 relative">
                           {videoSources[index].poster ? (
-                            <img
-                              src={videoSources[index].poster}
-                              alt={object.fileName}
-                              loading="lazy"
-                              className="max-h-full max-w-full object-contain"
-                              onLoad={() =>
-                                shouldPreload &&
-                                handleMediaLoaded(index, fileKey)
-                              }
-                              onError={() => handleMediaError(index, fileKey)}
-                              style={{
-                                display: shouldRender ? "block" : "none",
-                              }}
-                            />
+                            <>
+                              <img
+                                src={videoSources[index].poster}
+                                alt={object.fileName}
+                                loading="lazy"
+                                className={`max-h-full max-w-full object-contain ${
+                                  isLocked ? "blur-sm opacity-70" : ""
+                                }`}
+                                onLoad={() =>
+                                  shouldPreload &&
+                                  handleMediaLoaded(index, fileKey)
+                                }
+                                onError={() => handleMediaError(index, fileKey)}
+                                style={{
+                                  display: shouldRender ? "block" : "none",
+                                }}
+                              />
+                              {isLocked && isCurrentMedia && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                  <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                                </div>
+                              )}
+                            </>
                           ) : (
-                            <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                            <>
+                              <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                              {isLocked && isCurrentMedia && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                  <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                                </div>
+                              )}
+                            </>
                           )}
                           <audio
-                            controls
+                            controls={!isLocked}
                             ref={(el) => {
                               videoRefs.current[index] = el;
                             }}
@@ -298,7 +341,9 @@ export default function VideoCarousel({
                               shouldPreload && !hasError ? "auto" : "none"
                             }
                             src={`${videoSources[index].src}`}
-                            className="w-full min-h-fit py-1"
+                            className={`w-full min-h-fit py-1 ${
+                              isLocked ? "opacity-50 pointer-events-none" : ""
+                            }`}
                             crossOrigin="anonymous"
                             onLoadedMetadata={() =>
                               handleMediaLoaded(index, fileKey)
@@ -319,12 +364,15 @@ export default function VideoCarousel({
                   <div className="sm:col-span-1">
                     <h3 className="text-sm sm:text-lg font-bold truncate">
                       {currentObject.fileName}
+                      {currentObject.isLocked && (
+                        <Lock className="inline-block ml-1 w-4 h-4" />
+                      )}
                     </h3>
                     <p className="text-xs sm:text-sm">
                       {formatInTimeZone(
                         currentObject.createdDate,
                         "UTC",
-                        "MM.dd.yyyy hh:mm a"
+                        "MM.dd.yyyy hh:mm a",
                       )}
                     </p>
                   </div>

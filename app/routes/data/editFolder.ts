@@ -20,7 +20,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Renamed Folder", ok: true },
-        "Renamed Folder"
+        "Renamed Folder",
       );
 
     case "changeDate":
@@ -33,7 +33,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Changed Date", ok: true },
-        "Date of folder modified"
+        "Date of folder modified",
       );
 
     case "toggleHidden":
@@ -45,7 +45,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithInfo(
         { action: "Folder vis changed", ok: true },
-        hidden ? "Folder marked as hidden" : "Folder made visible"
+        hidden ? "Folder marked as hidden" : "Folder made visible",
       );
 
     case "toggleDisplay":
@@ -57,7 +57,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithInfo(
         { action: "Folder style changed", ok: true },
-        display === "LIST" ? "Folder in list" : "Folder in grid"
+        display === "LIST" ? "Folder in list" : "Folder in grid",
       );
 
     case "delete":
@@ -67,7 +67,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithWarning(
         { action: "Deleted Folder", ok: true },
-        "Folder Deleted"
+        "Folder Deleted",
       );
   }
 

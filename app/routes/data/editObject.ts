@@ -81,6 +81,14 @@ export async function action({ request, params }: Route.ActionArgs) {
         data: { isTrending },
       });
       return { action: "Updated trending", ok: true };
+
+    case "locked":
+      const isLocked = formData.get("isLocked")?.toString() === "true";
+      await prisma.object.update({
+        where: { id: objectId },
+        data: { isLocked },
+      });
+      return { action: "Updated locked status", ok: true };
   }
 
   return dataWithInfo({ status: "No Action" }, "No action occured");

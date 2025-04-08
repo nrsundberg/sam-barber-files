@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Object } from "@prisma/client";
 
 interface UseVideoCarouselProps {
@@ -57,7 +57,7 @@ export function useVideoCarousel({
           .slice(0, 3)
           .map((obj) => obj.id)
           .join("-")
-      : "empty-list"
+      : "empty-list",
   ).current;
 
   let [isOpen, setIsOpen] = useState(false);
@@ -69,7 +69,7 @@ export function useVideoCarousel({
   let [loadedVideos, setLoadedVideos] =
     useState<Set<string>>(globalLoadedVideos);
   let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(
-    new Set<number>()
+    new Set<number>(),
   );
 
   // Track file errors with their retry attempts
@@ -77,7 +77,7 @@ export function useVideoCarousel({
     Map<string, { attempts: number; lastAttempt: number }>
   >(new Map());
   const fileErrorTimeouts = useRef<Map<string, NodeJS.Timeout>>(
-    new Map<string, NodeJS.Timeout>()
+    new Map<string, NodeJS.Timeout>(),
   );
 
   // Initialize our tracking map for this list if it doesn't exist
@@ -221,13 +221,21 @@ export function useVideoCarousel({
   // Control video playback
   useEffect(() => {
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.play().catch(() => setIsPlaying(false));
-      } else {
+      // Check if the current object is locked
+      if (currentObject?.isLocked) {
+        // If locked, ensure playback is stopped
         videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        // Normal playback control for unlocked media
+        if (isPlaying) {
+          videoRef.current.play().catch(() => setIsPlaying(false));
+        } else {
+          videoRef.current.pause();
+        }
       }
     }
-  }, [isPlaying, videoRef.current]);
+  }, [isPlaying, videoRef.current, currentObject]);
 
   // Clean up any timeout on unmount
   useEffect(() => {
@@ -247,6 +255,10 @@ export function useVideoCarousel({
   const openModal = (objectIndex: number) => {
     setCurrentIndex(objectIndex);
     setIsOpen(true);
+
+    // Reset isPlaying to false when opening modal
+    // It will stay false if the object is locked
+    setIsPlaying(false);
   };
 
   const closeModal = () => {

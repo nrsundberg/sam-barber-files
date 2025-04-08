@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Object } from "@prisma/client";
-import { AudioLines } from "lucide-react";
+import { AudioLines, Lock } from "lucide-react";
 
 export function Thumbnail({
   object,
@@ -45,7 +45,7 @@ export function Thumbnail({
           observer.disconnect(); // Once visible, stop observing
         }
       },
-      { threshold: 0.1 } // Start loading when 10% visible
+      { threshold: 0.1 }, // Start loading when 10% visible
     );
 
     observer.observe(elementRef.current);
@@ -97,8 +97,8 @@ export function Thumbnail({
   // Calculate image/video container classes based on layout type
   // Use the same aspect ratio for all media types
   const mediaContainerClasses = isRow
-    ? "w-full h-full flex items-center justify-center overflow-hidden"
-    : "aspect-video w-full h-full flex items-center justify-center overflow-hidden";
+    ? "w-full h-full flex items-center justify-center overflow-hidden relative"
+    : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
 
   return (
     <div ref={elementRef} className={containerClasses} onClick={onClick}>
@@ -113,16 +113,19 @@ export function Thumbnail({
                   src={endpoint + object.posterKey}
                   height={height}
                   width={width}
-                  className={
-                    isTallMedia
-                      ? "object-contain max-h-full max-w-full"
-                      : "object-cover absolute inset-0 w-full h-full"
-                  }
+                  className={`
+                    ${
+                      isTallMedia
+                        ? "object-contain max-h-full max-w-full"
+                        : "object-cover absolute inset-0 w-full h-full"
+                    }
+                    ${object.isLocked ? "blur-sm opacity-70" : ""}
+                  `}
                   loading="lazy"
                   onLoad={(e) => {
                     const img = e.target as HTMLImageElement;
                     setIsTallMedia(
-                      isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                      isExtremelyTall(img.naturalWidth, img.naturalHeight),
                     );
                     setIsLoaded(true);
                     // Clear error state on successful load
@@ -132,6 +135,11 @@ export function Thumbnail({
                   onError={handleError}
                   alt={object.fileName || "thumbnail"}
                 />
+                {object.isLocked && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                    <Lock className="text-white w-8 h-8 drop-shadow-md" />
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -139,6 +147,11 @@ export function Thumbnail({
               {object.kind === "AUDIO" ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <AudioLines className="text-gray-400 w-12 h-12" />
+                  {object.isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
+                    </div>
+                  )}
                 </div>
               ) : object.kind === "PHOTO" ? (
                 <div
@@ -148,15 +161,18 @@ export function Thumbnail({
                     src={endpoint + object.s3fileKey}
                     loading="lazy"
                     width={width}
-                    className={
-                      isTallMedia
-                        ? "object-contain max-h-full max-w-full"
-                        : "object-cover absolute inset-0 w-full h-full"
-                    }
+                    className={`
+                      ${
+                        isTallMedia
+                          ? "object-contain max-h-full max-w-full"
+                          : "object-cover absolute inset-0 w-full h-full"
+                      }
+                      ${object.isLocked ? "blur-sm opacity-70" : ""}
+                    `}
                     onLoad={(e) => {
                       const img = e.target as HTMLImageElement;
                       setIsTallMedia(
-                        isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                        isExtremelyTall(img.naturalWidth, img.naturalHeight),
                       );
                       setIsLoaded(true);
                       // Clear error state on successful load
@@ -166,6 +182,11 @@ export function Thumbnail({
                     onError={handleError}
                     alt={object.fileName || "photo"}
                   />
+                  {object.isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
+                    </div>
+                  )}
                 </div>
               ) : (
                 // Video thumbnail - use poster frame or just first frame
@@ -175,11 +196,14 @@ export function Thumbnail({
                   <video
                     preload="metadata"
                     src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
-                    className={
-                      isTallMedia
-                        ? "object-contain max-h-full max-w-full"
-                        : "object-cover absolute inset-0 w-full h-full"
-                    }
+                    className={`
+                      ${
+                        isTallMedia
+                          ? "object-contain max-h-full max-w-full"
+                          : "object-cover absolute inset-0 w-full h-full"
+                      }
+                      ${object.isLocked ? "blur-sm opacity-70" : ""}
+                    `}
                     poster={
                       object.posterKey ? endpoint + object.posterKey : undefined
                     }
@@ -190,7 +214,7 @@ export function Thumbnail({
                     onLoadedMetadata={(e) => {
                       const video = e.target as HTMLVideoElement;
                       setIsTallMedia(
-                        isExtremelyTall(video.videoWidth, video.videoHeight)
+                        isExtremelyTall(video.videoWidth, video.videoHeight),
                       );
                       setIsLoaded(true);
                       // Clear error state on successful load
@@ -198,6 +222,11 @@ export function Thumbnail({
                       errorStateRef.current = false;
                     }}
                   />
+                  {object.isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -213,6 +242,11 @@ export function Thumbnail({
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+          )}
+          {object.isLocked && shouldRenderContent && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+              <Lock className="text-white w-8 h-8 drop-shadow-md" />
+            </div>
           )}
         </div>
       )}
