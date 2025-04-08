@@ -297,7 +297,7 @@ export default function VideoCarousel({
                           )}
                         </div>
                       ) : (
-                        <div className="flex-col h-full w-full flex items-center justify-center bg-gray-900 relative">
+                        <div className="flex-col h-full w-full flex items-center justify-end bg-black relative">
                           {videoSources[index].poster ? (
                             <>
                               <img
