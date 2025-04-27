@@ -1,13 +1,10 @@
 import type { Route } from "./+types/home";
 import prisma from "~/db.server";
-import { type Object } from "@prisma/client";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
-import { Thumbnail } from "~/components/Thumbnail";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState, useEffect } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
-import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 
 export function meta() {
@@ -29,15 +26,21 @@ export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true },
+    include: { tikTokVideo: true },
   });
   let trending = prisma.object.findMany({
     where: { isTrending: true },
+    include: { tikTokVideo: true },
   });
   let folders = prisma.folder.findMany({
     where: { hidden: false },
     orderBy: { folderPosition: "asc" },
     include: {
-      objects: { where: { hidden: false }, orderBy: { filePosition: "asc" } },
+      objects: {
+        where: { hidden: false },
+        orderBy: { filePosition: "asc" },
+        include: { tikTokVideo: true },
+      },
     },
   });
   return Promise.all([folders, favorites, trending, cdnEndpoint]);

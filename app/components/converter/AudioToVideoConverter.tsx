@@ -1,6 +1,7 @@
 import { Music, Share, Check, AlertCircle, Loader } from "lucide-react";
-import type { Object } from "@prisma/client";
-import { useShare } from "./ShareContext";
+import type { Object, ConversionStatus } from "@prisma/client";
+import { useState } from "react";
+import { useFetcher } from "react-router";
 
 export interface AudioToVideoProps {
   object: Object;
@@ -11,13 +12,12 @@ export default function AudioToVideoConverter({
   object,
   endpoint,
 }: AudioToVideoProps) {
-  const {
-    convertAudioToVideo,
-    shareToTikTok,
-    getConversionStatus,
-    getShareStatus,
-    getVideoUrl,
-  } = useShare();
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareError, setShareError] = useState(false);
+
+  const convertFetcher = useFetcher();
+  const shareFetcher = useFetcher();
 
   // Function to check if the file is an audio file
   const isAudioFile = () => {
@@ -30,35 +30,94 @@ export default function AudioToVideoConverter({
     );
   };
 
-  // Get the current statuses
-  const conversionStatus = getConversionStatus(object.id);
-  const shareStatus = getShareStatus(object.id);
-  const videoUrl = getVideoUrl(object.id);
+  // Get the conversion status based on the TikTokVideo relation
+  const conversionStatus = object.tikTokVideo
+    ? object.tikTokVideo.status
+    : convertFetcher.state === "submitting"
+      ? "PROCESSING"
+      : "QUEUED";
+
+  // Get the share status
+  const shareStatus = isSharing
+    ? "sharing"
+    : shareSuccess
+      ? "success"
+      : shareError
+        ? "error"
+        : "idle";
 
   // Handle convert button click
   const handleConvert = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent any parent onClick handlers from firing
 
-    if (!isAudioFile() || conversionStatus === "converting") {
+    if (!isAudioFile() || convertFetcher.state === "submitting") {
       return;
     }
 
-    convertAudioToVideo(object.id, object.s3fileKey);
+    const formData = new FormData();
+    formData.append("objectId", object.id);
+    formData.append("s3fileKey", object.s3fileKey);
+    formData.append("action", "convert-to-video");
+
+    convertFetcher.submit(formData, {
+      method: "POST",
+      action: "/api/audio-to-video",
+      encType: "multipart/form-data",
+    });
   };
 
   // Handle share button click
   const handleShareToTikTok = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent any parent onClick handlers from firing
 
-    if (
-      conversionStatus !== "ready" ||
-      !videoUrl ||
-      shareStatus === "sharing"
-    ) {
+    if (conversionStatus !== "COMPLETED" || !object.tikTokVideo || isSharing) {
       return;
     }
 
-    shareToTikTok(object.id, videoUrl, object.fileName);
+    setIsSharing(true);
+    setShareSuccess(false);
+    setShareError(false);
+
+    // Get a pre-signed URL for the converted video
+    const getVideoUrl = async () => {
+      try {
+        const response = await fetch(
+          `/api/get-presigned-url?key=${encodeURIComponent(object.tikTokVideo.fileKey)}`
+        );
+        const data = await response.json();
+        return data.url;
+      } catch (error) {
+        console.error("Error getting presigned URL:", error);
+        setIsSharing(false);
+        setShareError(true);
+        return null;
+      }
+    };
+
+    // Share to TikTok after getting the URL
+    getVideoUrl().then((videoUrl) => {
+      if (!videoUrl) return;
+
+      const formData = new FormData();
+      formData.append("videoUrl", videoUrl);
+      formData.append("caption", object.fileName);
+      formData.append("action", "share-to-tiktok");
+
+      shareFetcher
+        .submit(formData, {
+          method: "POST",
+          action: "/api/share-to-tiktok",
+          encType: "multipart/form-data",
+        })
+        .then(() => {
+          setIsSharing(false);
+          setShareSuccess(true);
+        })
+        .catch(() => {
+          setIsSharing(false);
+          setShareError(true);
+        });
+    });
   };
 
   // Only render this component for audio files
@@ -74,23 +133,23 @@ export default function AudioToVideoConverter({
       {/* Convert button */}
       <button
         className={`inline-flex items-center gap-1 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit 
-                  ${conversionStatus === "converting" ? "text-gray-400" : "text-sb-restless"} 
+                  ${conversionStatus === "PROCESSING" ? "text-gray-400" : "text-sb-restless"} 
                   transition-colors duration-300 hover:bg-gray-600`}
         onClick={handleConvert}
-        disabled={conversionStatus === "converting"}
+        disabled={conversionStatus === "PROCESSING"}
         title="Convert to video for TikTok"
       >
-        {conversionStatus === "converting" ? (
+        {conversionStatus === "PROCESSING" ? (
           <>
             <Loader className="w-3 h-3 animate-spin" />
             Converting...
           </>
-        ) : conversionStatus === "ready" ? (
+        ) : conversionStatus === "COMPLETED" ? (
           <>
             <Check className="w-3 h-3 text-green-500" />
             Ready
           </>
-        ) : conversionStatus === "error" ? (
+        ) : conversionStatus === "FAILED" ? (
           <>
             <AlertCircle className="w-3 h-3 text-red-500" />
             Retry
@@ -104,7 +163,7 @@ export default function AudioToVideoConverter({
       </button>
 
       {/* Share to TikTok button - only show when video is ready */}
-      {conversionStatus === "ready" && (
+      {conversionStatus === "COMPLETED" && (
         <button
           className={`inline-flex items-center gap-1 bg-black px-2 py-1 text-xs rounded h-fit w-fit 
                      ${shareStatus === "sharing" ? "text-gray-400" : "text-sb-restless"}

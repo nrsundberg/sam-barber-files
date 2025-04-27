@@ -32,5 +32,6 @@ export default [
   ...prefix("api", [
     route("audio-to-video", "routes/api/audio-to-video.server.ts"),
     route("share-to-tiktok", "routes/api/share-to-tiktok.server.ts"),
+    route("get-presigned-url", "routes/api/get-presigned-url.ts"),
   ]),
 ] satisfies RouteConfig;
