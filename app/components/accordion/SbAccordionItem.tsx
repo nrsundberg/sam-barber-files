@@ -20,6 +20,9 @@ export interface AccordionItemProps {
   readyToLoad?: boolean;
 }
 
+// Create a singleton to track permanently failed thumbnails globally
+const permanentlyFailedThumbnails = new Set<string>();
+
 export default function SbAccordionItem({
   index,
   folder,
@@ -101,10 +104,13 @@ export default function SbAccordionItem({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isFolderOpen, contentLoaded, folder.objects.length]);
 
-  // SbAccordionItem.tsx
-  // This is the modified version of the handleLoadError function
-
+  // Improved error handling with permanent failure tracking
   const handleLoadError = (objectId: string) => {
+    // If this thumbnail is already marked as permanently failed, don't bother retrying
+    if (permanentlyFailedThumbnails.has(objectId)) {
+      return;
+    }
+
     // Only add to failedLoads set if not already there
     if (!failedLoads.has(objectId)) {
       setFailedLoads((prev) => {
@@ -118,7 +124,23 @@ export default function SbAccordionItem({
     setRetryAttempts((prev) => {
       const newMap = new Map(prev);
       const currentAttempts = prev.get(objectId) || 0;
-      newMap.set(objectId, currentAttempts + 1);
+      const newAttempts = currentAttempts + 1;
+
+      // Check if we've exceeded the maximum retry attempts
+      if (newAttempts >= 5) {
+        console.log(
+          `Thumbnail permanently failed after ${newAttempts} attempts: ${objectId}`
+        );
+        permanentlyFailedThumbnails.add(objectId);
+
+        // Don't schedule a retry for permanently failed thumbnails
+        if (retryTimeoutsRef.current.has(objectId)) {
+          clearTimeout(retryTimeoutsRef.current.get(objectId));
+          retryTimeoutsRef.current.delete(objectId);
+        }
+      }
+
+      newMap.set(objectId, newAttempts);
       return newMap;
     });
 
@@ -127,37 +149,44 @@ export default function SbAccordionItem({
       clearTimeout(retryTimeoutsRef.current.get(objectId));
     }
 
-    // Schedule a retry with exponential backoff
+    // Schedule a retry with exponential backoff but only if not permanently failed
     const attempts = retryAttempts.get(objectId) || 0;
-    const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
-
     if (attempts < 5) {
       // Max 5 retry attempts
+      const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
+
       const timeoutId = setTimeout(() => {
-        // Only remove this specific objectId from failedLoads
-        setFailedLoads((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(objectId);
-          return newSet;
-        });
+        // Only remove this specific objectId from failedLoads if not permanently failed
+        if (!permanentlyFailedThumbnails.has(objectId)) {
+          setFailedLoads((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(objectId);
+            return newSet;
+          });
+        }
       }, delay);
 
       retryTimeoutsRef.current.set(objectId, timeoutId);
     }
   };
 
-  // Modify the shouldLoadThumbnail function to be more precise
+  // Improved shouldLoadThumbnail function with permanent failure check
   const shouldLoadThumbnail = (index: number, objectId: string) => {
-    // Don't load thumbnails for items that have failed too many times
-    const attempts = retryAttempts.get(objectId) || 0;
-    if (attempts >= 5) return false;
+    // Don't load thumbnails for items that have permanently failed
+    if (permanentlyFailedThumbnails.has(objectId)) {
+      return false;
+    }
 
     // Don't retry loading failed thumbnails that are in the failedLoads set
     // and waiting for their timeout to trigger a retry
-    if (failedLoads.has(objectId)) return false;
+    if (failedLoads.has(objectId)) {
+      return false;
+    }
 
     // Always load all thumbnails for list view (they're smaller)
-    if (viewMode === DisplayStyle.LIST) return true;
+    if (viewMode === DisplayStyle.LIST) {
+      return true;
+    }
 
     // For grid view, be more selective based on visibility range
     return index <= visibleRange.end;

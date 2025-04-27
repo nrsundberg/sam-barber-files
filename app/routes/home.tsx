@@ -1,14 +1,12 @@
 import type { Route } from "./+types/home";
 import prisma from "~/db.server";
-import { type Object } from "@prisma/client";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
-import { Thumbnail } from "~/components/Thumbnail";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState, useEffect } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
-import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
+import { data } from "react-router";
 
 export function meta() {
   return [
@@ -37,10 +35,22 @@ export async function loader({}: Route.LoaderArgs) {
     where: { hidden: false },
     orderBy: { folderPosition: "asc" },
     include: {
-      objects: { where: { hidden: false }, orderBy: { filePosition: "asc" } },
+      objects: {
+        where: { hidden: false },
+        orderBy: { filePosition: "asc" },
+      },
     },
   });
-  return Promise.all([folders, favorites, trending, cdnEndpoint]);
+
+  const result = await Promise.all([folders, favorites, trending, cdnEndpoint]);
+
+  // Add cache control headers (30 minutes cache)
+  return data(result, {
+    headers: {
+      "Cache-Control": "public, max-age=1800", // 30 minutes
+      Expires: new Date(Date.now() + 1800000).toUTCString(),
+    },
+  });
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {

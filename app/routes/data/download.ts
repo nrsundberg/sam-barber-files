@@ -7,7 +7,8 @@ export async function loader({ params }: Route.LoaderArgs) {
   let { fileId } = params;
   try {
     let presignedUrl = await getPresignedDownloadUrl(
-      decodeURIComponent(fileId)
+      decodeURIComponent(fileId),
+      1800 // 30 minutes expiration
     );
 
     let object = await prisma.object.findUnique({
@@ -31,6 +32,8 @@ export async function loader({ params }: Route.LoaderArgs) {
         "Content-Type": contentType,
         "Content-Length": contentLength ?? "0",
         "Content-Disposition": `attachment; filename="${object?.fileName}"`,
+        "Cache-Control": "public, max-age=1800", // 30 minutes cache
+        Expires: new Date(Date.now() + 1800000).toUTCString(),
       },
     });
   } catch (error) {

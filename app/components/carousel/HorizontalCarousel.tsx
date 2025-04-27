@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type FC } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Object } from "@prisma/client";
 import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
@@ -10,7 +10,7 @@ interface HorizontalCarouselProps {
   onItemClick: (index: number) => void;
 }
 
-const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
+const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
   title,
   objects,
   endpoint,
@@ -19,16 +19,34 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   const carouselRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const [visibleItems, setVisibleItems] = useState<Set<number>>(
-    new Set([0, 1, 2])
-  ); // Preload first 3 items
+  const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set()); // Start with empty set
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const isInitialMount = useRef(true);
 
   // Add state to track item errors
   const [itemErrors, setItemErrors] = useState<
     Record<string, { timestamp: number; attempts: number }>
   >({});
   const errorTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Track which items are currently visible in the viewport
+  const [itemsInViewport, setItemsInViewport] = useState<Set<number>>(
+    new Set()
+  );
+  const viewportObserverRef = useRef<IntersectionObserver | null>(null);
+
+  // Load first few items immediately
+  useEffect(() => {
+    if (isInitialMount.current) {
+      const initialItems = new Set<number>();
+      // Load first 3 items initially
+      for (let i = 0; i < Math.min(3, objects.length); i++) {
+        initialItems.add(i);
+      }
+      setVisibleItems(initialItems);
+      isInitialMount.current = false;
+    }
+  }, [objects.length]);
 
   // Check if arrows should be displayed initially and on resize
   useEffect(() => {
@@ -92,6 +110,57 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
 
     return () => {
       observerRef.current?.disconnect();
+    };
+  }, [objects]);
+
+  // Setup viewport observer to track which items are actually visible
+  useEffect(() => {
+    // Cleanup previous observer
+    if (viewportObserverRef.current) {
+      viewportObserverRef.current.disconnect();
+    }
+
+    // Create new observer for viewport tracking (with higher priority)
+    viewportObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        const newInViewport = new Set<number>(itemsInViewport);
+
+        entries.forEach((entry) => {
+          const index = parseInt(
+            entry.target.getAttribute("data-index") || "0",
+            10
+          );
+
+          if (entry.isIntersecting) {
+            newInViewport.add(index);
+
+            // Immediately mark as visible for loading
+            setVisibleItems((prev) => {
+              const updated = new Set(prev);
+              updated.add(index);
+              return updated;
+            });
+          } else {
+            newInViewport.delete(index);
+          }
+        });
+
+        setItemsInViewport(newInViewport);
+      },
+      {
+        threshold: 0.1, // Start tracking when 10% visible
+      }
+    );
+
+    // Add observed items with higher priority
+    const itemElements =
+      carouselRef.current?.querySelectorAll(".carousel-item");
+    if (itemElements) {
+      itemElements.forEach((el) => viewportObserverRef.current?.observe(el));
+    }
+
+    return () => {
+      viewportObserverRef.current?.disconnect();
     };
   }, [objects]);
 
@@ -210,8 +279,14 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
     // Don't load items that are currently in error state and waiting for retry
     if (errorInfo) return false;
 
-    // Otherwise load if visible or one of the first 3 items
-    return visibleItems.has(index) || index < 3;
+    // High priority: load items that are currently in viewport
+    if (itemsInViewport.has(index)) return true;
+
+    // Medium priority: load items that are marked as visible (near viewport or preloaded)
+    if (visibleItems.has(index)) return true;
+
+    // Low priority: load first few items regardless of visibility
+    return index < 3;
   };
 
   // No need to render if there are no objects

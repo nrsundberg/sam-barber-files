@@ -18,7 +18,7 @@ export default function ({
   endpoint: string;
   width?: number;
   shouldLoad?: boolean;
-  onError?: () => void; // Add error handler prop
+  onError?: () => void;
 }) {
   return (
     <div
@@ -56,20 +56,34 @@ export default function ({
         </div>
 
         <div className="grid justify-center items-center">
-          <div className="md:group-hover:hidden">
-            <div className="hidden sm:inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
+          {/* Always show type button for locked objects */}
+          {object.isLocked ? (
+            <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
-          </div>
-          <Link
-            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-            reloadDocument
-            className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
-            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
-          >
-            Download
-          </Link>
+          ) : (
+            <>
+              <div className="md:group-hover:hidden">
+                <div className="hidden sm:inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
+                  {object.kind}
+                  {object.hidden && (
+                    <EyeOffIcon className="w-3 h-3 self-center" />
+                  )}
+                </div>
+              </div>
+              <div className="gap-2 hidden md:group-hover:flex">
+                <Link
+                  to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+                  reloadDocument
+                  className="bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless"
+                  onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+                >
+                  Download
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

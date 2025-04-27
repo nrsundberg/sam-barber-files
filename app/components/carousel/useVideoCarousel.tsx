@@ -20,6 +20,7 @@ export interface UseVideoCarouselReturn {
   loadedVideos: Set<string>; // Expose loaded videos set
   preloadedIndices: Set<number>; // Expose which indices have been preloaded
   fileErrors: Map<string, { attempts: number; lastAttempt: number }>;
+  permanentlyFailedVideos: Set<string>; // New field to track permanently failed videos
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -40,9 +41,10 @@ export interface UseVideoCarouselReturn {
   handleWheel: (e: React.WheelEvent) => void;
 }
 
-// Create a singleton to track loaded videos across component remounts
-// This will be shared across all instances of useVideoCarousel
+// Create singletons to track loaded videos and failure state across component remounts
+// These will be shared across all instances of useVideoCarousel
 let globalLoadedVideos = new Set<string>();
+let globalPermanentlyFailedVideos = new Set<string>(); // Track permanently failed videos
 let globalPreloadedIndices = new Map<string, Map<string, boolean>>(); // Map folder/list ID -> Map of s3fileKey -> loaded status
 
 export function useVideoCarousel({
@@ -57,7 +59,7 @@ export function useVideoCarousel({
           .slice(0, 3)
           .map((obj) => obj.id)
           .join("-")
-      : "empty-list",
+      : "empty-list"
   ).current;
 
   let [isOpen, setIsOpen] = useState(false);
@@ -69,15 +71,20 @@ export function useVideoCarousel({
   let [loadedVideos, setLoadedVideos] =
     useState<Set<string>>(globalLoadedVideos);
   let [preloadedIndices, setPreloadedIndices] = useState<Set<number>>(
-    new Set<number>(),
+    new Set<number>()
   );
+
+  // Track permanently failed videos
+  let [permanentlyFailedVideos, setPermanentlyFailedVideos] = useState<
+    Set<string>
+  >(globalPermanentlyFailedVideos);
 
   // Track file errors with their retry attempts
   const [fileErrors, setFileErrors] = useState<
     Map<string, { attempts: number; lastAttempt: number }>
   >(new Map());
   const fileErrorTimeouts = useRef<Map<string, NodeJS.Timeout>>(
-    new Map<string, NodeJS.Timeout>(),
+    new Map<string, NodeJS.Timeout>()
   );
 
   // Initialize our tracking map for this list if it doesn't exist
@@ -120,6 +127,12 @@ export function useVideoCarousel({
 
   // Function to mark videos as loaded both locally and globally
   const markVideoAsLoaded = (objectKey: string, index: number) => {
+    // Clear any permanent failure state
+    if (globalPermanentlyFailedVideos.has(objectKey)) {
+      globalPermanentlyFailedVideos.delete(objectKey);
+      setPermanentlyFailedVideos(new Set(globalPermanentlyFailedVideos));
+    }
+
     // Add to global set of loaded video keys
     globalLoadedVideos.add(objectKey);
     setLoadedVideos(new Set(globalLoadedVideos));
@@ -149,27 +162,51 @@ export function useVideoCarousel({
 
   // Functions for error handling
   const markVideoAsError = (objectKey: string, index: number) => {
+    // If it's already permanently failed, don't bother retrying
+    if (globalPermanentlyFailedVideos.has(objectKey)) {
+      return;
+    }
+
+    // Update error tracking
     setFileErrors((prev) => {
       const newMap = new Map(prev);
       const current = prev.get(objectKey);
+      const attempts = current ? current.attempts + 1 : 1;
+
+      // Check if we've reached max retry attempts
+      if (attempts >= 5) {
+        console.log(
+          `Video permanently failed after ${attempts} attempts: ${objectKey}`
+        );
+        globalPermanentlyFailedVideos.add(objectKey);
+        setPermanentlyFailedVideos(new Set(globalPermanentlyFailedVideos));
+
+        // Don't schedule retry for permanently failed videos
+        if (fileErrorTimeouts.current.has(objectKey)) {
+          clearTimeout(fileErrorTimeouts.current.get(objectKey));
+          fileErrorTimeouts.current.delete(objectKey);
+        }
+      }
+
       newMap.set(objectKey, {
-        attempts: current ? current.attempts + 1 : 1,
+        attempts: attempts,
         lastAttempt: Date.now(),
       });
       return newMap;
     });
 
-    // Clear any existing timeout for this file
-    if (fileErrorTimeouts.current.has(objectKey)) {
-      clearTimeout(fileErrorTimeouts.current.get(objectKey));
-    }
+    // Only schedule a retry if not at max attempts
+    const currentAttempts = fileErrors.get(objectKey)?.attempts || 0;
+    if (currentAttempts < 4) {
+      // Less than 4 since we just incremented it above
+      // Clear any existing timeout for this file
+      if (fileErrorTimeouts.current.has(objectKey)) {
+        clearTimeout(fileErrorTimeouts.current.get(objectKey));
+      }
 
-    // Schedule retry with exponential backoff
-    const attempts = fileErrors.get(objectKey)?.attempts || 0;
-    const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
+      // Schedule retry with exponential backoff
+      const delay = Math.min(1000 * Math.pow(2, currentAttempts), 30000); // Cap at 30 seconds
 
-    if (attempts < 5) {
-      // Max 5 retry attempts
       const timeoutId = setTimeout(() => {
         clearVideoError(objectKey);
       }, delay);
@@ -179,6 +216,11 @@ export function useVideoCarousel({
   };
 
   const clearVideoError = (objectKey: string) => {
+    // Don't clear errors for permanently failed videos
+    if (globalPermanentlyFailedVideos.has(objectKey)) {
+      return;
+    }
+
     // Remove from error tracking
     setFileErrors((prev) => {
       const newMap = new Map(prev);
@@ -359,6 +401,7 @@ export function useVideoCarousel({
     loadedVideos,
     preloadedIndices,
     fileErrors,
+    permanentlyFailedVideos,
 
     // Actions
     openModal,

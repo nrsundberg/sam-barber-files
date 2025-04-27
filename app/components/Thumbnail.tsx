@@ -10,8 +10,8 @@ export function Thumbnail({
   height,
   width,
   isAdmin = false,
-  shouldLoad = false, // Control lazy loading
-  onError, // Callback for error handling
+  shouldLoad = false,
+  onError,
 }: {
   object: Object;
   endpoint: string;
@@ -45,7 +45,7 @@ export function Thumbnail({
           observer.disconnect(); // Once visible, stop observing
         }
       },
-      { threshold: 0.1 }, // Start loading when 10% visible
+      { threshold: 0.1 } // Start loading when 10% visible
     );
 
     observer.observe(elementRef.current);
@@ -89,6 +89,44 @@ export function Thumbnail({
     }
   };
 
+  // Preload poster images for video/audio objects to speed up detection of aspect ratio
+  useEffect(() => {
+    if (shouldRenderContent && object.posterKey) {
+      const img = new Image();
+      img.onload = (e) => {
+        const imgElement = e.target as HTMLImageElement;
+        setIsTallMedia(
+          isExtremelyTall(imgElement.naturalWidth, imgElement.naturalHeight)
+        );
+        setIsLoaded(true);
+      };
+      img.onerror = handleError;
+      img.src = endpoint + object.posterKey;
+    }
+  }, [shouldRenderContent, object.posterKey, endpoint]);
+
+  // For photos without posters, preload the image itself
+  useEffect(() => {
+    if (shouldRenderContent && object.kind === "PHOTO" && !object.posterKey) {
+      const img = new Image();
+      img.onload = (e) => {
+        const imgElement = e.target as HTMLImageElement;
+        setIsTallMedia(
+          isExtremelyTall(imgElement.naturalWidth, imgElement.naturalHeight)
+        );
+        setIsLoaded(true);
+      };
+      img.onerror = handleError;
+      img.src = endpoint + object.s3fileKey;
+    }
+  }, [
+    shouldRenderContent,
+    object.kind,
+    object.s3fileKey,
+    endpoint,
+    object.posterKey,
+  ]);
+
   // Calculate container classes based on layout type
   const containerClasses = isRow
     ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0`
@@ -113,6 +151,7 @@ export function Thumbnail({
                   src={endpoint + object.posterKey}
                   height={height}
                   width={width}
+                  alt={object.fileName || "thumbnail"}
                   className={`
                     ${
                       isTallMedia
@@ -121,19 +160,9 @@ export function Thumbnail({
                     }
                     ${object.isLocked ? "blur-sm opacity-70" : ""}
                   `}
-                  loading="lazy"
-                  onLoad={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    setIsTallMedia(
-                      isExtremelyTall(img.naturalWidth, img.naturalHeight),
-                    );
-                    setIsLoaded(true);
-                    // Clear error state on successful load
-                    setHasError(false);
-                    errorStateRef.current = false;
-                  }}
+                  // Use eager loading for visible thumbnails
+                  loading="eager"
                   onError={handleError}
-                  alt={object.fileName || "thumbnail"}
                 />
                 {object.isLocked && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
@@ -159,8 +188,8 @@ export function Thumbnail({
                 >
                   <img
                     src={endpoint + object.s3fileKey}
-                    loading="lazy"
                     width={width}
+                    alt={object.fileName || "photo"}
                     className={`
                       ${
                         isTallMedia
@@ -169,18 +198,9 @@ export function Thumbnail({
                       }
                       ${object.isLocked ? "blur-sm opacity-70" : ""}
                     `}
-                    onLoad={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      setIsTallMedia(
-                        isExtremelyTall(img.naturalWidth, img.naturalHeight),
-                      );
-                      setIsLoaded(true);
-                      // Clear error state on successful load
-                      setHasError(false);
-                      errorStateRef.current = false;
-                    }}
+                    // Use eager loading for visible thumbnails
+                    loading="eager"
                     onError={handleError}
-                    alt={object.fileName || "photo"}
                   />
                   {object.isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
@@ -214,7 +234,7 @@ export function Thumbnail({
                     onLoadedMetadata={(e) => {
                       const video = e.target as HTMLVideoElement;
                       setIsTallMedia(
-                        isExtremelyTall(video.videoWidth, video.videoHeight),
+                        isExtremelyTall(video.videoWidth, video.videoHeight)
                       );
                       setIsLoaded(true);
                       // Clear error state on successful load

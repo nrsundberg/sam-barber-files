@@ -1,5 +1,5 @@
 import { Modal, ModalContent } from "@heroui/react";
-import { AudioLines, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { AudioLines, ChevronDown, ChevronUp, Lock, X } from "lucide-react";
 import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
@@ -42,7 +42,7 @@ export default function VideoCarousel({
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
   // Track which videos have been loaded in this specific carousel instance
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   // Add state for tracking media load errors
   const [mediaLoadErrors, setMediaLoadErrors] = useState<
@@ -192,13 +192,6 @@ export default function VideoCarousel({
     };
   }, []);
 
-  // Handler for play/pause that respects locked status
-  const handlePlayPause = () => {
-    if (currentObject && !currentObject.isLocked) {
-      setIsPlaying(!isPlaying);
-    }
-  };
-
   // No need to render modal if it's not open
   if (!isOpen) return null;
 
@@ -212,12 +205,25 @@ export default function VideoCarousel({
       classNames={{
         wrapper: "flex items-center justify-center h-full w-full",
         base: "w-full h-full max-h-screen flex items-center justify-center",
+        backdrop: "cursor-pointer", // Make backdrop clickable
       }}
     >
-      <ModalContent className="min-h-screen flex items-center justify-center">
+      {/* This is our full-screen clickable overlay that will close the modal */}
+      <div className="fixed inset-0 w-full h-full" onClick={closeModal} />
+
+      <ModalContent className="min-h-screen flex items-center justify-center pointer-events-none">
+        {/* Close button in the top right - give it pointer-events-auto */}
+        <button
+          onClick={closeModal}
+          className="absolute top-4 right-4 z-50 bg-gray-800 bg-opacity-70 rounded-full p-3 text-white hover:bg-opacity-100 transition-all pointer-events-auto"
+          aria-label="Close"
+        >
+          <X className="w-8 h-8" />
+        </button>
+
         <div
           ref={containerRef}
-          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen"
+          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen pointer-events-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -226,8 +232,11 @@ export default function VideoCarousel({
           {/* Previous video preview (partially visible) */}
           {currentIndex > 0 && (
             <div
-              className="absolute top-0 w-full h-12 md:h-16 flex items-center justify-center cursor-pointer z-10"
-              onClick={handlePrev}
+              className="absolute top-0 w-full h-12 md:h-16 flex items-center justify-center cursor-pointer z-10 pointer-events-auto"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent closing the modal
+                handlePrev();
+              }}
             >
               <div className="flex flex-col items-center">
                 <ChevronUp size={24} className="text-white" />
@@ -239,10 +248,10 @@ export default function VideoCarousel({
           )}
 
           {/* Current video */}
-          <div className="flex-1 w-full flex flex-col items-center justify-center">
+          <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none">
             <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
               {/* Mobile: full width, 50% of screen height / Desktop: larger size */}
-              <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black">
+              <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black pointer-events-auto">
                 {/* We render all videos but keep most hidden */}
                 {objects.map((object, index) => {
                   const shouldRender = true; // Always render but might be hidden
@@ -267,6 +276,7 @@ export default function VideoCarousel({
                       key={`media-container-${object.id}`}
                       style={{ display: isCurrentMedia ? "block" : "none" }}
                       className="w-full h-full relative"
+                      onClick={(e) => e.stopPropagation()} // Prevent closing when clicking media
                     >
                       {object.kind === ObjectKind.VIDEO ? (
                         <div className="relative w-full h-full">
@@ -360,7 +370,10 @@ export default function VideoCarousel({
 
               {/* Video info overlay */}
               {currentObject && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full">
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on info
+                >
                   <div className="sm:col-span-1">
                     <h3 className="text-sm sm:text-lg font-bold truncate">
                       {currentObject.fileName}
@@ -372,7 +385,7 @@ export default function VideoCarousel({
                       {formatInTimeZone(
                         currentObject.createdDate,
                         "UTC",
-                        "MM.dd.yyyy hh:mm a",
+                        "MM.dd.yyyy hh:mm a"
                       )}
                     </p>
                   </div>
@@ -402,8 +415,11 @@ export default function VideoCarousel({
           {/* Next video preview (partially visible) */}
           {currentIndex < objects.length - 1 && (
             <div
-              className="absolute bottom-0 w-full h-12 md:h-16 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10"
-              onClick={handleNext}
+              className="absolute bottom-0 w-full h-12 md:h-16 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10 pointer-events-auto"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent closing the modal
+                handleNext();
+              }}
             >
               <div className="flex flex-col items-center">
                 <p className="text-white text-sm truncate max-w-xs">

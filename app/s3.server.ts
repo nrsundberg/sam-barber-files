@@ -11,7 +11,7 @@ import type { S3Object } from "./types";
 const S3_ENDPOINT = process.env.AWS_ENDPOINT_URL_S3;
 const S3_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID;
 const S3_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY;
-const S3_BUCKET_NAME = process.env.BUCKET_NAME;
+export const S3_BUCKET_NAME = process.env.BUCKET_NAME;
 const S3_REGION = process.env.AWS_REGION;
 
 const CDN_ENDPOINT = process.env.CDN_ENDPOINT;
@@ -36,13 +36,15 @@ export const s3Client = new S3Client({
 
 /**
  * Generate a pre-signed URL for downloading a file from S3.
- * The URL will be valid for 10 minutes.
+ * The URL will be valid for the specified time (default 30 minutes).
  *
  * @param {string} fileKey - The key (path) of the file in the bucket.
+ * @param {number} expiresIn - Expiration time in seconds (default 1800 seconds = 30 minutes)
  * @returns {Promise<string>} - The pre-signed URL.
  */
 export async function getPresignedDownloadUrl(
-  fileKey: string
+  fileKey: string,
+  expiresIn: number = 1800 // Default to 30 minutes
 ): Promise<string> {
   try {
     const command = new GetObjectCommand({
@@ -50,7 +52,7 @@ export async function getPresignedDownloadUrl(
       Key: fileKey,
     });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 600 }); // 10 minutes
+    const url = await getSignedUrl(s3Client, command, { expiresIn });
     return url;
   } catch (error) {
     console.error("Error generating pre-signed URL", error);
@@ -74,6 +76,7 @@ export async function uploadToS3(file: File, fileId: string): Promise<boolean> {
       Key: fileId,
       Body: Buffer.from(fileBuffer),
       ContentType: file.type,
+      CacheControl: "max-age=1800", // Add 30 minute cache control
     };
 
     let s3Response = await s3Client.send(new PutObjectCommand(uploadParams));

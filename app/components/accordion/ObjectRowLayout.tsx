@@ -24,13 +24,13 @@ export default function ({
   endpoint: string;
   width?: number;
   shouldLoad?: boolean;
-  onError?: () => void; // Add error handler prop
+  onError?: () => void;
 }) {
   let submit = useSubmit();
 
   const updateObject = (
     field: "trending" | "favorite" | "locked",
-    e: React.MouseEvent<SVGSVGElement>,
+    e: React.MouseEvent<SVGSVGElement>
   ) => {
     e.stopPropagation(); // Prevent the carousel from opening
 
@@ -113,14 +113,18 @@ export default function ({
             {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
           </p>
 
-          <Link
-            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-            reloadDocument
-            className="inline-flex gap-2 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit text-sb-restless"
-            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
-          >
-            Download
-          </Link>
+          {!object.isLocked && (
+            <>
+              <Link
+                to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+                reloadDocument
+                className="inline-flex gap-2 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit text-sb-restless"
+                onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+              >
+                Download
+              </Link>
+            </>
+          )}
         </div>
 
         <p className="hidden sm:block text-center text-sm md:text-medium self-center">
@@ -128,20 +132,34 @@ export default function ({
         </p>
 
         <div className="hidden sm:grid justify-center items-center">
-          <div className="md:group-hover:hidden">
+          {/* Always show type button for locked objects */}
+          {object.isLocked ? (
             <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
               {object.kind}
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
-          </div>
-          <Link
-            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-            reloadDocument
-            className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
-            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
-          >
-            Download
-          </Link>
+          ) : (
+            <>
+              <div className="md:group-hover:hidden">
+                <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">
+                  {object.kind}
+                  {object.hidden && (
+                    <EyeOffIcon className="w-3 h-3 self-center" />
+                  )}
+                </div>
+              </div>
+              <div className="gap-2 hidden md:group-hover:flex">
+                <Link
+                  to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+                  reloadDocument
+                  className="bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless"
+                  onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+                >
+                  Download
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
