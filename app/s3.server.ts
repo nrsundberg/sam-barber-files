@@ -11,7 +11,7 @@ import type { S3Object } from "./types";
 const S3_ENDPOINT = process.env.AWS_ENDPOINT_URL_S3;
 const S3_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID;
 const S3_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY;
-const S3_BUCKET_NAME = process.env.BUCKET_NAME;
+export const S3_BUCKET_NAME = process.env.BUCKET_NAME;
 const S3_REGION = process.env.AWS_REGION;
 
 const CDN_ENDPOINT = process.env.CDN_ENDPOINT;

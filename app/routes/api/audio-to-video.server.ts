@@ -1,11 +1,4 @@
-import { json } from "@remix-run/node";
-import type { ActionFunction } from "@remix-run/node";
-import {
-  S3Client,
-  GetObjectCommand,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { execSync } from "child_process";
 import { createWriteStream, writeFileSync, unlinkSync } from "fs";
 import { v4 as uuid } from "uuid";
@@ -14,18 +7,12 @@ import * as os from "os";
 import { pipeline } from "stream/promises";
 import { data } from "react-router";
 import prisma from "~/db.server";
-
-// S3 configuration
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+import type { Route } from "./+types/audio-to-video.server";
+import { getPresignedDownloadUrl, S3_BUCKET_NAME, s3Client } from "~/s3.server";
+import { ConversionStatus } from "@prisma/client";
 
 // Action function to handle the audio to video conversion
-export const action: ActionFunction = async ({ request }) => {
+export async function action({ request }: Route.ActionArgs) {
   // Parse the form data
   const formData = await request.formData();
   const objectId = formData.get("objectId") as string;
@@ -34,7 +21,7 @@ export const action: ActionFunction = async ({ request }) => {
 
   // Validate the request
   if (!objectId || !s3fileKey || action !== "convert-to-video") {
-    return json({ error: "Invalid request" }, { status: 400 });
+    return data({ error: "Invalid request" }, { status: 400 });
   }
 
   try {
@@ -44,7 +31,7 @@ export const action: ActionFunction = async ({ request }) => {
     });
 
     if (!object) {
-      return json({ error: "Object not found" }, { status: 404 });
+      return data({ error: "Object not found" }, { status: 404 });
     }
 
     // Check if it's an audio file
@@ -55,7 +42,7 @@ export const action: ActionFunction = async ({ request }) => {
       !object.fileName.toLowerCase().endsWith(".ogg") &&
       !object.fileName.toLowerCase().endsWith(".m4a")
     ) {
-      return json({ error: "Not an audio file" }, { status: 400 });
+      return data({ error: "Not an audio file" }, { status: 400 });
     }
 
     // Set up temporary file paths
@@ -69,14 +56,14 @@ export const action: ActionFunction = async ({ request }) => {
 
     // Download the audio file from S3
     const getCommand = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME!,
+      Bucket: S3_BUCKET_NAME,
       Key: s3fileKey,
     });
 
-    const { Body } = await s3.send(getCommand);
+    const { Body } = await s3Client.send(getCommand);
 
     if (!Body) {
-      return json(
+      return data(
         { error: "Failed to download file from S3" },
         { status: 500 }
       );
@@ -114,9 +101,9 @@ export const action: ActionFunction = async ({ request }) => {
     const videoS3Key = `${s3fileKey.substring(0, s3fileKey.lastIndexOf("."))}.mp4`;
 
     // Upload the converted video back to S3
-    await s3.send(
+    await s3Client.send(
       new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME!,
+        Bucket: S3_BUCKET_NAME,
         Key: videoS3Key,
         Body: await require("fs/promises").readFile(videoFilePath),
         ContentType: "video/mp4",
@@ -124,31 +111,15 @@ export const action: ActionFunction = async ({ request }) => {
     );
 
     // Create a new object entry in the database for the video
-    const videoObject = await db.object.create({
+    const videoObject = await prisma.tikTokVideo.create({
       data: {
-        userId: user.id,
-        folderId: object.folderId,
-        fileName: `${object.fileName.substring(0, object.fileName.lastIndexOf("."))}.mp4`,
-        s3fileKey: videoS3Key,
-        kind: "VIDEO",
-        size: (await require("fs/promises").stat(videoFilePath)).size,
-        mimeType: "video/mp4",
-        width: 1280, // Default width
-        height: 720, // Default height
-        hidden: object.hidden,
-        originalId: objectId, // Reference to the original audio
+        fileKey: videoS3Key,
+        objectId: object.id,
+        status: ConversionStatus.COMPLETED,
       },
     });
 
-    // Generate a signed URL for the new video
-    const getVideoCommand = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: videoS3Key,
-    });
-
-    const videoUrl = await getSignedUrl(s3, getVideoCommand, {
-      expiresIn: 3600,
-    });
+    const videoUrl = await getPresignedDownloadUrl(videoS3Key);
 
     // Clean up temporary files
     try {
@@ -168,4 +139,4 @@ export const action: ActionFunction = async ({ request }) => {
     console.error("Error converting audio to video:", error);
     return data({ error: "Failed to convert audio to video" }, { status: 500 });
   }
-};
+}

@@ -1,29 +1,17 @@
-import type { ActionFunction } from "@remix-run/node";
-import { S3Client } from "@aws-sdk/client-s3";
 import fetch from "node-fetch";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { v4 as uuid } from "uuid";
 import { data } from "react-router";
-
-// S3 configuration
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+import type { Route } from "./+types/share-to-tiktok.server";
 
 // TikTok API configuration
 const TIKTOK_API_KEY = process.env.TIKTOK_API_KEY;
 const TIKTOK_API_SECRET = process.env.TIKTOK_API_SECRET;
-const TIKTOK_ACCESS_TOKEN = process.env.TIKTOK_ACCESS_TOKEN;
-const TIKTOK_OPEN_ID = process.env.TIKTOK_OPEN_ID;
 
 // Action function to handle sharing to TikTok
-export const action: ActionFunction = async ({ request }) => {
+export async function action({ request }: Route.ActionArgs) {
   // Parse the form data
   const formData = await request.formData();
   const videoUrl = formData.get("videoUrl") as string;
@@ -64,7 +52,7 @@ export const action: ActionFunction = async ({ request }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${TIKTOK_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${TIKTOK_API_KEY}`,
         },
         body: JSON.stringify({
           source_info: {
@@ -95,7 +83,7 @@ export const action: ActionFunction = async ({ request }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${TIKTOK_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${TIKTOK_API_KEY}`,
         },
         body: JSON.stringify({
           publish_id: publish_id,
@@ -163,4 +151,4 @@ export const action: ActionFunction = async ({ request }) => {
 
     return data({ error: "Failed to share to TikTok" }, { status: 500 });
   }
-};
+}
