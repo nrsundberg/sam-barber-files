@@ -1,6 +1,7 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { execSync } from "child_process";
-import { createWriteStream, writeFileSync, unlinkSync } from "fs";
+import { exec } from "child_process";
+import { createWriteStream } from "fs";
+import { promises as fs } from "fs";
 import { v4 as uuid } from "uuid";
 import * as path from "path";
 import * as os from "os";
@@ -10,6 +11,9 @@ import prisma from "~/db.server";
 import type { Route } from "./+types/audio-to-video.server";
 import { getPresignedDownloadUrl, S3_BUCKET_NAME, s3Client } from "~/s3.server";
 import { ConversionStatus } from "@prisma/client";
+import { promisify } from "util";
+
+const execPromise = promisify(exec);
 
 // Action function to handle the audio to video conversion
 export async function action({ request }: Route.ActionArgs) {
@@ -73,44 +77,35 @@ export async function action({ request }: Route.ActionArgs) {
     const writeStream = createWriteStream(audioFilePath);
     await pipeline(Body as any, writeStream);
 
-    // Create a simple 1x1 transparent PNG
-    const transparentPixelPath = path.join(
-      tempDir,
-      `${audioFileId}_transparent.png`
+    // Get the duration of the audio file using ffprobe
+    const { stdout: durationOutput } = await execPromise(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${audioFilePath}"`
     );
-    const transparentPixelData = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHq4feCgAAAABJRU5ErkJggg==",
-      "base64"
-    );
-    writeFileSync(transparentPixelPath, transparentPixelData);
 
-    // Use FFmpeg to create a video with transparent background
-    // Get the duration of the audio file
-    const durationOutput = execSync(
-      `ffprobe -i ${audioFilePath} -show_entries format=duration -v quiet -of csv="p=0"`,
-      { encoding: "utf-8" }
-    );
     const duration = parseFloat(durationOutput.trim());
 
-    // Create the video with FFmpeg
-    execSync(
-      `ffmpeg -loop 1 -i ${transparentPixelPath} -i ${audioFilePath} -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -t ${duration} ${videoFilePath}`
+    // Create the video using color source instead of a PNG file
+    await execPromise(
+      `ffmpeg -f lavfi -i color=c=black@0:s=1280x720:r=1 -i "${audioFilePath}" -shortest -c:v libx264 -c:a aac -b:a 192k -pix_fmt yuva420p -t ${duration} "${videoFilePath}"`,
+      { maxBuffer: 100 * 1024 * 1024 } // Increase buffer size to 100MB
     );
 
     // Generate a new S3 key for the video
     const videoS3Key = `${s3fileKey.substring(0, s3fileKey.lastIndexOf("."))}.mp4`;
 
     // Upload the converted video back to S3
+    const videoFile = await fs.readFile(videoFilePath);
+
     await s3Client.send(
       new PutObjectCommand({
         Bucket: S3_BUCKET_NAME,
         Key: videoS3Key,
-        Body: await require("fs/promises").readFile(videoFilePath),
+        Body: videoFile,
         ContentType: "video/mp4",
       })
     );
 
-    // Create a new object entry in the database for the video
+    // Create a new entry in the database for the video
     const videoObject = await prisma.tikTokVideo.create({
       data: {
         fileKey: videoS3Key,
@@ -123,9 +118,8 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Clean up temporary files
     try {
-      unlinkSync(audioFilePath);
-      unlinkSync(transparentPixelPath);
-      unlinkSync(videoFilePath);
+      await fs.unlink(audioFilePath);
+      await fs.unlink(videoFilePath);
     } catch (err) {
       console.error("Error cleaning up temp files:", err);
     }
@@ -134,9 +128,17 @@ export async function action({ request }: Route.ActionArgs) {
       success: true,
       videoObject,
       videoUrl,
+      objectId, // Include the original objectId for context tracking
     });
   } catch (error) {
     console.error("Error converting audio to video:", error);
-    return data({ error: "Failed to convert audio to video" }, { status: 500 });
+    return data(
+      {
+        error: "Failed to convert audio to video",
+        details: String(error),
+        objectId, // Include the original objectId for context tracking
+      },
+      { status: 500 }
+    );
   }
 }
