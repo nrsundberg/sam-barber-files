@@ -32,21 +32,30 @@ model Folder {
 }
 
 model Object {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   fileName     String
   createdDate  DateTime
   hidden       Boolean
-  isFavorite   Boolean    @default(false)
-  isTrending   Boolean    @default(false)
+  isFavorite   Boolean      @default(false)
+  isTrending   Boolean      @default(false)
   // In Bytes
   size         Int
   kind         ObjectKind
   filePosition Int
-  s3fileKey    String     @unique
+  s3fileKey    String       @unique
   posterKey    String?
-  folder       Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folder       Folder       @relation(fields: [folderId], references: [id], onDelete: Cascade)
   folderId     String
-  isLocked     Boolean    @default(false)
+  isLocked     Boolean      @default(false)
+  tikTokVideo  TikTokVideo?
+}
+
+model TikTokVideo {
+  id       String           @id @default(uuid())
+  fileKey  String
+  objectId String?          @unique
+  object   Object?          @relation(fields: [objectId], references: [id])
+  status   ConversionStatus @default(PROCESSING)
 }
 
 enum ObjectKind {
@@ -58,4 +67,11 @@ enum ObjectKind {
 enum DisplayStyle {
   LIST
   GRID
+}
+
+enum ConversionStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
 }

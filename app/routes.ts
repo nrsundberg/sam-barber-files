@@ -1,9 +1,14 @@
-import { index, route, type RouteConfig } from "@react-router/dev/routes";
+import {
+  index,
+  prefix,
+  route,
+  type RouteConfig,
+} from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
 
-  // Admin routes -- resricted to user loged in
+  // Admin routes -- restricted to user logged in
   route("admin", "routes/admin/admin.tsx", [
     route(":folderId", "routes/admin/admin.folder.tsx"),
   ]),
@@ -14,6 +19,10 @@ export default [
   route("login", "routes/auth/login.tsx"),
   route("kinde-auth/:index", "routes/auth/kinde-auth.tsx"),
 
+  // TikTok Authentication routes
+  route("tiktok-dashboard", "routes/tiktok-dashboard.tsx"),
+  route("tiktok-auth/:action", "routes/tiktok-auth.tsx"),
+
   // Data and resource routes
   // Protected by index loader in data route
   route("data", "routes/data/index.ts", [
@@ -21,5 +30,13 @@ export default [
     route("edit/object/:objectId/:actionType", "routes/data/editObject.ts"),
     route("edit/folder/:folderId/:actionType", "routes/data/editFolder.ts"),
     route("download/:fileId", "routes/data/download.ts"),
+  ]),
+
+  // API routes for audio-to-video conversion and TikTok sharing
+  ...prefix("api", [
+    route("audio-to-video", "routes/api/audio-to-video.server.ts"),
+    route("share-to-tiktok", "routes/api/share-to-tiktok.server.ts"),
+    route("get-presigned-url", "routes/api/get-presigned-url.ts"),
+    route("check-tiktok-auth", "routes/api/check-tiktok-auth.ts"),
   ]),
 ] satisfies RouteConfig;
