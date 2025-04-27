@@ -4,6 +4,7 @@ import { ChevronLeft, EyeOffIcon, Lock, Star, TrendingUp } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import AudioToVideoConverter from "~/components/converter/AudioToVideoConverter";
 
 export default function ({
   object,
@@ -24,13 +25,13 @@ export default function ({
   endpoint: string;
   width?: number;
   shouldLoad?: boolean;
-  onError?: () => void; // Add error handler prop
+  onError?: () => void;
 }) {
   let submit = useSubmit();
 
   const updateObject = (
     field: "trending" | "favorite" | "locked",
-    e: React.MouseEvent<SVGSVGElement>,
+    e: React.MouseEvent<SVGSVGElement>
   ) => {
     e.stopPropagation(); // Prevent the carousel from opening
 
@@ -121,6 +122,8 @@ export default function ({
           >
             Download
           </Link>
+
+          <AudioToVideoConverter object={object} endpoint={endpoint} />
         </div>
 
         <p className="hidden sm:block text-center text-sm md:text-medium self-center">
@@ -134,14 +137,18 @@ export default function ({
               {object.hidden && <EyeOffIcon className="w-3 h-3 self-center" />}
             </div>
           </div>
-          <Link
-            to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
-            reloadDocument
-            className="gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless hidden md:group-hover:block"
-            onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
-          >
-            Download
-          </Link>
+          <div className="gap-2 hidden md:group-hover:flex">
+            <Link
+              to={`/data/download/${encodeURIComponent(object.s3fileKey)}`}
+              reloadDocument
+              className="bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless"
+              onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+            >
+              Download
+            </Link>
+
+            <AudioToVideoConverter object={object} endpoint={endpoint} />
+          </div>
         </div>
       </div>
     </div>

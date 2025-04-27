@@ -1,4 +1,9 @@
-import { index, route, type RouteConfig } from "@react-router/dev/routes";
+import {
+  index,
+  prefix,
+  route,
+  type RouteConfig,
+} from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
@@ -21,5 +26,11 @@ export default [
     route("edit/object/:objectId/:actionType", "routes/data/editObject.ts"),
     route("edit/folder/:folderId/:actionType", "routes/data/editFolder.ts"),
     route("download/:fileId", "routes/data/download.ts"),
+  ]),
+
+  // API routes for audio-to-video conversion and TikTok sharing
+  ...prefix("api", [
+    route("audio-to-video", "routes/api/audio-to-video.server.ts"),
+    route("share-to-tiktok", "routes/api/share-to-tiktok.server.ts"),
   ]),
 ] satisfies RouteConfig;
