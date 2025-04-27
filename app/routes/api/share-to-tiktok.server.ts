@@ -1,22 +1,36 @@
+// app/routes/api/share-to-tiktok.server.ts
 import fetch from "node-fetch";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { v4 as uuid } from "uuid";
-import { data } from "react-router";
 import type { Route } from "./+types/share-to-tiktok.server";
-
-// TikTok API configuration
-const TIKTOK_API_KEY = process.env.TIKTOK_API_KEY;
-const TIKTOK_API_SECRET = process.env.TIKTOK_API_SECRET;
+import { getTikTokTokens } from "~/routes/tiktok-auth";
+import prisma from "~/db.server";
+import { data } from "react-router";
 
 // Action function to handle sharing to TikTok
 export async function action({ request }: Route.ActionArgs) {
+  // Get TikTok auth info from session
+  const { accessToken, openId, isValid } = await getTikTokTokens(request);
+
+  // Check if user is authenticated
+  if (!isValid || !accessToken || !openId) {
+    return data(
+      {
+        error: "Not authenticated with TikTok",
+        requiresAuth: true,
+      },
+      { status: 401 }
+    );
+  }
+
   // Parse the form data
   const formData = await request.formData();
   const videoUrl = formData.get("videoUrl") as string;
   const caption = formData.get("caption") as string;
   const action = formData.get("action") as string;
+  const objectId = formData.get("objectId") as string;
 
   // Validate the request
   if (!videoUrl || !caption || action !== "share-to-tiktok") {
@@ -24,14 +38,6 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    // Check if TikTok API credentials are configured
-    if (!TIKTOK_API_KEY || !TIKTOK_API_SECRET) {
-      return data(
-        { error: "TikTok API credentials not configured" },
-        { status: 500 }
-      );
-    }
-
     // Download the video file to a temporary location
     const videoResponse = await fetch(videoUrl);
     if (!videoResponse.ok) {
@@ -42,8 +48,8 @@ export async function action({ request }: Route.ActionArgs) {
     const videoFileId = uuid();
     const videoFilePath = path.join(tempDir, `${videoFileId}.mp4`);
 
-    const videoBuffer = await videoResponse.buffer();
-    await fs.writeFile(videoFilePath, videoBuffer);
+    const videoBuffer = await videoResponse.arrayBuffer();
+    await fs.writeFile(videoFilePath, Buffer.from(videoBuffer));
 
     // Step 1: Initiate a video upload
     const initUploadResponse = await fetch(
@@ -52,13 +58,12 @@ export async function action({ request }: Route.ActionArgs) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${TIKTOK_API_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           source_info: {
             source: "PULL_FROM_URL",
             video_url: videoUrl,
-            // Alternative method: use source: "UPLOAD" for direct uploads
           },
         }),
       }
@@ -83,7 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${TIKTOK_API_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           publish_id: publish_id,
@@ -114,41 +119,36 @@ export async function action({ request }: Route.ActionArgs) {
       console.error("Error cleaning up temp video file:", err);
     }
 
-    // // Log the share activity
-    // await prisma.shareActivity.create({
-    //   data: {
-    //     userId: user.id,
-    //     platform: "TIKTOK",
-    //     contentUrl: videoUrl,
-    //     caption: caption,
-    //     response: JSON.stringify(postData),
-    //     status: "SUCCESS",
-    //   },
-    // });
+    // Log the share activity in database if needed
+    if (objectId) {
+      try {
+        // You could store TikTok share activity in your database here
+        await prisma.tikTokVideo.update({
+          where: { objectId },
+          data: {
+            // Add any fields you want to track for TikTok shares
+            // For example a lastShared timestamp or shareCount
+          },
+        });
+      } catch (dbError) {
+        console.error("Failed to update TikTok share status:", dbError);
+      }
+    }
 
     return data({
       success: true,
       postData,
+      objectId,
     });
   } catch (error) {
     console.error("Error sharing to TikTok:", error);
-
-    // // Log the failed share attempt
-    // try {
-    //   await db.shareActivity.create({
-    //     data: {
-    //       userId: user.id,
-    //       platform: "TIKTOK",
-    //       contentUrl: videoUrl,
-    //       caption: caption,
-    //       response: JSON.stringify({ error: String(error) }),
-    //       status: "FAILED",
-    //     },
-    //   });
-    // } catch (dbError) {
-    //   console.error("Failed to log share activity:", dbError);
-    // }
-
-    return data({ error: "Failed to share to TikTok" }, { status: 500 });
+    return data(
+      {
+        error: "Failed to share to TikTok",
+        details: String(error),
+        objectId,
+      },
+      { status: 500 }
+    );
   }
 }

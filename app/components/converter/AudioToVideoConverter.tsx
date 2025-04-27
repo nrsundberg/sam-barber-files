@@ -1,10 +1,10 @@
 import { Music, Share, Check, AlertCircle, Loader } from "lucide-react";
-import type { Object, ConversionStatus } from "@prisma/client";
-import { useState } from "react";
-import { useFetcher } from "react-router";
+import { useState, useEffect } from "react";
+import { useFetcher, useNavigate } from "react-router";
+import type { ObjectWithTikTok } from "~/types";
 
 export interface AudioToVideoProps {
-  object: Object;
+  object: ObjectWithTikTok;
   endpoint: string;
 }
 
@@ -15,9 +15,28 @@ export default function AudioToVideoConverter({
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [shareError, setShareError] = useState(false);
+  const [tikTokAuthStatus, setTikTokAuthStatus] = useState<
+    "loading" | "authenticated" | "unauthenticated"
+  >("loading");
 
   const convertFetcher = useFetcher();
   const shareFetcher = useFetcher();
+  const authFetcher = useFetcher();
+  const navigate = useNavigate();
+
+  // Fetch TikTok auth status on mount
+  useEffect(() => {
+    authFetcher.load("/api/check-tiktok-auth");
+  }, []);
+
+  // Update auth status when data is available
+  useEffect(() => {
+    if (authFetcher.data) {
+      setTikTokAuthStatus(
+        authFetcher.data.isAuthenticated ? "authenticated" : "unauthenticated"
+      );
+    }
+  }, [authFetcher.data]);
 
   // Function to check if the file is an audio file
   const isAudioFile = () => {
@@ -70,6 +89,12 @@ export default function AudioToVideoConverter({
   const handleShareToTikTok = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent any parent onClick handlers from firing
 
+    // If not authenticated, redirect to TikTok auth
+    if (tikTokAuthStatus !== "authenticated") {
+      navigate("/tiktok-auth/login");
+      return;
+    }
+
     if (conversionStatus !== "COMPLETED" || !object.tikTokVideo || isSharing) {
       return;
     }
@@ -82,7 +107,7 @@ export default function AudioToVideoConverter({
     const getVideoUrl = async () => {
       try {
         const response = await fetch(
-          `/api/get-presigned-url?key=${encodeURIComponent(object.tikTokVideo.fileKey)}`
+          `/api/get-presigned-url?key=${encodeURIComponent(object.tikTokVideo?.fileKey ?? "")}`
         );
         const data = await response.json();
         return data.url;
@@ -131,36 +156,33 @@ export default function AudioToVideoConverter({
       onClick={(e) => e.stopPropagation()}
     >
       {/* Convert button */}
-      <button
-        className={`inline-flex items-center gap-1 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit 
+      {conversionStatus !== "COMPLETED" && (
+        <button
+          className={`inline-flex items-center gap-1 bg-gray-700 px-2 py-1 text-xs rounded h-fit w-fit 
                   ${conversionStatus === "PROCESSING" ? "text-gray-400" : "text-sb-restless"} 
                   transition-colors duration-300 hover:bg-gray-600`}
-        onClick={handleConvert}
-        disabled={conversionStatus === "PROCESSING"}
-        title="Convert to video for TikTok"
-      >
-        {conversionStatus === "PROCESSING" ? (
-          <>
-            <Loader className="w-3 h-3 animate-spin" />
-            Converting...
-          </>
-        ) : conversionStatus === "COMPLETED" ? (
-          <>
-            <Check className="w-3 h-3 text-green-500" />
-            Ready
-          </>
-        ) : conversionStatus === "FAILED" ? (
-          <>
-            <AlertCircle className="w-3 h-3 text-red-500" />
-            Retry
-          </>
-        ) : (
-          <>
-            <Music className="w-3 h-3" />
-            To Video
-          </>
-        )}
-      </button>
+          onClick={handleConvert}
+          disabled={conversionStatus === "PROCESSING"}
+          title="Convert to video for TikTok"
+        >
+          {conversionStatus === "PROCESSING" ? (
+            <>
+              <Loader className="w-3 h-3 animate-spin" />
+              Converting...
+            </>
+          ) : conversionStatus === "FAILED" ? (
+            <>
+              <AlertCircle className="w-3 h-3 text-red-500" />
+              Retry
+            </>
+          ) : (
+            <>
+              <Music className="w-3 h-3" />
+              To Video
+            </>
+          )}
+        </button>
+      )}
 
       {/* Share to TikTok button - only show when video is ready */}
       {conversionStatus === "COMPLETED" && (
@@ -170,7 +192,11 @@ export default function AudioToVideoConverter({
                      transition-colors duration-300 hover:bg-gray-900`}
           onClick={handleShareToTikTok}
           disabled={shareStatus === "sharing"}
-          title="Share to TikTok"
+          title={
+            tikTokAuthStatus === "authenticated"
+              ? "Share to TikTok"
+              : "Connect your TikTok account first"
+          }
         >
           {shareStatus === "sharing" ? (
             <>
