@@ -212,18 +212,18 @@ export default function VideoCarousel({
       <div className="fixed inset-0 w-full h-full" onClick={closeModal} />
 
       <ModalContent className="min-h-screen flex items-center justify-center pointer-events-none">
-        {/* Close button in the top right - give it pointer-events-auto */}
+        {/* Close button - MODIFIED: Bigger size, adjusted position to cover top right area */}
         <button
           onClick={closeModal}
-          className="absolute top-4 right-4 z-50 bg-gray-800 bg-opacity-70 rounded-full p-3 text-white hover:bg-opacity-100 transition-all pointer-events-auto"
+          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto"
           aria-label="Close"
         >
-          <X className="w-8 h-8" />
+          <X className="w-10 h-10" />
         </button>
 
         <div
           ref={containerRef}
-          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen pointer-events-none"
+          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen pointer-events-none overflow-visible"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -247,11 +247,14 @@ export default function VideoCarousel({
             </div>
           )}
 
-          {/* Current video */}
+          {/* Current video - MODIFIED: Centered layout with proper spacing */}
           <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none">
-            <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
-              {/* Mobile: full width, 50% of screen height / Desktop: larger size */}
-              <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black pointer-events-auto">
+            <div className="relative w-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
+              {/* MODIFIED: Fixed container with centered content */}
+              <div
+                className="w-full flex items-center justify-center bg-black pointer-events-auto"
+                style={{ height: "auto" }}
+              >
                 {/* We render all videos but keep most hidden */}
                 {objects.map((object, index) => {
                   const shouldRender = true; // Always render but might be hidden
@@ -287,7 +290,7 @@ export default function VideoCarousel({
                             }}
                             src={`${videoSources[index].src}`}
                             poster={videoSources[index].poster}
-                            className={`w-full h-full object-contain bg-black max-h-[70vh] ${
+                            className={`w-full object-contain bg-black ${
                               isLocked ? "blur-sm opacity-70" : ""
                             }`}
                             preload={
@@ -368,10 +371,10 @@ export default function VideoCarousel({
                 })}
               </div>
 
-              {/* Video info overlay */}
+              {/* Video info overlay - positioned to touch the bottom of video */}
               {currentObject && (
                 <div
-                  className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full pointer-events-auto"
+                  className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full pointer-events-auto mt-0"
                   onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on info
                 >
                   <div className="sm:col-span-1">
