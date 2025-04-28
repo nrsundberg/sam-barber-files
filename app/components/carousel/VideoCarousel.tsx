@@ -212,10 +212,10 @@ export default function VideoCarousel({
       <div className="fixed inset-0 w-full h-full" onClick={closeModal} />
 
       <ModalContent className="min-h-screen flex items-center justify-center pointer-events-none">
-        {/* Close button - MODIFIED: Bigger size, adjusted position to cover top right area */}
+        {/* Close button - MODIFIED: Only visible on md screens and larger */}
         <button
           onClick={closeModal}
-          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto"
+          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto hidden md:block"
           aria-label="Close"
         >
           <X className="w-10 h-10" />
@@ -223,16 +223,16 @@ export default function VideoCarousel({
 
         <div
           ref={containerRef}
-          className="relative h-full flex flex-col items-center justify-center w-full max-h-screen pointer-events-none overflow-visible"
+          className="relative flex flex-col items-stretch justify-between w-full h-full max-h-screen pointer-events-none overflow-visible"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onWheel={handleWheel}
         >
-          {/* Previous video preview (partially visible) */}
+          {/* Previous video navigation (top) */}
           {currentIndex > 0 && (
             <div
-              className="absolute top-0 w-full h-12 md:h-16 flex items-center justify-center cursor-pointer z-10 pointer-events-auto"
+              className="w-full bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10 pointer-events-auto py-3"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent closing the modal
                 handlePrev();
@@ -247,178 +247,177 @@ export default function VideoCarousel({
             </div>
           )}
 
-          {/* Current video - MODIFIED: Centered layout with proper spacing */}
-          <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none">
-            <div className="relative w-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
-              {/* MODIFIED: Fixed container with centered content */}
-              <div
-                className="w-full flex items-center justify-center bg-black pointer-events-auto"
-                style={{ height: "auto" }}
-              >
-                {/* We render all videos but keep most hidden */}
-                {objects.map((object, index) => {
-                  const shouldRender = true; // Always render but might be hidden
-                  const isCurrentMedia = currentIndex === index;
-                  const fileKey = object.s3fileKey;
-                  const isLocked = object.isLocked;
+          {/* Main content area with proper spacing - MODIFIED: Added spacing and positioning */}
+          <div className="flex-1 flex flex-col justify-center items-center bg-black w-full pointer-events-none my-1">
+            {/* Video container - MODIFIED: Improved aspect ratio handling and controls appearance */}
+            <div className="w-full h-full flex flex-col justify-center items-center pointer-events-auto">
+              {/* We render all videos but keep most hidden */}
+              {objects.map((object, index) => {
+                const shouldRender = true; // Always render but might be hidden
+                const isCurrentMedia = currentIndex === index;
+                const fileKey = object.s3fileKey;
+                const isLocked = object.isLocked;
 
-                  // Use either local or global tracking to determine if this video has been loaded
-                  const isLoadedLocally = localLoadedKeys.has(fileKey);
-                  const isLoadedGlobally = loadedVideos.has(fileKey);
-                  const isIndexPreloaded = preloadedIndices.has(index);
-                  const hasError = mediaLoadErrors[fileKey] !== undefined;
+                // Use either local or global tracking to determine if this video has been loaded
+                const isLoadedLocally = localLoadedKeys.has(fileKey);
+                const isLoadedGlobally = loadedVideos.has(fileKey);
+                const isIndexPreloaded = preloadedIndices.has(index);
+                const hasError = mediaLoadErrors[fileKey] !== undefined;
 
-                  const shouldPreload =
-                    mediaToPreload.has(index) ||
-                    isLoadedLocally ||
-                    isLoadedGlobally ||
-                    isIndexPreloaded;
+                const shouldPreload =
+                  mediaToPreload.has(index) ||
+                  isLoadedLocally ||
+                  isLoadedGlobally ||
+                  isIndexPreloaded;
 
-                  return (
-                    <div
-                      key={`media-container-${object.id}`}
-                      style={{ display: isCurrentMedia ? "block" : "none" }}
-                      className="w-full h-full relative"
-                      onClick={(e) => e.stopPropagation()} // Prevent closing when clicking media
-                    >
-                      {object.kind === ObjectKind.VIDEO ? (
-                        <div className="relative w-full h-full">
-                          <video
-                            controls={isCurrentMedia && !isLocked}
-                            ref={(el) => {
-                              videoRefs.current[index] = el;
-                            }}
-                            src={`${videoSources[index].src}`}
-                            poster={videoSources[index].poster}
-                            className={`w-full object-contain bg-black ${
-                              isLocked ? "blur-sm opacity-70" : ""
-                            }`}
-                            preload={
-                              shouldPreload && !hasError ? "auto" : "none"
-                            }
-                            crossOrigin="anonymous"
-                            onLoadedMetadata={() =>
-                              handleMediaLoaded(index, fileKey)
-                            }
-                            onError={() => handleMediaError(index, fileKey)}
-                            style={{ display: shouldRender ? "block" : "none" }}
-                          />
-                          {isLocked && isCurrentMedia && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
-                              <Lock className="text-white w-16 h-16 drop-shadow-md" />
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex-col h-full w-full flex items-center justify-end bg-black relative">
-                          {videoSources[index].poster ? (
-                            <>
-                              <img
-                                src={videoSources[index].poster}
-                                alt={object.fileName}
-                                loading="lazy"
-                                className={`max-h-full max-w-full object-contain ${
-                                  isLocked ? "blur-sm opacity-70" : ""
-                                }`}
-                                onLoad={() =>
-                                  shouldPreload &&
-                                  handleMediaLoaded(index, fileKey)
-                                }
-                                onError={() => handleMediaError(index, fileKey)}
-                                style={{
-                                  display: shouldRender ? "block" : "none",
-                                }}
-                              />
-                              {isLocked && isCurrentMedia && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
-                                  <Lock className="text-white w-16 h-16 drop-shadow-md" />
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
-                              {isLocked && isCurrentMedia && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
-                                  <Lock className="text-white w-16 h-16 drop-shadow-md" />
-                                </div>
-                              )}
-                            </>
-                          )}
-                          <audio
-                            controls={!isLocked}
-                            ref={(el) => {
-                              videoRefs.current[index] = el;
-                            }}
-                            preload={
-                              shouldPreload && !hasError ? "auto" : "none"
-                            }
-                            src={`${videoSources[index].src}`}
-                            className={`w-full min-h-fit py-1 ${
-                              isLocked ? "opacity-50 pointer-events-none" : ""
-                            }`}
-                            crossOrigin="anonymous"
-                            onLoadedMetadata={() =>
-                              handleMediaLoaded(index, fileKey)
-                            }
-                            onError={() => handleMediaError(index, fileKey)}
-                            style={{ display: shouldRender ? "block" : "none" }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Video info overlay - positioned to touch the bottom of video */}
-              {currentObject && (
-                <div
-                  className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full pointer-events-auto mt-0"
-                  onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on info
-                >
-                  <div className="sm:col-span-1">
-                    <h3 className="text-sm sm:text-lg font-bold truncate">
-                      {currentObject.fileName}
-                      {currentObject.isLocked && (
-                        <Lock className="inline-block ml-1 w-4 h-4" />
-                      )}
-                    </h3>
-                    <p className="text-xs sm:text-sm">
-                      {formatInTimeZone(
-                        currentObject.createdDate,
-                        "UTC",
-                        "MM.dd.yyyy hh:mm a"
-                      )}
-                    </p>
+                return (
+                  <div
+                    key={`media-container-${object.id}`}
+                    style={{ display: isCurrentMedia ? "flex" : "none" }}
+                    className="w-full h-full flex items-center justify-center relative"
+                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking media
+                  >
+                    {object.kind === ObjectKind.VIDEO ? (
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <video
+                          controls={isCurrentMedia && !isLocked}
+                          ref={(el) => {
+                            videoRefs.current[index] = el;
+                          }}
+                          src={`${videoSources[index].src}`}
+                          poster={videoSources[index].poster}
+                          className={`max-h-full max-w-full object-contain bg-black ${
+                            isLocked ? "blur-sm opacity-70" : ""
+                          }`}
+                          preload={shouldPreload && !hasError ? "auto" : "none"}
+                          crossOrigin="anonymous"
+                          onLoadedMetadata={() =>
+                            handleMediaLoaded(index, fileKey)
+                          }
+                          onError={() => handleMediaError(index, fileKey)}
+                          style={{
+                            display: shouldRender ? "block" : "none",
+                            // MODIFIED: Remove white outline from video controls
+                            outline: "none",
+                          }}
+                        />
+                        {isLocked && isCurrentMedia && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                            <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-col h-full w-full flex items-center justify-center bg-black relative">
+                        {videoSources[index].poster ? (
+                          <>
+                            <img
+                              src={videoSources[index].poster}
+                              alt={object.fileName}
+                              loading="lazy"
+                              className={`max-h-full max-w-full object-contain ${
+                                isLocked ? "blur-sm opacity-70" : ""
+                              }`}
+                              onLoad={() =>
+                                shouldPreload &&
+                                handleMediaLoaded(index, fileKey)
+                              }
+                              onError={() => handleMediaError(index, fileKey)}
+                              style={{
+                                display: shouldRender ? "block" : "none",
+                              }}
+                            />
+                            {isLocked && isCurrentMedia && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
+                            {isLocked && isCurrentMedia && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <audio
+                          controls={!isLocked}
+                          ref={(el) => {
+                            videoRefs.current[index] = el;
+                          }}
+                          preload={shouldPreload && !hasError ? "auto" : "none"}
+                          src={`${videoSources[index].src}`}
+                          className={`w-full min-h-fit py-1 ${
+                            isLocked ? "opacity-50 pointer-events-none" : ""
+                          }`}
+                          crossOrigin="anonymous"
+                          onLoadedMetadata={() =>
+                            handleMediaLoaded(index, fileKey)
+                          }
+                          onError={() => handleMediaError(index, fileKey)}
+                          style={{
+                            display: shouldRender ? "block" : "none",
+                            // MODIFIED: Remove white outline from audio controls
+                            outline: "none",
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-
-                  <p className="text-gray-300 text-center self-center hidden sm:block">
-                    {currentIndex + 1} of {objects.length}
-                  </p>
-                  <div className="flex flex-row sm:flex-col gap-1 justify-between sm:items-end mt-1 sm:mt-0">
-                    <p className="text-xs sm:text-sm">
-                      {currentObject && formatBytes(currentObject.size)}
-                    </p>
-                    <button
-                      className="rounded-md bg-sb-banner text-white px-2 py-1 sm:hidden text-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeModal();
-                      }}
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </div>
+
+            {/* Video info overlay */}
+            {currentObject && (
+              <div
+                className="grid grid-cols-1 sm:grid-cols-3 py-2 px-3 bg-black bg-opacity-90 text-white w-full pointer-events-auto mt-0"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on info
+              >
+                <div className="sm:col-span-1">
+                  <h3 className="text-sm sm:text-lg font-bold truncate">
+                    {currentObject.fileName}
+                    {currentObject.isLocked && (
+                      <Lock className="inline-block ml-1 w-4 h-4" />
+                    )}
+                  </h3>
+                  <p className="text-xs sm:text-sm">
+                    {formatInTimeZone(
+                      currentObject.createdDate,
+                      "UTC",
+                      "MM.dd.yyyy hh:mm a"
+                    )}
+                  </p>
+                </div>
+
+                <p className="text-gray-300 text-center self-center hidden sm:block">
+                  {currentIndex + 1} of {objects.length}
+                </p>
+                <div className="flex flex-row sm:flex-col gap-1 justify-between sm:items-end mt-1 sm:mt-0">
+                  <p className="text-xs sm:text-sm">
+                    {currentObject && formatBytes(currentObject.size)}
+                  </p>
+                  <button
+                    className="rounded-md bg-sb-banner text-white px-2 py-1 sm:hidden text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeModal();
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Next video preview (partially visible) */}
+          {/* Next video navigation (bottom) */}
           {currentIndex < objects.length - 1 && (
             <div
-              className="absolute bottom-0 w-full h-12 md:h-16 bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10 pointer-events-auto"
+              className="w-full bg-black bg-opacity-50 flex items-center justify-center cursor-pointer z-10 pointer-events-auto py-3"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent closing the modal
                 handleNext();
