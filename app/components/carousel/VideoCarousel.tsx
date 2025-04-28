@@ -248,7 +248,7 @@ export default function VideoCarousel({
           )}
 
           {/* Main content area with proper spacing - MODIFIED: Added horizontal padding of 10% */}
-          <div className="flex-1 flex flex-col justify-center items-center bg-black w-full pointer-events-none my-3 px-[10%]">
+          <div className="flex-1 flex flex-col justify-center items-center bg-black bg-opacity-60 w-full pointer-events-none my-3 px-[10%]">
             {/* Video container - MODIFIED: Improved aspect ratio handling and controls appearance */}
             <div className="w-full max-h-[calc(100vh-250px)] flex flex-col justify-center items-center pointer-events-auto">
               {/* We render all videos but keep most hidden */}
