@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FC } from "react";
 import SbAccordionItem from "./SbAccordionItem";
 import type { FolderWithObjects } from "~/types";
 
@@ -9,7 +9,7 @@ export interface AccordionProps {
   initialLoadComplete?: boolean; // Added to control loading priority
 }
 
-const SbAccordion: React.FC<AccordionProps> = ({
+const SbAccordion: FC<AccordionProps> = ({
   folders,
   allowMultiple = false,
   endpoint,
@@ -106,13 +106,13 @@ const SbAccordion: React.FC<AccordionProps> = ({
 
       // Get viewport height
       const viewportHeight = window.innerHeight;
-      const bufferSpace = 200; // Extra space to avoid premature cut-off
+      const bufferSpace = 25; // Extra space to avoid premature cut-off
 
-      // Adjust extra height dynamically
       if (totalHeight < viewportHeight) {
-        setExtraHeight(viewportHeight - totalHeight + bufferSpace); // Just enough to fill screen
+        const fillHeight = (viewportHeight - totalHeight) * 0.05; // Only fill 5% of empty space
+        setExtraHeight(fillHeight + bufferSpace);
       } else {
-        setExtraHeight(100); // Minimal extra space when content is already long
+        setExtraHeight(100);
       }
     };
 
