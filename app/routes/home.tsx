@@ -26,10 +26,10 @@ export function meta() {
 export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
-    where: { isFavorite: true },
+    where: { isFavorite: true, hidden: false },
   });
   let trending = prisma.object.findMany({
-    where: { isTrending: true },
+    where: { isTrending: true, hidden: false },
   });
   let folders = prisma.folder.findMany({
     where: { hidden: false },
@@ -55,7 +55,7 @@ export async function loader({}: Route.LoaderArgs) {
 
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint] = loaderData;
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  let [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const useVideoFavorites = useVideoCarousel({
     objects: favorites,
