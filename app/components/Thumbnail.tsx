@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Object } from "@prisma/client";
 import { AudioLines, Lock } from "lucide-react";
+import { useMediaCache } from "~/contexts/MediaCacheContext";
 
 export function Thumbnail({
   object,
@@ -24,107 +25,137 @@ export function Thumbnail({
   onError?: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isTallMedia, setIsTallMedia] = useState(false);
+  const [retryTimestamp, setRetryTimestamp] = useState(0);
   const elementRef = useRef<HTMLDivElement>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Keep track of error state specifically for this thumbnail
-  const errorStateRef = useRef<boolean>(false);
+  // Use global media cache
+  const mediaCache = useMediaCache();
 
-  // Setup intersection observer for visibility detection
+  // Generate cache keys for this object
+  const mainMediaKey = `${object.s3fileKey}`;
+  const posterKey = object.posterKey ? `${object.posterKey}` : null;
+  const currentMediaKey = posterKey || mainMediaKey;
+
+  // Check if media is already cached on mount and when keys change
   useEffect(() => {
-    if (!elementRef.current || !shouldLoad) return;
+    const status = mediaCache.getMediaStatus(currentMediaKey);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          setHasAttemptedLoad(true);
-          observer.disconnect(); // Once visible, stop observing
+    if (status === "loaded") {
+      setIsLoaded(true);
+      setHasError(false);
+    } else if (status === "error") {
+      const retryCount = mediaCache.getRetryCount(currentMediaKey);
+
+      // If we've exceeded max retries, set permanent error
+      if (retryCount >= 5) {
+        setHasError(true);
+        setIsLoaded(false);
+      } else if (mediaCache.canRetry(currentMediaKey)) {
+        // If we can retry now, force a retry by clearing error state
+        setHasError(false);
+        setRetryTimestamp(Date.now());
+      } else {
+        // Set temporary error and schedule retry
+        setHasError(true);
+
+        // Calculate next retry time with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 30000);
+
+        // Clear any existing timeout
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
         }
-      },
-      { threshold: 0.1 } // Start loading when 10% visible
-    );
 
-    observer.observe(elementRef.current);
-    return () => observer.disconnect();
-  }, [shouldLoad]);
+        // Schedule retry
+        retryTimeoutRef.current = setTimeout(() => {
+          if (mediaCache.canRetry(currentMediaKey)) {
+            setHasError(false);
+            setRetryTimestamp(Date.now());
+          }
+        }, delay);
+      }
+    }
+  }, [currentMediaKey, mediaCache]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Function to determine if media is extremely tall/vertical (aspect ratio < 0.6)
   const isExtremelyTall = (width: number, height: number) => {
     return width / height < 0.6;
   };
 
-  // Set hasAttemptedLoad directly if shouldLoad is true
-  useEffect(() => {
-    if (shouldLoad && !hasAttemptedLoad) {
-      setHasAttemptedLoad(true);
+  // Handle media load event
+  const handleMediaLoaded = (mediaKey: string) => {
+    // Clear any retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
-  }, [shouldLoad, hasAttemptedLoad]);
 
-  // Reset error state when shouldLoad changes from false to true
-  // This is a retry mechanism - when parent decides this item should try loading again
-  useEffect(() => {
-    if (shouldLoad && errorStateRef.current) {
-      setHasError(false);
-      errorStateRef.current = false;
-    }
-  }, [shouldLoad]);
+    // Mark as loaded in global cache
+    mediaCache.markMediaAsLoaded(mediaKey);
 
-  // Render actual content when shouldLoad is true and element has attempted to load
-  const shouldRenderContent = shouldLoad && hasAttemptedLoad && !hasError;
+    setIsLoaded(true);
+    setHasError(false);
+  };
 
   // Handle media load error
-  const handleError = () => {
-    // Set local error state
-    setHasError(true);
-    errorStateRef.current = true;
+  const handleError = (mediaKey: string) => {
+    // Only process error if not already loaded elsewhere
+    if (mediaCache.getMediaStatus(mediaKey) !== "loaded") {
+      const retryCount = mediaCache.getRetryCount(mediaKey);
 
-    // Call the parent component's error handler if provided
-    // This should only be called once per error
-    if (onError) {
-      onError();
+      // Mark as error in cache (this increments retry count)
+      mediaCache.markMediaAsError(mediaKey);
+
+      // Check if we've exceeded max retries
+      if (retryCount >= 4) {
+        // 4 because markMediaAsError will increment to 5
+        setHasError(true);
+
+        // Call the parent component's error handler if provided
+        if (onError) {
+          onError();
+        }
+      } else {
+        // Set temporary error and let the useEffect schedule retry
+        setHasError(true);
+      }
     }
   };
 
-  // Preload poster images for video/audio objects to speed up detection of aspect ratio
-  useEffect(() => {
-    if (shouldRenderContent && object.posterKey) {
-      const img = new Image();
-      img.onload = (e) => {
-        const imgElement = e.target as HTMLImageElement;
-        setIsTallMedia(
-          isExtremelyTall(imgElement.naturalWidth, imgElement.naturalHeight)
-        );
-        setIsLoaded(true);
-      };
-      img.onerror = handleError;
-      img.src = endpoint + object.posterKey;
-    }
-  }, [shouldRenderContent, object.posterKey, endpoint]);
+  // Determine if we should render content
+  const shouldRenderContent = shouldLoad && !hasError;
 
-  // For photos without posters, preload the image itself
+  // Check if media is already loading elsewhere
+  const isAlreadyLoading = mediaCache.isMediaLoading(currentMediaKey);
+
+  // Mark as loading when we start loading (but not if already loaded or loading)
   useEffect(() => {
-    if (shouldRenderContent && object.kind === "PHOTO" && !object.posterKey) {
-      const img = new Image();
-      img.onload = (e) => {
-        const imgElement = e.target as HTMLImageElement;
-        setIsTallMedia(
-          isExtremelyTall(imgElement.naturalWidth, imgElement.naturalHeight)
-        );
-        setIsLoaded(true);
-      };
-      img.onerror = handleError;
-      img.src = endpoint + object.s3fileKey;
+    if (
+      shouldRenderContent &&
+      !isLoaded &&
+      !isAlreadyLoading &&
+      mediaCache.getMediaStatus(currentMediaKey) === "idle"
+    ) {
+      mediaCache.markMediaAsLoading(currentMediaKey);
     }
   }, [
     shouldRenderContent,
-    object.kind,
-    object.s3fileKey,
-    endpoint,
-    object.posterKey,
+    isLoaded,
+    isAlreadyLoading,
+    currentMediaKey,
+    mediaCache,
   ]);
 
   // Calculate container classes based on layout type
@@ -133,14 +164,21 @@ export function Thumbnail({
     : "w-full h-full flex items-center justify-center";
 
   // Calculate image/video container classes based on layout type
-  // Use the same aspect ratio for all media types
   const mediaContainerClasses = isRow
     ? "w-full h-full flex items-center justify-center overflow-hidden relative"
     : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
 
+  // Add timestamp to force reload on retry
+  const getMediaSrc = (src: string) => {
+    if (retryTimestamp && hasError === false) {
+      return `${src}?retry=${retryTimestamp}`;
+    }
+    return src;
+  };
+
   return (
     <div ref={elementRef} className={containerClasses} onClick={onClick}>
-      {shouldRenderContent && (
+      {shouldRenderContent ? (
         <>
           {object.posterKey ? (
             <div className={mediaContainerClasses}>
@@ -148,10 +186,9 @@ export function Thumbnail({
                 className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
               >
                 <img
-                  src={endpoint + object.posterKey}
+                  src={getMediaSrc(endpoint + object.posterKey)}
                   height={height}
                   width={width}
-                  alt={object.fileName || "thumbnail"}
                   className={`
                     ${
                       isTallMedia
@@ -160,9 +197,16 @@ export function Thumbnail({
                     }
                     ${object.isLocked ? "blur-sm opacity-70" : ""}
                   `}
-                  // Use eager loading for visible thumbnails
-                  loading="eager"
-                  onError={handleError}
+                  loading="lazy"
+                  onLoad={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    setIsTallMedia(
+                      isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                    );
+                    handleMediaLoaded(posterKey!);
+                  }}
+                  onError={() => handleError(posterKey!)}
+                  alt={object.fileName || "thumbnail"}
                 />
                 {object.isLocked && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
@@ -187,9 +231,9 @@ export function Thumbnail({
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
                   <img
-                    src={endpoint + object.s3fileKey}
+                    src={getMediaSrc(endpoint + object.s3fileKey)}
+                    loading="lazy"
                     width={width}
-                    alt={object.fileName || "photo"}
                     className={`
                       ${
                         isTallMedia
@@ -198,9 +242,15 @@ export function Thumbnail({
                       }
                       ${object.isLocked ? "blur-sm opacity-70" : ""}
                     `}
-                    // Use eager loading for visible thumbnails
-                    loading="eager"
-                    onError={handleError}
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      setIsTallMedia(
+                        isExtremelyTall(img.naturalWidth, img.naturalHeight)
+                      );
+                      handleMediaLoaded(mainMediaKey);
+                    }}
+                    onError={() => handleError(mainMediaKey)}
+                    alt={object.fileName || "photo"}
                   />
                   {object.isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
@@ -215,7 +265,7 @@ export function Thumbnail({
                 >
                   <video
                     preload="metadata"
-                    src={endpoint + object.s3fileKey + "#t=0.1"} // Add timestamp to only load metadata
+                    src={getMediaSrc(endpoint + object.s3fileKey + "#t=0.1")}
                     className={`
                       ${
                         isTallMedia
@@ -225,21 +275,20 @@ export function Thumbnail({
                       ${object.isLocked ? "blur-sm opacity-70" : ""}
                     `}
                     poster={
-                      object.posterKey ? endpoint + object.posterKey : undefined
+                      object.posterKey
+                        ? getMediaSrc(endpoint + object.posterKey)
+                        : undefined
                     }
                     muted
                     disablePictureInPicture
                     disableRemotePlayback
-                    onError={handleError}
+                    onError={() => handleError(mainMediaKey)}
                     onLoadedMetadata={(e) => {
                       const video = e.target as HTMLVideoElement;
                       setIsTallMedia(
                         isExtremelyTall(video.videoWidth, video.videoHeight)
                       );
-                      setIsLoaded(true);
-                      // Clear error state on successful load
-                      setHasError(false);
-                      errorStateRef.current = false;
+                      handleMediaLoaded(mainMediaKey);
                     }}
                   />
                   {object.isLocked && (
@@ -252,18 +301,24 @@ export function Thumbnail({
             </div>
           )}
         </>
-      )}
-      {(!shouldRenderContent || hasError) && (
+      ) : (
         <div className={mediaContainerClasses}>
-          {hasError ? (
+          {hasError && mediaCache.getRetryCount(currentMediaKey) >= 5 ? (
+            <div className="text-gray-400 text-xs text-center">
+              <span className="block">Failed</span>
+              <span className="block text-[10px]">(Max retries)</span>
+            </div>
+          ) : hasError ? (
             <div className="text-gray-400 text-xs text-center">
               <span className="block">Error</span>
-              <span className="block">Loading</span>
+              <span className="block text-[10px]">
+                Retry {mediaCache.getRetryCount(currentMediaKey)}/5
+              </span>
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
           )}
-          {object.isLocked && shouldRenderContent && (
+          {object.isLocked && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
               <Lock className="text-white w-8 h-8 drop-shadow-md" />
             </div>
