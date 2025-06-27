@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, type FC } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Object } from "@prisma/client";
 import ObjectGridLayout from "~/components/accordion/ObjectGridLayout";
@@ -10,7 +16,7 @@ interface HorizontalCarouselProps {
   onItemClick: (index: number) => void;
 }
 
-const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
+const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   title,
   objects,
   endpoint,
@@ -19,9 +25,10 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
   const carouselRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set()); // Start with empty set
+  const [visibleItems, setVisibleItems] = useState<Set<number>>(
+    new Set([0, 1, 2])
+  ); // Preload first 3 items
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const isInitialMount = useRef(true);
 
   // Add state to track item errors
   const [itemErrors, setItemErrors] = useState<
@@ -29,24 +36,16 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
   >({});
   const errorTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Track which items are currently visible in the viewport
-  const [itemsInViewport, setItemsInViewport] = useState<Set<number>>(
-    new Set()
-  );
-  const viewportObserverRef = useRef<IntersectionObserver | null>(null);
+  // Memoize objects to prevent re-renders on scroll
+  const memoizedObjects = useMemo(() => objects, [objects]);
 
-  // Load first few items immediately
-  useEffect(() => {
-    if (isInitialMount.current) {
-      const initialItems = new Set<number>();
-      // Load first 3 items initially
-      for (let i = 0; i < Math.min(3, objects.length); i++) {
-        initialItems.add(i);
-      }
-      setVisibleItems(initialItems);
-      isInitialMount.current = false;
-    }
-  }, [objects.length]);
+  // Memoize the onItemClick to prevent re-renders
+  const memoizedOnItemClick = useCallback(
+    (index: number) => {
+      onItemClick(index);
+    },
+    [onItemClick]
+  );
 
   // Check if arrows should be displayed initially and on resize
   useEffect(() => {
@@ -68,7 +67,7 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
     // Run on window resize
     window.addEventListener("resize", checkArrows);
     return () => window.removeEventListener("resize", checkArrows);
-  }, [objects]);
+  }, [memoizedObjects]);
 
   // Setup intersection observer for lazy loading
   useEffect(() => {
@@ -96,7 +95,7 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
       },
       {
         root: carouselRef.current,
-        rootMargin: "200px", // Increased loading range - load items further before they come into view
+        rootMargin: "200px", // Increased loading range
         threshold: 0.1,
       }
     );
@@ -111,58 +110,7 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [objects]);
-
-  // Setup viewport observer to track which items are actually visible
-  useEffect(() => {
-    // Cleanup previous observer
-    if (viewportObserverRef.current) {
-      viewportObserverRef.current.disconnect();
-    }
-
-    // Create new observer for viewport tracking (with higher priority)
-    viewportObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        const newInViewport = new Set<number>(itemsInViewport);
-
-        entries.forEach((entry) => {
-          const index = parseInt(
-            entry.target.getAttribute("data-index") || "0",
-            10
-          );
-
-          if (entry.isIntersecting) {
-            newInViewport.add(index);
-
-            // Immediately mark as visible for loading
-            setVisibleItems((prev) => {
-              const updated = new Set(prev);
-              updated.add(index);
-              return updated;
-            });
-          } else {
-            newInViewport.delete(index);
-          }
-        });
-
-        setItemsInViewport(newInViewport);
-      },
-      {
-        threshold: 0.1, // Start tracking when 10% visible
-      }
-    );
-
-    // Add observed items with higher priority
-    const itemElements =
-      carouselRef.current?.querySelectorAll(".carousel-item");
-    if (itemElements) {
-      itemElements.forEach((el) => viewportObserverRef.current?.observe(el));
-    }
-
-    return () => {
-      viewportObserverRef.current?.disconnect();
-    };
-  }, [objects]);
+  }, [memoizedObjects]);
 
   // Clean up timeouts when unmounting
   useEffect(() => {
@@ -174,8 +122,8 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
     };
   }, []);
 
-  // Add a handler for item loading errors
-  const handleItemError = (objectId: string) => {
+  // Memoized handler for item loading errors
+  const handleItemError = useCallback((objectId: string) => {
     setItemErrors((prev) => {
       const now = Date.now();
       const current = prev[objectId] || { timestamp: now, attempts: 0 };
@@ -217,9 +165,10 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
         },
       };
     });
-  };
+  }, []);
 
-  const scroll = (direction: "left" | "right") => {
+  // Memoized scroll function
+  const scroll = useCallback((direction: "left" | "right") => {
     if (!carouselRef.current) return;
 
     const scrollAmount = carouselRef.current.clientWidth * 0.8;
@@ -232,9 +181,10 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
       left: newScrollLeft,
       behavior: "smooth",
     });
-  };
+  }, []);
 
-  const handleScroll = () => {
+  // Memoized scroll handler to prevent re-renders
+  const handleScroll = useCallback(() => {
     if (!carouselRef.current) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
@@ -255,12 +205,12 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
       const currentlyVisibleIndices = Array.from(visibleItems);
       const maxVisible = Math.max(...currentlyVisibleIndices);
 
-      if (maxVisible < objects.length - 1) {
+      if (maxVisible < memoizedObjects.length - 1) {
         // Preload a few more items
         const newVisibleItems = new Set(visibleItems);
         for (
           let i = maxVisible + 1;
-          i <= Math.min(maxVisible + 3, objects.length - 1);
+          i <= Math.min(maxVisible + 3, memoizedObjects.length - 1);
           i++
         ) {
           newVisibleItems.add(i);
@@ -268,29 +218,26 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
         setVisibleItems(newVisibleItems);
       }
     }
-  };
+  }, [visibleItems, memoizedObjects.length]);
 
-  // Helper function to determine if an item should load
-  const shouldItemLoad = (index: number, objectId: string) => {
-    // Don't load items with too many failed attempts
-    const errorInfo = itemErrors[objectId];
-    if (errorInfo && errorInfo.attempts >= 5) return false;
+  // Memoized helper function to determine if an item should load
+  const shouldItemLoad = useCallback(
+    (index: number, objectId: string) => {
+      // Don't load items with too many failed attempts
+      const errorInfo = itemErrors[objectId];
+      if (errorInfo && errorInfo.attempts >= 5) return false;
 
-    // Don't load items that are currently in error state and waiting for retry
-    if (errorInfo) return false;
+      // Don't load items that are currently in error state and waiting for retry
+      if (errorInfo) return false;
 
-    // High priority: load items that are currently in viewport
-    if (itemsInViewport.has(index)) return true;
-
-    // Medium priority: load items that are marked as visible (near viewport or preloaded)
-    if (visibleItems.has(index)) return true;
-
-    // Low priority: load first few items regardless of visibility
-    return index < 3;
-  };
+      // Otherwise load if visible or one of the first 3 items
+      return visibleItems.has(index) || index < 3;
+    },
+    [itemErrors, visibleItems]
+  );
 
   // No need to render if there are no objects
-  if (objects.length === 0) return null;
+  if (memoizedObjects.length === 0) return null;
 
   return (
     <div className="w-full my-6 px-4">
@@ -314,16 +261,16 @@ const HorizontalCarousel: FC<HorizontalCarouselProps> = ({
           className="flex overflow-x-auto scrollbar-hide gap-4 py-2 scroll-smooth snap-x pb-4"
           onScroll={handleScroll}
         >
-          {objects.map((object, index) => (
+          {memoizedObjects.map((object, index) => (
             <div
-              key={object.id}
+              key={`${object.id}-${index}`} // Stable key
               className="carousel-item flex-none w-64 md:w-64 lg:w-[450px] snap-start h-auto"
               data-index={index}
             >
               <div className="w-full h-full flex flex-col">
                 <ObjectGridLayout
                   object={object}
-                  onClick={() => onItemClick(index)}
+                  onClick={() => memoizedOnItemClick(index)}
                   endpoint={endpoint}
                   width={320}
                   shouldLoad={shouldItemLoad(index, object.id)}

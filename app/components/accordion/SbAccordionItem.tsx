@@ -1,5 +1,5 @@
 import { ChevronLeft, FolderIcon, Grid, List } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -9,6 +9,7 @@ import ObjectRowLayout from "./ObjectRowLayout";
 import ObjectGridLayout from "./ObjectGridLayout";
 import { DisplayStyle } from "@prisma/client";
 import { Switch } from "@heroui/react";
+import { useMediaCache } from "~/contexts/MediaCacheContext";
 
 export interface AccordionItemProps {
   index: number;
@@ -19,9 +20,6 @@ export interface AccordionItemProps {
   endpoint: string;
   readyToLoad?: boolean;
 }
-
-// Create a singleton to track permanently failed thumbnails globally
-const permanentlyFailedThumbnails = new Set<string>();
 
 export default function SbAccordionItem({
   index,
@@ -35,27 +33,28 @@ export default function SbAccordionItem({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
   const [contentLoaded, setContentLoaded] = useState(false);
-  // Track if content has been initially loaded (even if accordion is now closed)
   const [hasBeenLoaded, setHasBeenLoaded] = useState(false);
-  // Track which range of items should be initially loaded
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
-  // Track failed loads to prevent mass reloading
-  const [failedLoads, setFailedLoads] = useState<Set<string>>(new Set());
-  // Track retry attempts for each file
-  const [retryAttempts, setRetryAttempts] = useState<Map<string, number>>(
-    new Map()
-  );
-  // Retry timeout
-  const retryTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Use the global media cache
+  const {
+    isLoaded: isMediaLoaded,
+    shouldLoad: shouldMediaLoad,
+    markError,
+    hasMaxRetries,
+  } = useMediaCache();
+
+  // Memoize folder objects to prevent unnecessary re-renders
+  const memoizedObjects = useMemo(() => folder.objects, [folder.objects]);
 
   const useVideo = useVideoCarousel({
-    objects: folder.objects,
+    objects: memoizedObjects,
     endpoint: endpoint,
   });
 
-  const toggleViewMode = (view: DisplayStyle) => {
+  const toggleViewMode = useCallback((view: DisplayStyle) => {
     setViewMode(view);
-  };
+  }, []);
 
   // Load content when folder is open for the first time and app is ready
   useEffect(() => {
@@ -65,19 +64,10 @@ export default function SbAccordionItem({
 
       // Calculate how many items to load initially based on folder size
       const initialCount =
-        folder.objects.length > 50 ? 15 : Math.min(folder.objects.length, 25);
+        memoizedObjects.length > 50 ? 15 : Math.min(memoizedObjects.length, 25);
       setVisibleRange({ start: 0, end: initialCount - 1 });
     }
-  }, [isFolderOpen, contentLoaded, readyToLoad, folder.objects.length]);
-
-  // Clear any pending timeouts when component unmounts
-  useEffect(() => {
-    return () => {
-      retryTimeoutsRef.current.forEach((timeout) => {
-        clearTimeout(timeout);
-      });
-    };
-  }, []);
+  }, [isFolderOpen, contentLoaded, readyToLoad, memoizedObjects.length]);
 
   // Set up scroll event listener to load more content as user scrolls
   useEffect(() => {
@@ -93,7 +83,7 @@ export default function SbAccordionItem({
         // If we're within 1000px of the bottom of our current range, load more items
         if (scrollPosition > parentBottom - 1000) {
           setVisibleRange((prev) => {
-            const newEnd = Math.min(prev.end + 10, folder.objects.length - 1);
+            const newEnd = Math.min(prev.end + 10, memoizedObjects.length - 1);
             return { ...prev, end: newEnd };
           });
         }
@@ -102,101 +92,63 @@ export default function SbAccordionItem({
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFolderOpen, contentLoaded, folder.objects.length]);
+  }, [isFolderOpen, contentLoaded, memoizedObjects.length]);
 
-  // Improved error handling with permanent failure tracking
-  const handleLoadError = (objectId: string) => {
-    // If this thumbnail is already marked as permanently failed, don't bother retrying
-    if (permanentlyFailedThumbnails.has(objectId)) {
-      return;
-    }
+  // Memoized error handler to prevent re-renders
+  const handleLoadError = useCallback(
+    (objectId: string, mediaUrl: string) => {
+      markError(mediaUrl);
+    },
+    [markError]
+  );
 
-    // Only add to failedLoads set if not already there
-    if (!failedLoads.has(objectId)) {
-      setFailedLoads((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(objectId);
-        return newSet;
-      });
-    }
+  // Enhanced shouldLoadThumbnail function that uses global cache
+  const shouldLoadThumbnail = useCallback(
+    (index: number, object: any) => {
+      // Generate the media URL that would be used
+      const mediaUrl = object.posterKey
+        ? endpoint + object.posterKey
+        : object.kind === "PHOTO" || object.kind === "VIDEO"
+          ? endpoint + object.s3fileKey
+          : null;
 
-    // Increment retry counter
-    setRetryAttempts((prev) => {
-      const newMap = new Map(prev);
-      const currentAttempts = prev.get(objectId) || 0;
-      const newAttempts = currentAttempts + 1;
+      if (!mediaUrl) return false;
 
-      // Check if we've exceeded the maximum retry attempts
-      if (newAttempts >= 5) {
-        console.log(
-          `Thumbnail permanently failed after ${newAttempts} attempts: ${objectId}`
-        );
-        permanentlyFailedThumbnails.add(objectId);
+      // Don't load if max retries exceeded
+      if (hasMaxRetries(mediaUrl)) return false;
 
-        // Don't schedule a retry for permanently failed thumbnails
-        if (retryTimeoutsRef.current.has(objectId)) {
-          clearTimeout(retryTimeoutsRef.current.get(objectId));
-          retryTimeoutsRef.current.delete(objectId);
-        }
+      // Check if it's already loaded in global cache
+      if (isMediaLoaded(mediaUrl)) {
+        return true; // Always load if already cached
       }
 
-      newMap.set(objectId, newAttempts);
-      return newMap;
-    });
+      // Check if we should attempt to load this media
+      if (!shouldMediaLoad(mediaUrl)) {
+        return false; // Don't load if it failed recently or is loading
+      }
 
-    // Clear any existing timeout for this object
-    if (retryTimeoutsRef.current.has(objectId)) {
-      clearTimeout(retryTimeoutsRef.current.get(objectId));
-    }
+      // Always load all thumbnails for list view (they're smaller)
+      if (viewMode === DisplayStyle.LIST) return true;
 
-    // Schedule a retry with exponential backoff but only if not permanently failed
-    const attempts = retryAttempts.get(objectId) || 0;
-    if (attempts < 5) {
-      // Max 5 retry attempts
-      const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Cap at 30 seconds
-
-      const timeoutId = setTimeout(() => {
-        // Only remove this specific objectId from failedLoads if not permanently failed
-        if (!permanentlyFailedThumbnails.has(objectId)) {
-          setFailedLoads((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(objectId);
-            return newSet;
-          });
-        }
-      }, delay);
-
-      retryTimeoutsRef.current.set(objectId, timeoutId);
-    }
-  };
-
-  // Improved shouldLoadThumbnail function with permanent failure check
-  const shouldLoadThumbnail = (index: number, objectId: string) => {
-    // Don't load thumbnails for items that have permanently failed
-    if (permanentlyFailedThumbnails.has(objectId)) {
-      return false;
-    }
-
-    // Don't retry loading failed thumbnails that are in the failedLoads set
-    // and waiting for their timeout to trigger a retry
-    if (failedLoads.has(objectId)) {
-      return false;
-    }
-
-    // Always load all thumbnails for list view (they're smaller)
-    if (viewMode === DisplayStyle.LIST) {
-      return true;
-    }
-
-    // For grid view, be more selective based on visibility range
-    return index <= visibleRange.end;
-  };
+      // For grid view, be more selective based on visibility range
+      return index <= visibleRange.end;
+    },
+    [
+      endpoint,
+      isMediaLoaded,
+      shouldMediaLoad,
+      hasMaxRetries,
+      viewMode,
+      visibleRange.end,
+    ]
+  );
 
   // Calculate which items should be rendered
-  const itemsToRender =
-    isFolderOpen && contentLoaded
-      ? folder.objects.slice(0, visibleRange.end + 1)
+  const itemsToRender = useMemo(() => {
+    return isFolderOpen && contentLoaded
+      ? memoizedObjects.slice(0, visibleRange.end + 1)
       : [];
+  }, [isFolderOpen, contentLoaded, memoizedObjects, visibleRange.end]);
 
   return (
     <div
@@ -235,7 +187,7 @@ export default function SbAccordionItem({
             </p>
           </span>
           <span className="hidden sm:block text-gray-400 text-sm md:text-medium md:group-hover:text-sb-restless">
-            {formatBytes(getTotalFolderSize(folder.objects))}
+            {formatBytes(getTotalFolderSize(memoizedObjects))}
           </span>
           <div
             className={`hidden justify-center items-center sm:inline-flex gap-2`}
@@ -277,15 +229,20 @@ export default function SbAccordionItem({
               <div className="accordion-content">
                 {itemsToRender.map((object, objectIndex) => (
                   <ObjectRowLayout
-                    key={object.id}
+                    key={`${object.id}-row`} // Stable key
                     inAdmin={false}
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}
-                    isLast={objectIndex === folder.objects.length - 1}
+                    isLast={objectIndex === memoizedObjects.length - 1}
                     endpoint={endpoint}
                     width={200}
-                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
-                    onError={() => handleLoadError(object.id)}
+                    shouldLoad={shouldLoadThumbnail(objectIndex, object)}
+                    onError={() => {
+                      const mediaUrl = object.posterKey
+                        ? endpoint + object.posterKey
+                        : endpoint + object.s3fileKey;
+                      handleLoadError(object.id, mediaUrl);
+                    }}
                   />
                 ))}
               </div>
@@ -293,12 +250,17 @@ export default function SbAccordionItem({
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 accordion-content">
                 {itemsToRender.map((object, objectIndex) => (
                   <ObjectGridLayout
-                    key={object.id}
+                    key={`${object.id}-grid`} // Stable key
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}
                     endpoint={endpoint}
-                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
-                    onError={() => handleLoadError(object.id)}
+                    shouldLoad={shouldLoadThumbnail(objectIndex, object)}
+                    onError={() => {
+                      const mediaUrl = object.posterKey
+                        ? endpoint + object.posterKey
+                        : endpoint + object.s3fileKey;
+                      handleLoadError(object.id, mediaUrl);
+                    }}
                   />
                 ))}
               </div>
@@ -310,7 +272,7 @@ export default function SbAccordionItem({
       {/* Video carousel is always rendered once loaded, just not visible */}
       {(contentLoaded || hasBeenLoaded) && readyToLoad && (
         <VideoCarousel
-          objects={folder.objects}
+          objects={memoizedObjects}
           endpoint={endpoint}
           useVideo={useVideo}
         />
