@@ -122,35 +122,36 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
     };
   }, []);
 
-  // Memoized handler for item loading errors
-  const handleItemError = useCallback((objectId: string) => {
+  const handleItemError = (objectId: string) => {
     setItemErrors((prev) => {
       const now = Date.now();
       const current = prev[objectId] || { timestamp: now, attempts: 0 };
 
-      // If we already have a timeout for this item, clear it
+      // Don't retry if we've failed recently (within 5 seconds)
+      if (current.timestamp && now - current.timestamp < 5000) {
+        return prev;
+      }
+
+      // Clear any existing timeout
       if (errorTimeoutsRef.current[objectId]) {
         clearTimeout(errorTimeoutsRef.current[objectId]);
       }
 
-      // Schedule a retry with exponential backoff
       const nextAttempts = current.attempts + 1;
-      if (nextAttempts < 5) {
-        // Max 5 retry attempts
-        const delay = Math.min(1000 * Math.pow(2, current.attempts), 30000); // Cap at 30 seconds
+
+      // Only retry up to 3 times (reduced from 5)
+      if (nextAttempts < 3) {
+        const delay = Math.min(2000 * Math.pow(2, current.attempts), 30000);
 
         errorTimeoutsRef.current[objectId] = setTimeout(() => {
-          // Remove from error tracking to allow retry
           setItemErrors((current) => {
             const updated = { ...current };
             delete updated[objectId];
             return updated;
           });
 
-          // Force visibleItems update to reload this item
           setVisibleItems((prev) => {
             const updated = new Set(prev);
-            // This will force it to be reloaded when it comes back into view
             updated.delete(parseInt(objectId));
             return updated;
           });
@@ -165,7 +166,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
         },
       };
     });
-  }, []);
+  };
 
   // Memoized scroll function
   const scroll = useCallback((direction: "left" | "right") => {

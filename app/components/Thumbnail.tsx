@@ -1,13 +1,9 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type SyntheticEvent,
-  useCallback,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Object } from "@prisma/client";
 import { AudioLines, Lock } from "lucide-react";
-import { useMediaCache } from "~/contexts/MediaCacheContext";
+
+// Global cache for loaded thumbnails
+const thumbnailCache = new Map<string, { url: string; loaded: boolean }>();
 
 export function Thumbnail({
   object,
@@ -31,168 +27,92 @@ export function Thumbnail({
   onError?: () => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isTallMedia, setIsTallMedia] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<boolean>(false);
 
-  // Use the global media cache
-  const {
-    isLoaded: isMediaLoaded,
-    shouldLoad: shouldMediaLoad,
-    markLoading,
-    markLoaded,
-    markError,
-    hasMaxRetries,
-  } = useMediaCache();
-  const mediaCacheKey = useRef(
-    object.posterKey
-      ? endpoint + object.posterKey
-      : object.kind === "PHOTO" || object.kind === "VIDEO"
-        ? endpoint + object.s3fileKey
-        : null
-  ).current;
+  // Generate cache keys for this object
+  const thumbnailKey = object.posterKey || object.s3fileKey;
+  const cacheKey = `${endpoint}${thumbnailKey}`;
 
-  // Memoize media URLs to prevent re-renders
-  const mediaUrls = useRef({
-    poster: object.posterKey ? endpoint + object.posterKey : undefined,
-    main: endpoint + object.s3fileKey,
-  }).current;
+  // Check if this thumbnail is already in cache
+  const isInCache =
+    thumbnailCache.has(cacheKey) && thumbnailCache.get(cacheKey)?.loaded;
 
-  // Check global cache on mount and when shouldLoad changes
+  // Initialize from cache if available
   useEffect(() => {
-    if (
-      mediaCacheKey &&
-      shouldLoad &&
-      !hasAttemptedLoad &&
-      !loadingRef.current
-    ) {
-      // Check if already loaded in global cache
-      if (isMediaLoaded(mediaCacheKey)) {
-        setIsLoaded(true);
-        setHasAttemptedLoad(true);
-        setHasError(false);
-        return;
-      }
-
-      // Check if we've exceeded max retries
-      if (hasMaxRetries(mediaCacheKey)) {
-        setHasError(true);
-        setHasAttemptedLoad(true);
-        return;
-      }
-
-      // Check if we should attempt to load this media
-      if (!shouldMediaLoad(mediaCacheKey)) {
-        return; // Don't load if it's still in cooldown or loading
-      }
-
-      // Mark as attempted and start loading
-      setHasAttemptedLoad(true);
-      markLoading(mediaCacheKey);
-    }
-  }, [
-    mediaCacheKey,
-    shouldLoad,
-    hasAttemptedLoad,
-    isMediaLoaded,
-    hasMaxRetries,
-    shouldMediaLoad,
-    markLoading,
-  ]);
-
-  // Setup intersection observer for visibility detection
-  useEffect(() => {
-    if (!elementRef.current || !shouldLoad || isLoaded || hasAttemptedLoad)
-      return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loadingRef.current) {
-          setIsVisible(true);
-          setHasAttemptedLoad(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(elementRef.current);
-    return () => observer.disconnect();
-  }, [shouldLoad, isLoaded, hasAttemptedLoad]);
-
-  // Function to determine if media is extremely tall/vertical
-  const isExtremelyTall = useCallback((width: number, height: number) => {
-    return width / height < 0.6;
-  }, []);
-
-  // Handle successful media load - memoized to prevent re-creation
-  const handleLoad = useCallback(
-    (e: SyntheticEvent<HTMLImageElement | HTMLVideoElement>) => {
-      // Prevent duplicate handling
-      if (loadingRef.current) return;
-      loadingRef.current = true;
-
-      const target = e.target as HTMLImageElement | HTMLVideoElement;
-
-      if (target instanceof HTMLImageElement) {
-        setIsTallMedia(
-          isExtremelyTall(target.naturalWidth, target.naturalHeight)
-        );
-      } else if (target instanceof HTMLVideoElement) {
-        setIsTallMedia(isExtremelyTall(target.videoWidth, target.videoHeight));
-      }
-
+    if (isInCache) {
       setIsLoaded(true);
       setHasError(false);
+    }
+  }, [isInCache]);
 
-      // Update global cache
-      if (mediaCacheKey) {
-        markLoaded(mediaCacheKey);
-      }
+  // Function to determine if media is extremely tall/vertical
+  const isExtremelyTall = (width: number, height: number) => {
+    return width / height < 0.6;
+  };
 
-      loadingRef.current = false;
-    },
-    [mediaCacheKey, isExtremelyTall, markLoaded]
-  );
-
-  // Handle media load error - memoized to prevent re-creation
-  const handleErrorCallback = useCallback(() => {
+  // Handle successful load
+  const handleLoad = (
+    e: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>
+  ) => {
+    // Prevent duplicate processing
     if (loadingRef.current) return;
+    loadingRef.current = true;
 
-    setHasError(true);
+    const element = e.target as HTMLImageElement | HTMLVideoElement;
 
-    // Update global cache with error state
-    if (mediaCacheKey) {
-      markError(mediaCacheKey);
+    if (element instanceof HTMLImageElement) {
+      setIsTallMedia(
+        isExtremelyTall(element.naturalWidth, element.naturalHeight)
+      );
+    } else if (element instanceof HTMLVideoElement) {
+      setIsTallMedia(isExtremelyTall(element.videoWidth, element.videoHeight));
     }
 
+    setIsLoaded(true);
+    setHasError(false);
+
+    // Cache the successful load
+    thumbnailCache.set(cacheKey, { url: cacheKey, loaded: true });
+
+    loadingRef.current = false;
+  };
+
+  // Handle load error
+  const handleError = () => {
+    // Only handle error once
+    if (hasError) return;
+
+    setHasError(true);
+    setIsLoaded(false);
+
+    // Remove from cache on error
+    thumbnailCache.delete(cacheKey);
+
+    // Call parent error handler
     if (onError) {
       onError();
     }
-  }, [mediaCacheKey, onError, markError]);
+  };
 
-  // Determine if we should render content - now considers max retries
-  const shouldRenderContent =
-    shouldLoad &&
-    hasAttemptedLoad &&
-    !hasError &&
-    !hasMaxRetries(mediaCacheKey || "");
+  // Determine what to render
+  const shouldRenderContent = shouldLoad && !hasError;
 
-  // Calculate container classes - memoized
-  const containerClasses = useRef(
-    isRow
-      ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0`
-      : "w-full h-full flex items-center justify-center"
-  ).current;
+  // Calculate container classes
+  const containerClasses = isRow
+    ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0`
+    : "w-full h-full flex items-center justify-center";
 
-  const mediaContainerClasses = useRef(
-    isRow
-      ? "w-full h-full flex items-center justify-center overflow-hidden relative"
-      : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative"
-  ).current;
+  const mediaContainerClasses = isRow
+    ? "w-full h-full flex items-center justify-center overflow-hidden relative"
+    : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
+
+  // Generate the media URL only once
+  const mediaUrl = shouldRenderContent ? endpoint + thumbnailKey : "";
+  const posterUrl =
+    object.posterKey && shouldRenderContent ? endpoint + object.posterKey : "";
 
   return (
     <div ref={elementRef} className={containerClasses} onClick={onClick}>
@@ -204,20 +124,16 @@ export function Thumbnail({
                 className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
               >
                 <img
-                  src={mediaUrls.poster}
+                  src={posterUrl}
                   height={height}
                   width={width}
                   className={`
-                    ${
-                      isTallMedia
-                        ? "object-contain max-h-full max-w-full"
-                        : "object-cover absolute inset-0 w-full h-full"
-                    }
+                    ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                     ${object.isLocked ? "blur-sm opacity-70" : ""}
                   `}
                   loading="lazy"
                   onLoad={handleLoad}
-                  onError={handleErrorCallback}
+                  onError={handleError}
                   alt={object.fileName || "thumbnail"}
                 />
                 {object.isLocked && (
@@ -243,19 +159,15 @@ export function Thumbnail({
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
                   <img
-                    src={mediaUrls.main}
+                    src={mediaUrl}
                     loading="lazy"
                     width={width}
                     className={`
-                      ${
-                        isTallMedia
-                          ? "object-contain max-h-full max-w-full"
-                          : "object-cover absolute inset-0 w-full h-full"
-                      }
+                      ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                       ${object.isLocked ? "blur-sm opacity-70" : ""}
                     `}
                     onLoad={handleLoad}
-                    onError={handleErrorCallback}
+                    onError={handleError}
                     alt={object.fileName || "photo"}
                   />
                   {object.isLocked && (
@@ -270,23 +182,20 @@ export function Thumbnail({
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
                   <video
-                    preload="metadata"
-                    src={mediaUrls.main + "#t=0.1"}
+                    preload="none"
+                    poster={posterUrl || undefined}
                     className={`
-                      ${
-                        isTallMedia
-                          ? "object-contain max-h-full max-w-full"
-                          : "object-cover absolute inset-0 w-full h-full"
-                      }
+                      ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                       ${object.isLocked ? "blur-sm opacity-70" : ""}
                     `}
-                    poster={mediaUrls.poster}
                     muted
                     disablePictureInPicture
                     disableRemotePlayback
-                    onError={handleErrorCallback}
                     onLoadedMetadata={handleLoad}
-                  />
+                    onError={handleError}
+                  >
+                    <source src={mediaUrl + "#t=0.1"} />
+                  </video>
                   {object.isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
                       <Lock className="text-white w-8 h-8 drop-shadow-md" />
@@ -298,22 +207,15 @@ export function Thumbnail({
           )}
         </>
       )}
-      {(!shouldRenderContent ||
-        hasError ||
-        hasMaxRetries(mediaCacheKey || "")) && (
+      {(!shouldRenderContent || hasError) && (
         <div className={mediaContainerClasses}>
-          {hasError || hasMaxRetries(mediaCacheKey || "") ? (
+          {hasError ? (
             <div className="text-gray-400 text-xs text-center">
-              <span className="block">Failed</span>
-              <span className="block">to Load</span>
+              <span className="block">Error</span>
+              <span className="block">Loading</span>
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
-          )}
-          {object.isLocked && shouldRenderContent && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-              <Lock className="text-white w-8 h-8 drop-shadow-md" />
-            </div>
           )}
         </div>
       )}
