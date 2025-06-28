@@ -17,6 +17,7 @@ import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
 import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import SbNavbar from "./components/SbNavbar";
+import { MediaCacheProvider } from "~/contexts/MediaCacheContext";
 
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
@@ -56,11 +57,13 @@ export default function App({ loaderData }: Route.ComponentProps) {
       </head>
       <body className="text-xs md:text-medium">
         <HeroUIProvider>
-          <SbNavbar user={user} />
-          <Outlet />
-          <ScrollRestoration />
-          <Scripts />
-          <ToastContainer stacked />
+          <MediaCacheProvider>
+            <SbNavbar user={user} />
+            <Outlet />
+            <ScrollRestoration />
+            <Scripts />
+            <ToastContainer stacked />
+          </MediaCacheProvider>
         </HeroUIProvider>
       </body>
     </html>

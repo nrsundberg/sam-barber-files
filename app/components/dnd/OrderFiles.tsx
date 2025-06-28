@@ -11,11 +11,12 @@ import { closestCenter, DndContext } from "@dnd-kit/core";
 import type { Object } from "@prisma/client";
 import SbContextMenu from "../contextMenu/SbContextMenu";
 import ObjectRowLayout from "../accordion/ObjectRowLayout";
+import { useMediaCache } from "~/contexts/MediaCacheContext";
 
 export default function ({
   objectList,
   endpoint,
-  readyToLoad = true, // Set default to true to ensure content displays
+  readyToLoad = true,
 }: {
   objectList: Object[];
   endpoint: string;
@@ -23,8 +24,7 @@ export default function ({
 }) {
   let [objects, setObjects] = useState(objectList);
   let submit = useSubmit();
-
-  // No need for the contentLoaded state since we're defaulting readyToLoad to true
+  const mediaCache = useMediaCache();
 
   useEffect(() => setObjects(objectList), [objectList]);
 
@@ -59,7 +59,7 @@ export default function ({
     }
   };
 
-  // Always render the content, regardless of readyToLoad
+  // Always render the content
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext
@@ -71,7 +71,7 @@ export default function ({
             key={index}
             object={object}
             endpoint={endpoint}
-            shouldLoad={readyToLoad} // Pass readyToLoad directly
+            shouldLoad={readyToLoad}
           />
         ))}
       </SortableContext>
@@ -82,16 +82,23 @@ export default function ({
 export function SortableSbObjectAccordionItem({
   object,
   endpoint,
-  shouldLoad = true, // Default to true to ensure content displays
+  shouldLoad = true,
 }: {
   object: Object;
   endpoint: string;
   shouldLoad?: boolean;
 }) {
   let folders = useRouteLoaderData("routes/admin/admin");
+  const mediaCache = useMediaCache();
 
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: object.id });
+
+  // Handle error callback - simplified since global cache handles retries
+  const handleError = () => {
+    // The error is already tracked in the global cache by the Thumbnail component
+    // No additional action needed here as the MediaCache handles retry logic
+  };
 
   return (
     <div
@@ -106,6 +113,7 @@ export function SortableSbObjectAccordionItem({
           dragHandleProps={{ ...attributes, ...listeners }}
           endpoint={endpoint}
           shouldLoad={shouldLoad}
+          onError={handleError}
         />
       </SbContextMenu>
     </div>

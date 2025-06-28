@@ -1,11 +1,11 @@
 import { Modal, ModalContent } from "@heroui/react";
-import { AudioLines, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { AudioLines, ChevronDown, ChevronUp, Lock, X } from "lucide-react";
 import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { globalMediaCache } from "~/contexts/MediaCacheContext";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { globalMediaCache, useMediaCache } from "~/contexts/MediaCacheContext";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -39,18 +39,14 @@ export default function VideoCarousel({
     markVideoAsError,
   } = useVideo;
 
-  // Create refs for all video elements
+  const mediaCache = useMediaCache();
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
-
-  // Track loading state for media elements
-  const [mediaLoadingState, setMediaLoadingState] = useState<
-    Map<string, "loading" | "loaded" | "error">
-  >(new Map());
-  const loadingStateRef = useRef<Map<string, "loading" | "loaded" | "error">>(
-    new Map()
+  const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
+    new Set()
   );
+  const mediaRetryTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Track which media items should be preloaded based on current position
+  // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
     if (currentIndex === -1) return new Set<number>();
 
@@ -68,13 +64,13 @@ export default function VideoCarousel({
     return indices;
   }, [currentIndex, objects.length]);
 
-  // Create memoized mapping of video sources - stable references
+  // Create a memoized mapping of video sources to prevent unnecessary re-renders
   const videoSources = useMemo(() => {
     return objects.map((obj) => ({
       src: endpoint + obj.s3fileKey,
       poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
       key: obj.s3fileKey,
-      cacheKey: endpoint + obj.s3fileKey, // Full URL for cache lookup
+      cacheKey: endpoint + obj.s3fileKey,
       posterCacheKey: obj.posterKey ? endpoint + obj.posterKey : undefined,
     }));
   }, [objects, endpoint]);
@@ -89,21 +85,18 @@ export default function VideoCarousel({
   // Manage play/pause state when switching videos
   useEffect(() => {
     if (isOpen) {
-      // Pause all videos except current
       videoRefs.current.forEach((videoElement, index) => {
         if (videoElement && index !== currentIndex) {
           videoElement.pause();
         }
       });
 
-      // If current object is locked, force pause and prevent playing
       if (currentObject?.isLocked) {
         setIsPlaying(false);
         if (videoRef.current) {
           videoRef.current.pause();
         }
       } else {
-        // Update current video playing state
         if (videoRef.current) {
           if (isPlaying) {
             videoRef.current.play().catch(() => setIsPlaying(false));
@@ -115,90 +108,70 @@ export default function VideoCarousel({
     }
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef, currentObject]);
 
-  // Memoized handle media loaded
-  const handleMediaLoaded = useCallback(
-    (index: number, fileKey: string, cacheKey: string) => {
-      if (objects[index]) {
-        // Update local loading state
-        loadingStateRef.current.set(fileKey, "loaded");
-        setMediaLoadingState(new Map(loadingStateRef.current));
-
-        // Update global cache
-        globalMediaCache.set(cacheKey, {
-          loaded: true,
-          error: false,
-          timestamp: Date.now(),
-        });
-
-        // Notify the video carousel hook
-        markVideoAsLoaded(fileKey, index);
-      }
-    },
-    [objects, markVideoAsLoaded]
-  );
-
-  // Memoized handle media error
-  const handleMediaError = useCallback(
-    (index: number, fileKey: string, cacheKey: string) => {
-      // Update local loading state
-      loadingStateRef.current.set(fileKey, "error");
-      setMediaLoadingState(new Map(loadingStateRef.current));
-
-      // Update global cache
-      globalMediaCache.set(cacheKey, {
-        loaded: false,
-        error: true,
-        timestamp: Date.now(),
+  // Handle media load event
+  const handleMediaLoaded = (
+    index: number,
+    fileKey: string,
+    cacheKey: string
+  ) => {
+    if (objects[index]) {
+      // Update local state
+      setLocalLoadedKeys((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(fileKey);
+        return newSet;
       });
 
-      // Notify the video carousel hook
-      markVideoAsError(fileKey, index);
-    },
-    [markVideoAsError]
-  );
+      // Update global cache
+      mediaCache.setMediaLoaded(cacheKey);
 
-  // Memoized check if media should be loaded based on cache
-  const shouldLoadMedia = useCallback(
-    (index: number, cacheKey: string, fileKey: string): boolean => {
-      // First check if it's in the preload range
-      if (!mediaToPreload.has(index)) return false;
-
-      // Check local loading state to prevent duplicate loads
-      const localState = loadingStateRef.current.get(fileKey);
-      if (localState === "loading" || localState === "loaded") return false;
-
-      // Check global cache
-      const cached = globalMediaCache.get(cacheKey);
-      if (cached) {
-        if (cached.loaded && !cached.error) {
-          // Already loaded globally, update local state
-          loadingStateRef.current.set(fileKey, "loaded");
-          return false;
-        }
-
-        if (cached.error) {
-          // Check if enough time has passed for retry
-          const timeSinceError = Date.now() - cached.timestamp;
-          if (timeSinceError < 5000) {
-            // 5 second minimum between retries
-            return false;
-          }
-        }
-      }
-
-      // Mark as loading to prevent duplicate requests
-      loadingStateRef.current.set(fileKey, "loading");
-      return true;
-    },
-    [mediaToPreload]
-  );
-
-  // Handler for play/pause that respects locked status
-  const handlePlayPause = useCallback(() => {
-    if (currentObject && !currentObject.isLocked) {
-      setIsPlaying(!isPlaying);
+      // Also notify the global tracking system
+      markVideoAsLoaded(fileKey, index);
     }
-  }, [currentObject, isPlaying, setIsPlaying]);
+  };
+
+  // Handle media error event
+  const handleMediaError = (
+    index: number,
+    fileKey: string,
+    cacheKey: string
+  ) => {
+    // Update global cache
+    mediaCache.setMediaError(cacheKey);
+
+    // Also notify the global error tracking
+    markVideoAsError(fileKey, index);
+
+    // Clear any existing timeout for this item
+    if (mediaRetryTimeouts.current[fileKey]) {
+      clearTimeout(mediaRetryTimeouts.current[fileKey]);
+    }
+
+    // Schedule a retry with exponential backoff
+    const cacheStatus = mediaCache.getMediaStatus(cacheKey);
+    const attempts = cacheStatus?.attempts || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+
+    if (attempts < 5) {
+      mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
+        mediaCache.clearMediaError(cacheKey);
+        setLocalLoadedKeys((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(fileKey);
+          return newSet;
+        });
+      }, delay);
+    }
+  };
+
+  // Clean up timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
@@ -216,6 +189,15 @@ export default function VideoCarousel({
       }}
     >
       <ModalContent className="min-h-screen flex items-center justify-center">
+        {/* Close button - MODIFIED: Only visible on md screens and larger */}
+        <button
+          onClick={closeModal}
+          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto hidden md:block"
+          aria-label="Close"
+        >
+          <X className="w-10 h-10" />
+        </button>
+
         <div
           ref={containerRef}
           className="relative h-full flex flex-col items-center justify-center w-full max-h-screen"
@@ -243,26 +225,31 @@ export default function VideoCarousel({
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
               <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black">
-                {/* Render all videos but keep most hidden */}
                 {objects.map((object, index) => {
+                  const shouldRender = true;
                   const isCurrentMedia = currentIndex === index;
                   const fileKey = object.s3fileKey;
                   const isLocked = object.isLocked;
                   const cacheKey = videoSources[index].cacheKey;
-                  const posterCacheKey = videoSources[index].posterCacheKey;
 
-                  // Check if media or poster is already in global cache
-                  const mediaInCache =
-                    globalMediaCache.get(cacheKey)?.loaded || false;
-                  const posterInCache = posterCacheKey
-                    ? globalMediaCache.get(posterCacheKey)?.loaded || false
-                    : true;
+                  // Check cache status
+                  const cacheStatus = mediaCache.getMediaStatus(cacheKey);
+                  const isLoadedInCache = cacheStatus?.loaded === true;
+                  const hasErrorInCache = cacheStatus?.error === true;
+                  const cacheAttempts = cacheStatus?.attempts || 0;
 
-                  const shouldPreload = shouldLoadMedia(
-                    index,
-                    cacheKey,
-                    fileKey
-                  );
+                  const isLoadedLocally = localLoadedKeys.has(fileKey);
+                  const isLoadedGlobally = loadedVideos.has(fileKey);
+                  const isIndexPreloaded = preloadedIndices.has(index);
+
+                  const shouldPreload =
+                    mediaToPreload.has(index) ||
+                    isLoadedLocally ||
+                    isLoadedGlobally ||
+                    isIndexPreloaded ||
+                    isLoadedInCache;
+
+                  const shouldRetry = hasErrorInCache && cacheAttempts < 5;
 
                   return (
                     <div
@@ -277,22 +264,32 @@ export default function VideoCarousel({
                             ref={(el) => {
                               videoRefs.current[index] = el;
                             }}
-                            src={videoSources[index].src}
+                            src={`${videoSources[index].src}`}
                             poster={videoSources[index].poster}
                             className={`w-full h-full object-contain bg-black max-h-[70vh] ${
                               isLocked ? "blur-sm opacity-70" : ""
                             }`}
                             preload={
-                              shouldPreload || mediaInCache ? "auto" : "none"
+                              shouldPreload && (shouldRetry || !hasErrorInCache)
+                                ? "auto"
+                                : "none"
                             }
                             crossOrigin="anonymous"
-                            onLoadedMetadata={() =>
-                              handleMediaLoaded(index, fileKey, cacheKey)
-                            }
+                            onLoadedMetadata={() => {
+                              handleMediaLoaded(index, fileKey, cacheKey);
+                              // For audio files, mark them as loaded immediately
+                              if (object.kind === ObjectKind.AUDIO) {
+                                globalMediaCache.set(cacheKey, {
+                                  loaded: true,
+                                  error: false,
+                                  timestamp: Date.now(),
+                                });
+                              }
+                            }}
                             onError={() =>
                               handleMediaError(index, fileKey, cacheKey)
                             }
-                            style={{ display: "block" }}
+                            style={{ display: shouldRender ? "block" : "none" }}
                           />
                           {isLocked && isCurrentMedia && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
@@ -307,31 +304,30 @@ export default function VideoCarousel({
                               <img
                                 src={videoSources[index].poster}
                                 alt={object.fileName}
-                                loading={
-                                  shouldPreload || posterInCache
-                                    ? "eager"
-                                    : "lazy"
-                                }
+                                loading="lazy"
                                 className={`max-h-full max-w-full object-contain ${
                                   isLocked ? "blur-sm opacity-70" : ""
                                 }`}
                                 onLoad={() =>
-                                  posterCacheKey &&
+                                  shouldPreload &&
                                   handleMediaLoaded(
                                     index,
                                     fileKey,
-                                    posterCacheKey
+                                    videoSources[index].posterCacheKey ||
+                                      cacheKey
                                   )
                                 }
                                 onError={() =>
-                                  posterCacheKey &&
                                   handleMediaError(
                                     index,
                                     fileKey,
-                                    posterCacheKey
+                                    videoSources[index].posterCacheKey ||
+                                      cacheKey
                                   )
                                 }
-                                style={{ display: "block" }}
+                                style={{
+                                  display: shouldRender ? "block" : "none",
+                                }}
                               />
                               {isLocked && isCurrentMedia && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
@@ -355,9 +351,11 @@ export default function VideoCarousel({
                               videoRefs.current[index] = el;
                             }}
                             preload={
-                              shouldPreload || mediaInCache ? "auto" : "none"
+                              shouldPreload && (shouldRetry || !hasErrorInCache)
+                                ? "auto"
+                                : "none"
                             }
-                            src={videoSources[index].src}
+                            src={`${videoSources[index].src}`}
                             className={`w-full min-h-fit py-1 ${
                               isLocked ? "opacity-50 pointer-events-none" : ""
                             }`}
@@ -368,7 +366,7 @@ export default function VideoCarousel({
                             onError={() =>
                               handleMediaError(index, fileKey, cacheKey)
                             }
-                            style={{ display: "block" }}
+                            style={{ display: shouldRender ? "block" : "none" }}
                           />
                         </div>
                       )}
