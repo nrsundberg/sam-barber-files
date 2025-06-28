@@ -4,8 +4,8 @@ import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { globalMediaCache } from "~/contexts/MediaCacheContext";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { globalMediaCache, useMediaCache } from "~/contexts/MediaCacheContext";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -39,18 +39,14 @@ export default function VideoCarousel({
     markVideoAsError,
   } = useVideo;
 
-  // Create refs for all video elements
+  const mediaCache = useMediaCache();
   const videoRefs = useRef<(HTMLVideoElement | HTMLAudioElement | null)[]>([]);
-
-  // Track loading state for media elements
-  const [mediaLoadingState, setMediaLoadingState] = useState<
-    Map<string, "loading" | "loaded" | "error">
-  >(new Map());
-  const loadingStateRef = useRef<Map<string, "loading" | "loaded" | "error">>(
-    new Map()
+  const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
+    new Set()
   );
+  const mediaRetryTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Track which media items should be preloaded based on current position
+  // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
     if (currentIndex === -1) return new Set<number>();
 
@@ -68,13 +64,13 @@ export default function VideoCarousel({
     return indices;
   }, [currentIndex, objects.length]);
 
-  // Create memoized mapping of video sources - stable references
+  // Create a memoized mapping of video sources to prevent unnecessary re-renders
   const videoSources = useMemo(() => {
     return objects.map((obj) => ({
       src: endpoint + obj.s3fileKey,
       poster: obj.posterKey ? endpoint + obj.posterKey : undefined,
       key: obj.s3fileKey,
-      cacheKey: endpoint + obj.s3fileKey, // Full URL for cache lookup
+      cacheKey: endpoint + obj.s3fileKey,
       posterCacheKey: obj.posterKey ? endpoint + obj.posterKey : undefined,
     }));
   }, [objects, endpoint]);
@@ -89,21 +85,18 @@ export default function VideoCarousel({
   // Manage play/pause state when switching videos
   useEffect(() => {
     if (isOpen) {
-      // Pause all videos except current
       videoRefs.current.forEach((videoElement, index) => {
         if (videoElement && index !== currentIndex) {
           videoElement.pause();
         }
       });
 
-      // If current object is locked, force pause and prevent playing
       if (currentObject?.isLocked) {
         setIsPlaying(false);
         if (videoRef.current) {
           videoRef.current.pause();
         }
       } else {
-        // Update current video playing state
         if (videoRef.current) {
           if (isPlaying) {
             videoRef.current.play().catch(() => setIsPlaying(false));
@@ -115,74 +108,73 @@ export default function VideoCarousel({
     }
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef, currentObject]);
 
-  // Memoized handle media loaded
-  const handleMediaLoaded = useCallback(
-    (index: number, fileKey: string, cacheKey: string) => {
-      if (objects[index]) {
-        // Update local loading state
-        loadingStateRef.current.set(fileKey, "loaded");
-        setMediaLoadingState(new Map(loadingStateRef.current));
-
-        // Update global cache
-        globalMediaCache.set(cacheKey, {
-          loaded: true,
-          error: false,
-          timestamp: Date.now(),
-        });
-
-        // Notify the video carousel hook
-        markVideoAsLoaded(fileKey, index);
-      }
-    },
-    [objects, markVideoAsLoaded]
-  );
-
-  // Memoized handle media error
-  const handleMediaError = useCallback(
-    (index: number, fileKey: string, cacheKey: string) => {
-      // Update local loading state
-      loadingStateRef.current.set(fileKey, "error");
-      setMediaLoadingState(new Map(loadingStateRef.current));
-
-      // Update global cache
-      globalMediaCache.set(cacheKey, {
-        loaded: false,
-        error: true,
-        timestamp: Date.now(),
+  // Handle media load event
+  const handleMediaLoaded = (
+    index: number,
+    fileKey: string,
+    cacheKey: string
+  ) => {
+    if (objects[index]) {
+      // Update local state
+      setLocalLoadedKeys((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(fileKey);
+        return newSet;
       });
 
-      // Notify the video carousel hook
-      markVideoAsError(fileKey, index);
-    },
-    [markVideoAsError]
-  );
+      // Update global cache
+      mediaCache.setMediaLoaded(cacheKey);
+
+      // Also notify the global tracking system
+      markVideoAsLoaded(fileKey, index);
+    }
+  };
+
+  // Handle media error event
+  const handleMediaError = (
+    index: number,
+    fileKey: string,
+    cacheKey: string
+  ) => {
+    // Update global cache
+    mediaCache.setMediaError(cacheKey);
+
+    // Also notify the global error tracking
+    markVideoAsError(fileKey, index);
+
+    // Clear any existing timeout for this item
+    if (mediaRetryTimeouts.current[fileKey]) {
+      clearTimeout(mediaRetryTimeouts.current[fileKey]);
+    }
+
+    // Schedule a retry with exponential backoff
+    const cacheStatus = mediaCache.getMediaStatus(cacheKey);
+    const attempts = cacheStatus?.attempts || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+
+    if (attempts < 5) {
+      mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
+        mediaCache.clearMediaError(cacheKey);
+        setLocalLoadedKeys((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(fileKey);
+          return newSet;
+        });
+      }, delay);
+    }
+  };
+
+  // Clean up timeouts when unmounting
+  useEffect(() => {
+    return () => {
+      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
-
-  const mediaToLoad = useMemo(() => {
-    if (currentIndex === -1) return new Set<number>();
-
-    const indices = new Set<number>();
-    indices.add(currentIndex); // Always load current
-
-    // Only preload adjacent videos if they haven't been loaded before
-    if (
-      currentIndex > 0 &&
-      !loadedVideos.has(objects[currentIndex - 1].s3fileKey)
-    ) {
-      indices.add(currentIndex - 1);
-    }
-
-    if (
-      currentIndex < objects.length - 1 &&
-      !loadedVideos.has(objects[currentIndex + 1].s3fileKey)
-    ) {
-      indices.add(currentIndex + 1);
-    }
-
-    return indices;
-  }, [currentIndex, objects.length, loadedVideos]);
 
   return (
     <Modal
@@ -225,25 +217,30 @@ export default function VideoCarousel({
             <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
               <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black">
                 {objects.map((object, index) => {
+                  const shouldRender = true;
                   const isCurrentMedia = currentIndex === index;
                   const fileKey = object.s3fileKey;
                   const isLocked = object.isLocked;
+                  const cacheKey = videoSources[index].cacheKey;
 
-                  // Check if this video is already loaded
-                  const isAlreadyLoaded =
-                    loadedVideos.has(fileKey) || preloadedIndices.has(index);
+                  // Check cache status
+                  const cacheStatus = mediaCache.getMediaStatus(cacheKey);
+                  const isLoadedInCache = cacheStatus?.loaded === true;
+                  const hasErrorInCache = cacheStatus?.error === true;
+                  const cacheAttempts = cacheStatus?.attempts || 0;
 
-                  // Only render if it's current, adjacent, or already loaded
-                  const shouldRender =
-                    isCurrentMedia || mediaToLoad.has(index) || isAlreadyLoaded;
+                  const isLoadedLocally = localLoadedKeys.has(fileKey);
+                  const isLoadedGlobally = loadedVideos.has(fileKey);
+                  const isIndexPreloaded = preloadedIndices.has(index);
 
-                  // Only load media if it should be rendered and hasn't been loaded yet
-                  const shouldLoadMedia =
-                    shouldRender &&
-                    !isAlreadyLoaded &&
-                    mediaLoadingState.get(fileKey) !== "error";
+                  const shouldPreload =
+                    mediaToPreload.has(index) ||
+                    isLoadedLocally ||
+                    isLoadedGlobally ||
+                    isIndexPreloaded ||
+                    isLoadedInCache;
 
-                  if (!shouldRender) return null;
+                  const shouldRetry = hasErrorInCache && cacheAttempts < 5;
 
                   return (
                     <div
@@ -258,31 +255,32 @@ export default function VideoCarousel({
                             ref={(el) => {
                               videoRefs.current[index] = el;
                             }}
-                            src={
-                              shouldLoadMedia
-                                ? videoSources[index].src
-                                : undefined
-                            }
+                            src={`${videoSources[index].src}`}
                             poster={videoSources[index].poster}
                             className={`w-full h-full object-contain bg-black max-h-[70vh] ${
                               isLocked ? "blur-sm opacity-70" : ""
                             }`}
-                            preload={shouldLoadMedia ? "auto" : "none"}
+                            preload={
+                              shouldPreload && (shouldRetry || !hasErrorInCache)
+                                ? "auto"
+                                : "none"
+                            }
                             crossOrigin="anonymous"
-                            onLoadedMetadata={() =>
-                              handleMediaLoaded(
-                                index,
-                                fileKey,
-                                videoSources[index].cacheKey
-                              )
-                            }
+                            onLoadedMetadata={() => {
+                              handleMediaLoaded(index, fileKey, cacheKey);
+                              // For audio files, mark them as loaded immediately
+                              if (object.kind === ObjectKind.AUDIO) {
+                                globalMediaCache.set(cacheKey, {
+                                  loaded: true,
+                                  error: false,
+                                  timestamp: Date.now(),
+                                });
+                              }
+                            }}
                             onError={() =>
-                              handleMediaError(
-                                index,
-                                fileKey,
-                                videoSources[index].cacheKey
-                              )
+                              handleMediaError(index, fileKey, cacheKey)
                             }
+                            style={{ display: shouldRender ? "block" : "none" }}
                           />
                           {isLocked && isCurrentMedia && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
@@ -291,32 +289,36 @@ export default function VideoCarousel({
                           )}
                         </div>
                       ) : (
-                        // Audio rendering remains the same
                         <div className="flex-col h-full w-full flex items-center justify-end bg-black relative">
                           {videoSources[index].poster ? (
                             <>
                               <img
                                 src={videoSources[index].poster}
                                 alt={object.fileName}
-                                loading={isCurrentMedia ? "eager" : "lazy"}
+                                loading="lazy"
                                 className={`max-h-full max-w-full object-contain ${
                                   isLocked ? "blur-sm opacity-70" : ""
                                 }`}
                                 onLoad={() =>
-                                  shouldLoadMedia &&
+                                  shouldPreload &&
                                   handleMediaLoaded(
                                     index,
                                     fileKey,
-                                    videoSources[index].cacheKey
+                                    videoSources[index].posterCacheKey ||
+                                      cacheKey
                                   )
                                 }
                                 onError={() =>
                                   handleMediaError(
                                     index,
                                     fileKey,
-                                    videoSources[index].cacheKey
+                                    videoSources[index].posterCacheKey ||
+                                      cacheKey
                                   )
                                 }
+                                style={{
+                                  display: shouldRender ? "block" : "none",
+                                }}
                               />
                               {isLocked && isCurrentMedia && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
@@ -339,30 +341,23 @@ export default function VideoCarousel({
                             ref={(el) => {
                               videoRefs.current[index] = el;
                             }}
-                            preload={shouldLoadMedia ? "auto" : "none"}
-                            src={
-                              shouldLoadMedia
-                                ? videoSources[index].src
-                                : undefined
+                            preload={
+                              shouldPreload && (shouldRetry || !hasErrorInCache)
+                                ? "auto"
+                                : "none"
                             }
+                            src={`${videoSources[index].src}`}
                             className={`w-full min-h-fit py-1 ${
                               isLocked ? "opacity-50 pointer-events-none" : ""
                             }`}
                             crossOrigin="anonymous"
                             onLoadedMetadata={() =>
-                              handleMediaLoaded(
-                                index,
-                                fileKey,
-                                videoSources[index].cacheKey
-                              )
+                              handleMediaLoaded(index, fileKey, cacheKey)
                             }
                             onError={() =>
-                              handleMediaError(
-                                index,
-                                fileKey,
-                                videoSources[index].cacheKey
-                              )
+                              handleMediaError(index, fileKey, cacheKey)
                             }
+                            style={{ display: shouldRender ? "block" : "none" }}
                           />
                         </div>
                       )}
