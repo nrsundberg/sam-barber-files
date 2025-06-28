@@ -1,5 +1,5 @@
 import { Modal, ModalContent } from "@heroui/react";
-import { AudioLines, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { AudioLines, ChevronDown, ChevronUp, Lock, X } from "lucide-react";
 import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
@@ -189,6 +189,15 @@ export default function VideoCarousel({
       }}
     >
       <ModalContent className="min-h-screen flex items-center justify-center">
+        {/* Close button - MODIFIED: Only visible on md screens and larger */}
+        <button
+          onClick={closeModal}
+          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto hidden md:block"
+          aria-label="Close"
+        >
+          <X className="w-10 h-10" />
+        </button>
+
         <div
           ref={containerRef}
           className="relative h-full flex flex-col items-center justify-center w-full max-h-screen"
