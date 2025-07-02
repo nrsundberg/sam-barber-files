@@ -161,8 +161,8 @@ export function Thumbnail({
 
   // Calculate container classes
   const containerClasses = isRow
-    ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0`
-    : "w-full h-full flex items-center justify-center";
+    ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0 relative`
+    : "w-full h-full flex items-center justify-center relative";
 
   const mediaContainerClasses = isRow
     ? "w-full h-full flex items-center justify-center overflow-hidden relative"
@@ -290,18 +290,15 @@ export function Thumbnail({
         </>
       )}
 
-      {/* Loading/Error states */}
       {!isAudioFile && (!isLoaded || shouldShowError) && shouldRenderMedia && (
-        <div
-          className={`${mediaContainerClasses} absolute inset-0 bg-transparent flex items-center justify-center`}
-        >
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
           {shouldShowError ? (
             <div className="text-gray-400 text-xs text-center">
               <span className="block">Error</span>
               <span className="block">Loading</span>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
           )}
         </div>
       )}

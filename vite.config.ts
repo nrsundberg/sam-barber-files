@@ -12,7 +12,14 @@ export default defineConfig({
         "./node_modules/.prisma/client/index-browser.js",
     },
   },
-  server: { port: 3000 },
+  server: {
+    port: 3000,
+    // host: true,
+    // https: {
+    //   key: fs.readFileSync("./certs/key.pem"),
+    //   cert: fs.readFileSync("./certs/cert.pem"),
+    // },
+  },
   plugins: [
     reactRouter(),
     tsconfigPaths(),

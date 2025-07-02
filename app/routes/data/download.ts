@@ -21,18 +21,30 @@ export async function loader({ params }: Route.LoaderArgs) {
       return new Response("Failed to fetch file from S3", { status: 500 });
     }
 
-    // Get Content-Type and other headers from S3 response
     let contentType =
       response.headers.get("content-type") || "application/octet-stream";
     let contentLength = response.headers.get("content-length");
+
+    // Use fallback filename if missing
+    let filename = object?.fileName || fileId.split("/").pop() || "file";
+
+    // Extract extension to guess media type if needed
+    const extension = filename.split(".").pop()?.toLowerCase();
+
+    let forceInline = ["mp4", "mov", "webm", "mp3", "m4a", "wav"].includes(
+      extension ?? ""
+    );
+    let contentDisposition = forceInline
+      ? `inline; filename="${filename}"`
+      : `attachment; filename="${filename}"`;
 
     return new Response(response.body, {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Content-Length": contentLength ?? "0",
-        "Content-Disposition": `attachment; filename="${object?.fileName}"`,
-        "Cache-Control": "public, max-age=1800", // 30 minutes cache
+        "Content-Disposition": contentDisposition,
+        "Cache-Control": "public, max-age=1800",
         Expires: new Date(Date.now() + 1800000).toUTCString(),
       },
     });

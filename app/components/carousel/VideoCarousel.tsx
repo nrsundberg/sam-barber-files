@@ -6,6 +6,7 @@ import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { globalMediaCache, useMediaCache } from "~/contexts/MediaCacheContext";
+import { Link } from "react-router";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -192,7 +193,7 @@ export default function VideoCarousel({
         {/* Close button - MODIFIED: Only visible on md screens and larger */}
         <button
           onClick={closeModal}
-          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto hidden md:block"
+          className="absolute top-0 right-0 z-50 bg-gray-800 bg-opacity-100 rounded-bl-lg p-4 text-white hover:bg-gray-900 transition-all pointer-events-auto hidden sm:block"
           aria-label="Close"
         >
           <X className="w-10 h-10" />
@@ -401,15 +402,25 @@ export default function VideoCarousel({
                     <p className="text-xs sm:text-sm">
                       {currentObject && formatBytes(currentObject.size)}
                     </p>
-                    <button
-                      className="rounded-md bg-sb-banner text-white px-2 py-1 sm:hidden text-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeModal();
-                      }}
-                    >
-                      Close
-                    </button>
+                    <div className="inline-flex gap-2">
+                      <button
+                        className="rounded-md bg-sb-banner text-white px-2 py-1 sm:hidden text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeModal();
+                        }}
+                      >
+                        Close
+                      </button>
+                      <Link
+                        to={`/data/download/${encodeURIComponent(currentObject.s3fileKey)}`}
+                        reloadDocument
+                        className="rounded-md bg-sb-banner text-white px-2 py-1 text-sm"
+                        onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+                      >
+                        Download
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
