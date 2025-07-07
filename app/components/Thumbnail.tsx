@@ -225,7 +225,7 @@ export function Thumbnail({
                     height={height}
                     className={`
                       ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                      ${object.isLocked ? "blur-sm opacity-70" : ""}
+                      ${object.isLocked ? "blur-sm opacity-40" : ""}
                       ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
                       transition-opacity duration-300
                     `}
@@ -252,7 +252,7 @@ export function Thumbnail({
                       height={height}
                       className={`
                         ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                        ${object.isLocked ? "blur-sm opacity-70" : ""}
+                        ${object.isLocked ? "blur-sm opacity-40" : ""}
                         ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
                         transition-opacity duration-300
                       `}
@@ -265,7 +265,7 @@ export function Thumbnail({
                       preload="metadata"
                       className={`
                         ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                        ${object.isLocked ? "blur-sm opacity-70" : ""}
+                        ${object.isLocked ? "blur-sm opacity-40" : ""}
                         ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
                         transition-opacity duration-300
                       `}
@@ -279,7 +279,7 @@ export function Thumbnail({
                     </video>
                   )}
                   {object.isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-20">
                       <Lock className="text-white w-8 h-8 drop-shadow-md" />
                     </div>
                   )}

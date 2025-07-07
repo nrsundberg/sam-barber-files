@@ -267,8 +267,8 @@ export default function VideoCarousel({
                             }}
                             src={`${videoSources[index].src}`}
                             poster={videoSources[index].poster}
-                            className={`w-full h-full object-contain bg-black max-h-[70vh] ${
-                              isLocked ? "blur-sm opacity-70" : ""
+                            className={`w-full h-full object-contain max-h-[70vh] ${
+                              isLocked ? "blur-sm opacity-40" : ""
                             }`}
                             preload={
                               shouldPreload && (shouldRetry || !hasErrorInCache)
@@ -293,13 +293,13 @@ export default function VideoCarousel({
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
                           {isLocked && isCurrentMedia && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
                               <Lock className="text-white w-16 h-16 drop-shadow-md" />
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="flex-col h-full w-full flex items-center justify-end bg-black relative">
+                        <div className="flex-col h-full w-full flex items-center justify-end relative">
                           {videoSources[index].poster ? (
                             <>
                               <img
@@ -331,7 +331,7 @@ export default function VideoCarousel({
                                 }}
                               />
                               {isLocked && isCurrentMedia && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                <div className="absolute inset-0 flex items-center justify-center bg-opacity-20 z-10">
                                   <Lock className="text-white w-16 h-16 drop-shadow-md" />
                                 </div>
                               )}
@@ -340,7 +340,7 @@ export default function VideoCarousel({
                             <>
                               <AudioLines className="text-gray-400 w-[100px] h-[100px]" />
                               {isLocked && isCurrentMedia && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
+                                <div className="absolute inset-0 flex items-center justify-center bg-opacity-20 z-10">
                                   <Lock className="text-white w-16 h-16 drop-shadow-md" />
                                 </div>
                               )}
@@ -412,14 +412,16 @@ export default function VideoCarousel({
                       >
                         Close
                       </button>
-                      <Link
-                        to={`/data/download/${encodeURIComponent(currentObject.s3fileKey)}`}
-                        reloadDocument
-                        className="rounded-md bg-sb-banner text-white px-2 py-1 text-sm"
-                        onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
-                      >
-                        Download
-                      </Link>
+                      {!currentObject.isLocked && (
+                        <Link
+                          to={`/data/download/${encodeURIComponent(currentObject.s3fileKey)}`}
+                          reloadDocument
+                          className="rounded-md bg-sb-banner text-white px-2 py-1 text-sm"
+                          onClick={(e) => e.stopPropagation()} // Prevent the carousel from opening
+                        >
+                          Download
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>
