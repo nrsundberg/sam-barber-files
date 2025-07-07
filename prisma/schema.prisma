@@ -32,21 +32,23 @@ model Folder {
 }
 
 model Object {
-  id           String     @id @default(uuid())
-  fileName     String
-  createdDate  DateTime
-  hidden       Boolean
-  isFavorite   Boolean    @default(false)
-  isTrending   Boolean    @default(false)
+  id               String     @id @default(uuid())
+  fileName         String
+  createdDate      DateTime
+  hidden           Boolean
+  isFavorite       Boolean    @default(false)
+  isTrending       Boolean    @default(false)
   // In Bytes
-  size         Int
-  kind         ObjectKind
-  filePosition Int
-  s3fileKey    String     @unique
-  posterKey    String?
-  folder       Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  folderId     String
-  isLocked     Boolean    @default(false)
+  size             Int
+  kind             ObjectKind
+  filePosition     Int
+  trendingPosition Int?
+  favoritePosition Int?
+  s3fileKey        String     @unique
+  posterKey        String?
+  folder           Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folderId         String
+  isLocked         Boolean    @default(false)
 }
 
 enum ObjectKind {

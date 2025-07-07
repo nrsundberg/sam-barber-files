@@ -27,9 +27,11 @@ export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true, hidden: false },
+    orderBy: { favoritePosition: "asc" },
   });
   let trending = prisma.object.findMany({
     where: { isTrending: true, hidden: false },
+    orderBy: { trendingPosition: "asc" },
   });
   let folders = prisma.folder.findMany({
     where: { hidden: false },

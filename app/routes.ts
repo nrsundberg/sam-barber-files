@@ -9,6 +9,7 @@ export default [
   ]),
   route("admin/fileCheck", "routes/admin/fileCheck.tsx"),
   route("admin/fileBrowser", "routes/admin/fileBrowser.tsx"),
+  route("admin/orderTrendingAndFavorite", "routes/admin/positioning.tsx"),
 
   // Authentication routes
   route("login", "routes/auth/login.tsx"),

@@ -171,6 +171,12 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
         >
           Show AWS Files
         </Link>
+        <Link
+          className="border-1 border-gray-400 p-1"
+          to={"/admin/orderTrendingAndFavorite"}
+        >
+          Trending & Favorite
+        </Link>
       </div>
 
       <Divider className={"h-1"} />
