@@ -298,7 +298,7 @@ export default function VideoCarousel({
                             </div>
                           )}
                         </div>
-                      ) : (
+                      ) : object.kind === ObjectKind.AUDIO ? (
                         <div className="flex-col h-full w-full flex items-center justify-end relative">
                           {videoSources[index].poster ? (
                             <>
@@ -369,6 +369,25 @@ export default function VideoCarousel({
                             }
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
+                        </div>
+                      ) : (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={`${videoSources[index].src}`}
+                            className={`w-full h-full object-contain max-h-[70vh] ${
+                              isLocked ? "blur-sm opacity-40" : ""
+                            }`}
+                            crossOrigin="anonymous"
+                            onError={() =>
+                              handleMediaError(index, fileKey, cacheKey)
+                            }
+                            style={{ display: shouldRender ? "block" : "none" }}
+                          />
+                          {isLocked && isCurrentMedia && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                              <Lock className="text-white w-16 h-16 drop-shadow-md" />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
