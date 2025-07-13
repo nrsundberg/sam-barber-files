@@ -4,7 +4,7 @@ import { type Object, ObjectKind } from "@prisma/client";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatBytes } from "~/utils";
 import { type UseVideoCarouselReturn } from "./useVideoCarousel";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaCache } from "~/contexts/MediaCacheContext";
 import { Link } from "react-router";
 
@@ -126,47 +126,37 @@ export default function VideoCarousel({
     }
   }, [isOpen, currentIndex, isPlaying, setIsPlaying, videoRef, currentObject]);
 
-  // Handle media load event
-  const handleMediaLoaded = (
-    index: number,
-    fileKey: string,
-    cacheKey: string
-  ) => {
-    if (objects[index]) {
-      // Update global cache
-      mediaCache.setMediaLoaded(cacheKey);
-      // Notify the global tracking system
-      markVideoAsLoaded(fileKey, index);
-    }
-  };
+  const handleMediaLoaded = useCallback(
+    (index: number, fileKey: string, cacheKey: string) => {
+      if (objects[index]) {
+        mediaCache.setMediaLoaded(cacheKey);
+        markVideoAsLoaded(fileKey, index);
+      }
+    },
+    [mediaCache, markVideoAsLoaded, objects]
+  );
 
-  // Handle media error event
-  const handleMediaError = (
-    index: number,
-    fileKey: string,
-    cacheKey: string
-  ) => {
-    // Update global cache
-    mediaCache.setMediaError(cacheKey);
-    // Notify the global error tracking
-    markVideoAsError(fileKey, index);
+  const handleMediaError = useCallback(
+    (index: number, fileKey: string, cacheKey: string) => {
+      mediaCache.setMediaError(cacheKey);
+      markVideoAsError(fileKey, index);
 
-    // Clear any existing timeout for this item
-    if (mediaRetryTimeouts.current[fileKey]) {
-      clearTimeout(mediaRetryTimeouts.current[fileKey]);
-    }
+      // if (mediaRetryTimeouts.current[fileKey]) {
+      //   clearTimeout(mediaRetryTimeouts.current[fileKey]);
+      // }
 
-    // Schedule a retry with exponential backoff
-    const cacheStatus = mediaCache.getMediaStatus(cacheKey);
-    const attempts = cacheStatus?.attempts || 0;
-    const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+      const cacheStatus = mediaCache.getMediaStatus(cacheKey);
+      const attempts = cacheStatus?.attempts || 0;
+      const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
 
-    if (attempts < 5) {
-      mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
-        mediaCache.clearMediaError(cacheKey);
-      }, delay);
-    }
-  };
+      if (attempts < 5) {
+        mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
+          mediaCache.clearMediaError(cacheKey);
+        }, delay);
+      }
+    },
+    [mediaCache, markVideoAsError]
+  );
 
   // Clean up when modal closes or unmounting
   useEffect(() => {
@@ -219,6 +209,18 @@ export default function VideoCarousel({
     });
   }, [renderedIndices, videoSources]);
 
+  const getMediaRefCallback = useCallback((index: number) => {
+    return (
+      el: HTMLVideoElement | HTMLAudioElement | HTMLImageElement | null
+    ) => {
+      if (el) {
+        videoElementsRef.current.set(index, el);
+      } else {
+        videoElementsRef.current.delete(index);
+      }
+    };
+  }, []);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -268,9 +270,9 @@ export default function VideoCarousel({
           <div className="flex-1 w-full flex flex-col items-center justify-center">
             <div className="relative w-full h-full max-w-screen-xl mx-auto flex flex-col justify-center items-center">
               <div className="h-[50vh] sm:h-[70vh] w-full flex items-center justify-center bg-black">
-                {[...renderedIndices].map((index) => {
-                  const object = objects[index];
+                {objects.map((object, index) => {
                   const isCurrentMedia = currentIndex === index;
+                  const mediaRef = getMediaRefCallback(index);
 
                   const fileKey = object.s3fileKey;
                   const isLocked = object.isLocked;
@@ -287,11 +289,7 @@ export default function VideoCarousel({
                         <div className="relative w-full h-full">
                           <video
                             controls={isCurrentMedia && !isLocked}
-                            ref={(el) => {
-                              if (el && !videoElementsRef.current.has(index)) {
-                                videoElementsRef.current.set(index, el);
-                              }
-                            }}
+                            ref={mediaRef}
                             src={videoSources[index].src}
                             poster={videoSources[index].poster}
                             className={`w-full h-full object-contain max-h-[70vh] ${
@@ -367,11 +365,7 @@ export default function VideoCarousel({
                           )}
                           <audio
                             controls={!isLocked}
-                            ref={(el) => {
-                              if (el && !videoElementsRef.current.has(index)) {
-                                videoElementsRef.current.set(index, el);
-                              }
-                            }}
+                            ref={mediaRef}
                             preload={isCurrentMedia ? "metadata" : "none"}
                             src={videoSources[index].src}
                             className={`w-full min-h-fit py-1 ${
@@ -389,11 +383,7 @@ export default function VideoCarousel({
                       ) : (
                         <div className="relative w-full h-full">
                           <img
-                            ref={(el) => {
-                              if (el && !videoElementsRef.current.has(index)) {
-                                videoElementsRef.current.set(index, el);
-                              }
-                            }}
+                            ref={mediaRef}
                             src={videoSources[index].src}
                             className={`w-full h-full object-contain max-h-[70vh] ${
                               isLocked ? "blur-sm opacity-40" : ""
