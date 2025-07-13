@@ -15,7 +15,7 @@ const SbAccordion: FC<AccordionProps> = ({
   endpoint,
   initialLoadComplete = false, // Default to false
 }) => {
-  let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
+  let [extraHeight, setExtraHeight] = useState(150); // Start with 1000px extra
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
   let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   let [readyToLoad, setReadyToLoad] = useState(initialLoadComplete);
