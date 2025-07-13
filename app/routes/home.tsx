@@ -22,6 +22,12 @@ export function meta() {
   ];
 }
 
+// export function scripts() {
+//   return [
+//     <script src="https://embed.laylo.com/laylo-sdk.js"></script>
+//   ]
+// }
+
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
 export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
@@ -127,6 +133,23 @@ export default function ({ loaderData }: Route.ComponentProps) {
         allowMultiple
         initialLoadComplete={initialLoadComplete}
       />
+      {/* <div style={{ backgroundColor: "black" }}>
+        <iframe
+          id="laylo-drop-pIGZH"
+          frameBorder="0"
+          allowTransparency
+          style={{
+            width: "1px",
+            minWidth: "100%",
+            // maxWidth: "1000px",
+            // height: "600px", // Must set a height!
+            border: "none", // Optional for visual polish
+            overflow: "hidden",
+            backgroundColor: "black",
+          }}
+          src="https://embed.laylo.com?dropId=pIGZH&color=0c0c0c&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
+        />
+      </div> */}
     </div>
   );
 }
