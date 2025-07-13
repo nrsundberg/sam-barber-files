@@ -31,6 +31,7 @@ export function Thumbnail({
   const [isVisible, setIsVisible] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitiatedLoad = useRef(false);
 
   // For audio files, we don't need to load images
   const isAudioFile = object.kind === "AUDIO";
@@ -44,6 +45,7 @@ export function Thumbnail({
     ? undefined
     : mediaCache.getMediaStatus(cacheKey);
   const isInCache = isAudioFile ? true : cacheStatus?.loaded === true;
+  const isLoading = isAudioFile ? false : cacheStatus?.loading === true;
   const isCacheError = isAudioFile ? false : cacheStatus?.error === true;
   const cacheAttempts = cacheStatus?.attempts || 0;
 
@@ -96,6 +98,7 @@ export function Thumbnail({
       retryTimeoutRef.current = setTimeout(() => {
         mediaCache.clearMediaError(cacheKey);
         setHasError(false);
+        hasInitiatedLoad.current = false; // Reset the load flag on retry
       }, delay);
     }
 
@@ -154,10 +157,40 @@ export function Thumbnail({
     }
   };
 
+  // Mark as loading when we're about to render the media element
+  useEffect(() => {
+    if (
+      !isAudioFile &&
+      shouldLoad &&
+      isVisible &&
+      !isInCache &&
+      !isLoading &&
+      !hasError &&
+      !hasInitiatedLoad.current
+    ) {
+      // Mark as loading in the cache immediately before rendering
+      hasInitiatedLoad.current = true;
+      mediaCache.setMediaLoading(cacheKey);
+    }
+  }, [
+    isAudioFile,
+    shouldLoad,
+    isVisible,
+    isInCache,
+    isLoading,
+    hasError,
+    cacheKey,
+    mediaCache,
+  ]);
+
   // Determine what to render
   const shouldRenderMedia =
     isAudioFile || (shouldLoad && (isVisible || isInCache)) || isInCache;
   const shouldShowError = !isAudioFile && hasError && cacheAttempts >= 5;
+
+  // Don't render the actual media element if it's already loading elsewhere
+  const shouldRenderMediaElement =
+    !isLoading || isInCache || hasInitiatedLoad.current;
 
   // Calculate container classes
   const containerClasses = isRow
@@ -181,21 +214,23 @@ export function Thumbnail({
               <div
                 className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
               >
-                <img
-                  src={posterUrl}
-                  height={height}
-                  width={width}
-                  className={`
-                    ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                    ${object.isLocked ? "blur-sm opacity-70" : ""}
-                    ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
-                    transition-opacity duration-300
-                  `}
-                  loading="lazy"
-                  onLoad={handleLoad}
-                  onError={handleError}
-                  alt={object.fileName || "thumbnail"}
-                />
+                {shouldRenderMediaElement && (
+                  <img
+                    src={posterUrl}
+                    height={height}
+                    width={width}
+                    className={`
+                      ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
+                      ${object.isLocked ? "blur-sm opacity-70" : ""}
+                      ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                      transition-opacity duration-300
+                    `}
+                    loading="lazy"
+                    onLoad={handleLoad}
+                    onError={handleError}
+                    alt={object.fileName || "thumbnail"}
+                  />
+                )}
                 {object.isLocked && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
                     <Lock className="text-white w-8 h-8 drop-shadow-md" />
@@ -218,35 +253,9 @@ export function Thumbnail({
                 <div
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
-                  <img
-                    src={mediaUrl}
-                    loading="lazy"
-                    width={width}
-                    height={height}
-                    className={`
-                      ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                      ${object.isLocked ? "blur-sm opacity-40" : ""}
-                      ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
-                      transition-opacity duration-300
-                    `}
-                    onLoad={handleLoad}
-                    onError={handleError}
-                    alt={object.fileName || "photo"}
-                  />
-                  {object.isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Video thumbnail
-                <div
-                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
-                >
-                  {posterUrl ? (
+                  {shouldRenderMediaElement && (
                     <img
-                      src={posterUrl}
+                      src={mediaUrl}
                       loading="lazy"
                       width={width}
                       height={height}
@@ -258,26 +267,56 @@ export function Thumbnail({
                       `}
                       onLoad={handleLoad}
                       onError={handleError}
-                      alt={object.fileName || "video thumbnail"}
+                      alt={object.fileName || "photo"}
                     />
-                  ) : (
-                    <video
-                      preload="metadata"
-                      className={`
-                        ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                        ${object.isLocked ? "blur-sm opacity-40" : ""}
-                        ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
-                        transition-opacity duration-300
-                      `}
-                      muted
-                      disablePictureInPicture
-                      disableRemotePlayback
-                      onLoadedMetadata={handleLoad}
-                      onError={handleError}
-                    >
-                      <source src={mediaUrl + "#t=0.1"} />
-                    </video>
                   )}
+                  {object.isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Video thumbnail
+                <div
+                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
+                >
+                  {posterUrl
+                    ? shouldRenderMediaElement && (
+                        <img
+                          src={posterUrl}
+                          loading="lazy"
+                          width={width}
+                          height={height}
+                          className={`
+                          ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
+                          ${object.isLocked ? "blur-sm opacity-40" : ""}
+                          ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                          transition-opacity duration-300
+                        `}
+                          onLoad={handleLoad}
+                          onError={handleError}
+                          alt={object.fileName || "video thumbnail"}
+                        />
+                      )
+                    : shouldRenderMediaElement && (
+                        <video
+                          preload="metadata"
+                          className={`
+                          ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
+                          ${object.isLocked ? "blur-sm opacity-40" : ""}
+                          ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                          transition-opacity duration-300
+                        `}
+                          muted
+                          disablePictureInPicture
+                          disableRemotePlayback
+                          onLoadedMetadata={handleLoad}
+                          onError={handleError}
+                        >
+                          <source src={mediaUrl + "#t=0.1"} />
+                        </video>
+                      )}
                   {object.isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-opacity-20">
                       <Lock className="text-white w-8 h-8 drop-shadow-md" />
@@ -290,18 +329,20 @@ export function Thumbnail({
         </>
       )}
 
-      {!isAudioFile && (!isLoaded || shouldShowError) && shouldRenderMedia && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
-          {shouldShowError ? (
-            <div className="text-gray-400 text-xs text-center">
-              <span className="block">Error</span>
-              <span className="block">Loading</span>
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
-          )}
-        </div>
-      )}
+      {!isAudioFile &&
+        (!isLoaded || shouldShowError || isLoading) &&
+        shouldRenderMedia && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
+            {shouldShowError ? (
+              <div className="text-gray-400 text-xs text-center">
+                <span className="block">Error</span>
+                <span className="block">Loading</span>
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
+            )}
+          </div>
+        )}
     </div>
   );
 }

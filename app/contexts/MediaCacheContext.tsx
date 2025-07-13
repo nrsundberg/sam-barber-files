@@ -2,6 +2,7 @@ import React, { createContext, useContext } from "react";
 
 interface MediaCacheEntry {
   loaded: boolean;
+  loading: boolean; // Add loading state
   error: boolean;
   timestamp: number;
   attempts?: number;
@@ -13,9 +14,18 @@ export const globalMediaCache = new Map<string, MediaCacheEntry>();
 // Context for accessing the cache
 const MediaCacheContext = createContext({
   cache: globalMediaCache,
+  setMediaLoading: (key: string) => {
+    globalMediaCache.set(key, {
+      loaded: false,
+      loading: true,
+      error: false,
+      timestamp: Date.now(),
+    });
+  },
   setMediaLoaded: (key: string) => {
     globalMediaCache.set(key, {
       loaded: true,
+      loading: false,
       error: false,
       timestamp: Date.now(),
     });
@@ -24,6 +34,7 @@ const MediaCacheContext = createContext({
     const existing = globalMediaCache.get(key);
     globalMediaCache.set(key, {
       loaded: false,
+      loading: false,
       error: true,
       timestamp: Date.now(),
       attempts: (existing?.attempts || 0) + 1,
@@ -32,6 +43,10 @@ const MediaCacheContext = createContext({
   isMediaLoaded: (key: string): boolean => {
     const entry = globalMediaCache.get(key);
     return entry?.loaded === true;
+  },
+  isMediaLoading: (key: string): boolean => {
+    const entry = globalMediaCache.get(key);
+    return entry?.loading === true;
   },
   isMediaError: (key: string): boolean => {
     const entry = globalMediaCache.get(key);
@@ -55,9 +70,18 @@ export const MediaCacheProvider: React.FC<{ children: React.ReactNode }> = ({
     <MediaCacheContext.Provider
       value={{
         cache: globalMediaCache,
+        setMediaLoading: (key: string) => {
+          globalMediaCache.set(key, {
+            loaded: false,
+            loading: true,
+            error: false,
+            timestamp: Date.now(),
+          });
+        },
         setMediaLoaded: (key: string) => {
           globalMediaCache.set(key, {
             loaded: true,
+            loading: false,
             error: false,
             timestamp: Date.now(),
           });
@@ -66,6 +90,7 @@ export const MediaCacheProvider: React.FC<{ children: React.ReactNode }> = ({
           const existing = globalMediaCache.get(key);
           globalMediaCache.set(key, {
             loaded: false,
+            loading: false,
             error: true,
             timestamp: Date.now(),
             attempts: (existing?.attempts || 0) + 1,
@@ -74,6 +99,10 @@ export const MediaCacheProvider: React.FC<{ children: React.ReactNode }> = ({
         isMediaLoaded: (key: string): boolean => {
           const entry = globalMediaCache.get(key);
           return entry?.loaded === true;
+        },
+        isMediaLoading: (key: string): boolean => {
+          const entry = globalMediaCache.get(key);
+          return entry?.loading === true;
         },
         isMediaError: (key: string): boolean => {
           const entry = globalMediaCache.get(key);
