@@ -177,7 +177,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
         {showLeftArrow && (
           <button
             onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full p-2 text-white hover:bg-opacity-90 transition"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gray-900 bg-opacity-70 rounded-full p-2 text-white hover:bg-opacity-90 transition"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-6 h-6" />
