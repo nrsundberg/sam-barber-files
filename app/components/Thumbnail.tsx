@@ -32,6 +32,9 @@ export function Thumbnail({
   const elementRef = useRef<HTMLDivElement>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // New state to track if we've initiated a load attempt for the current media
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false); //
+
   // For audio files, we don't need to load images
   const isAudioFile = object.kind === "AUDIO";
 
@@ -52,10 +55,15 @@ export function Thumbnail({
     if (isAudioFile || isInCache) {
       setIsLoaded(true);
       setHasError(false);
+      setHasAttemptedLoad(true); // Mark as attempted if already in cache
     } else if (isCacheError && cacheAttempts >= 5) {
       // If we've tried 5 times and failed, mark as error
       setHasError(true);
       setIsLoaded(false);
+      setHasAttemptedLoad(true); // Mark as attempted even on error limit
+    } else {
+      // Reset attempted load state if not in cache and not permanently errored
+      setHasAttemptedLoad(false);
     }
   }, [isAudioFile, isInCache, isCacheError, cacheAttempts]);
 
@@ -84,7 +92,8 @@ export function Thumbnail({
       isCacheError &&
       cacheAttempts < 5 &&
       shouldLoad &&
-      isVisible
+      isVisible &&
+      !hasAttemptedLoad // Only retry if we haven't initiated a load for this specific retry cycle
     ) {
       // Clear any existing timeout
       if (retryTimeoutRef.current) {
@@ -96,6 +105,7 @@ export function Thumbnail({
       retryTimeoutRef.current = setTimeout(() => {
         mediaCache.clearMediaError(cacheKey);
         setHasError(false);
+        setHasAttemptedLoad(false); // Allow a new attempt after clearing error
       }, delay);
     }
 
@@ -112,6 +122,7 @@ export function Thumbnail({
     isVisible,
     cacheKey,
     mediaCache,
+    hasAttemptedLoad, // Add to dependencies
   ]);
 
   // Function to determine if media is extremely tall/vertical
@@ -135,6 +146,7 @@ export function Thumbnail({
 
     setIsLoaded(true);
     setHasError(false);
+    setHasAttemptedLoad(true); // Successfully loaded, mark as attempted
 
     // Update global cache
     mediaCache.setMediaLoaded(cacheKey);
@@ -144,6 +156,7 @@ export function Thumbnail({
   const handleError = () => {
     setHasError(true);
     setIsLoaded(false);
+    setHasAttemptedLoad(true); // Mark as attempted even on error
 
     // Update global cache
     mediaCache.setMediaError(cacheKey);
@@ -154,10 +167,31 @@ export function Thumbnail({
     }
   };
 
-  // Determine what to render
-  const shouldRenderMedia =
+  // Determine what to render and when to trigger a load attempt
+  const shouldRenderMediaContent =
     isAudioFile || (shouldLoad && (isVisible || isInCache)) || isInCache;
   const shouldShowError = !isAudioFile && hasError && cacheAttempts >= 5;
+
+  // Generate the media URLs
+  const mediaUrl = endpoint + thumbnailKey;
+  const posterUrl = object.posterKey ? endpoint + object.posterKey : undefined;
+
+  // Only set src if we need to actually attempt a load and haven't already
+  const mediaSrc =
+    shouldRenderMediaContent &&
+    !shouldShowError &&
+    !hasAttemptedLoad &&
+    !isInCache
+      ? mediaUrl
+      : undefined; // Only set src if not in cache and not attempted yet
+  const posterSrc =
+    shouldRenderMediaContent &&
+    !shouldShowError &&
+    !hasAttemptedLoad &&
+    !isInCache &&
+    object.posterKey
+      ? posterUrl
+      : undefined; // Only set posterSrc if not in cache and not attempted yet
 
   // Calculate container classes
   const containerClasses = isRow
@@ -168,13 +202,9 @@ export function Thumbnail({
     ? "w-full h-full flex items-center justify-center overflow-hidden relative"
     : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
 
-  // Generate the media URLs
-  const mediaUrl = endpoint + thumbnailKey;
-  const posterUrl = object.posterKey ? endpoint + object.posterKey : undefined;
-
   return (
     <div ref={elementRef} className={containerClasses} onClick={onClick}>
-      {shouldRenderMedia && !shouldShowError && (
+      {shouldRenderMediaContent && !shouldShowError && (
         <>
           {object.posterKey ? (
             <div className={mediaContainerClasses}>
@@ -182,7 +212,7 @@ export function Thumbnail({
                 className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
               >
                 <img
-                  src={posterUrl}
+                  src={isInCache ? posterUrl : posterSrc} // Use cached URL if in cache, otherwise conditional src
                   height={height}
                   width={width}
                   className={`
@@ -219,7 +249,7 @@ export function Thumbnail({
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
                   <img
-                    src={mediaUrl}
+                    src={isInCache ? mediaUrl : mediaSrc} // Use cached URL if in cache, otherwise conditional src
                     loading="lazy"
                     width={width}
                     height={height}
@@ -244,9 +274,9 @@ export function Thumbnail({
                 <div
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
-                  {posterUrl ? (
+                  {object.posterKey ? (
                     <img
-                      src={posterUrl}
+                      src={isInCache ? posterUrl : posterSrc} // Use cached URL if in cache, otherwise conditional src
                       loading="lazy"
                       width={width}
                       height={height}
@@ -274,8 +304,11 @@ export function Thumbnail({
                       disableRemotePlayback
                       onLoadedMetadata={handleLoad}
                       onError={handleError}
+                      // Only set src if not in cache and not attempted yet
+                      src={isInCache ? mediaUrl : mediaSrc}
                     >
-                      <source src={mediaUrl + "#t=0.1"} />
+                      {/* Source tag is problematic with conditional src on video itself */}
+                      {/* <source src={mediaUrl + "#t=0.1"} /> */}
                     </video>
                   )}
                   {object.isLocked && (
@@ -287,20 +320,22 @@ export function Thumbnail({
               )}
             </div>
           )}
-        </>
-      )}
 
-      {!isAudioFile && (!isLoaded || shouldShowError) && shouldRenderMedia && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
-          {shouldShowError ? (
-            <div className="text-gray-400 text-xs text-center">
-              <span className="block">Error</span>
-              <span className="block">Loading</span>
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
-          )}
-        </div>
+          {!isAudioFile &&
+            (!isLoaded || shouldShowError) &&
+            shouldRenderMediaContent && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
+                {shouldShowError ? (
+                  <div className="text-gray-400 text-xs text-center">
+                    <span className="block">Error</span>
+                    <span className="block">Loading</span>
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
+                )}
+              </div>
+            )}
+        </>
       )}
     </div>
   );

@@ -18,6 +18,7 @@ const MediaCacheContext = createContext({
       loaded: true,
       error: false,
       timestamp: Date.now(),
+      attempts: 0, // Reset attempts on successful load
     });
   },
   setMediaError: (key: string) => {
@@ -40,10 +41,15 @@ const MediaCacheContext = createContext({
   getMediaStatus: (key: string): MediaCacheEntry | undefined => {
     return globalMediaCache.get(key);
   },
+  // Modified clearMediaError to reset error state and attempts rather than deleting
   clearMediaError: (key: string) => {
     const entry = globalMediaCache.get(key);
-    if (entry?.error) {
-      globalMediaCache.delete(key);
+    if (entry) {
+      globalMediaCache.set(key, {
+        ...entry,
+        error: false,
+        attempts: 0, // Reset attempts when clearing the error
+      });
     }
   },
 });
@@ -60,6 +66,7 @@ export const MediaCacheProvider: React.FC<{ children: React.ReactNode }> = ({
             loaded: true,
             error: false,
             timestamp: Date.now(),
+            attempts: 0,
           });
         },
         setMediaError: (key: string) => {
@@ -84,8 +91,12 @@ export const MediaCacheProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         clearMediaError: (key: string) => {
           const entry = globalMediaCache.get(key);
-          if (entry?.error) {
-            globalMediaCache.delete(key);
+          if (entry) {
+            globalMediaCache.set(key, {
+              ...entry,
+              error: false,
+              attempts: 0,
+            });
           }
         },
       }}
