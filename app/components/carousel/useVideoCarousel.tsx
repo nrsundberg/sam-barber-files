@@ -19,8 +19,6 @@ export interface UseVideoCarouselReturn {
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   loadedVideos: Set<string>; // Expose loaded videos set
   preloadedIndices: Set<number>; // Expose which indices have been preloaded
-  fileErrors: Map<string, { attempts: number; lastAttempt: number }>;
-  permanentlyFailedVideos: Set<string>; // New field to track permanently failed videos
 
   // Actions
   openModal: (objectIndex: number) => void;
@@ -31,8 +29,6 @@ export interface UseVideoCarouselReturn {
   getVideoSourceUrl: (object: Object) => string;
   getPosterUrl: (object: Object) => string | undefined;
   markVideoAsLoaded: (objectKey: string, index: number) => void; // Method to mark videos as loaded
-  markVideoAsError: (objectKey: string, index: number) => void;
-  clearVideoError: (objectKey: string) => void;
 
   // Event handlers
   handleTouchStart: (e: React.TouchEvent) => void;

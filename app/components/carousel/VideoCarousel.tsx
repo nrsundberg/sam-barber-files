@@ -37,7 +37,6 @@ export default function VideoCarousel({
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
-    markVideoAsError,
   } = useVideo;
 
   const mediaCache = useMediaCache();
@@ -129,15 +128,6 @@ export default function VideoCarousel({
       markVideoAsLoaded(fileKey, index);
     }
   };
-
-  // Clean up timeouts when unmounting
-  useEffect(() => {
-    return () => {
-      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
-    };
-  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
