@@ -83,18 +83,6 @@ const SbAccordion: FC<AccordionProps> = ({
     };
   }, [folders]);
 
-  // If initialLoadComplete wasn't set, we'll set readyToLoad after a delay
-  // to give priority to favorites and trending
-  useEffect(() => {
-    if (!initialLoadComplete && !readyToLoad) {
-      const timer = setTimeout(() => {
-        setReadyToLoad(true);
-      }, 1000); // Delay loading accordion content by 1 second
-
-      return () => clearTimeout(timer);
-    }
-  }, [initialLoadComplete, readyToLoad]);
-
   useEffect(() => {
     const updateHeight = () => {
       if (!itemRefs.current.length) return;
