@@ -1,5 +1,5 @@
 import { ChevronLeft, FolderIcon, Grid, List } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import type { FolderWithObjects } from "~/types";
 import { formatBytes, getTotalFolderSize } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -9,7 +9,6 @@ import ObjectRowLayout from "./ObjectRowLayout";
 import ObjectGridLayout from "./ObjectGridLayout";
 import { DisplayStyle } from "@prisma/client";
 import { Switch } from "@heroui/react";
-import { useMediaCache } from "~/contexts/MediaCacheContext";
 
 export interface AccordionItemProps {
   index: number;
@@ -31,11 +30,7 @@ export default function SbAccordionItem({
   readyToLoad = false,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
-  const mediaCache = useMediaCache();
   const [viewMode, setViewMode] = useState<DisplayStyle>(folder.defaultStyle);
-  const [contentLoaded, setContentLoaded] = useState(false);
-  const [hasBeenLoaded, setHasBeenLoaded] = useState(false);
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 });
 
   const useVideo = useVideoCarousel({
     objects: folder.objects,
@@ -119,7 +114,7 @@ export default function SbAccordionItem({
         aria-hidden={!isFolderOpen}
       >
         {/* Once content is loaded (even once), it stays in the DOM */}
-        {(contentLoaded || hasBeenLoaded) && readyToLoad && (
+        {readyToLoad && (
           <>
             {viewMode == "LIST" ? (
               <div className="accordion-content">
@@ -152,7 +147,7 @@ export default function SbAccordionItem({
       </div>
 
       {/* Video carousel is always rendered once loaded, just not visible */}
-      {(contentLoaded || hasBeenLoaded) && readyToLoad && (
+      {readyToLoad && (
         <VideoCarousel
           objects={folder.objects}
           endpoint={endpoint}

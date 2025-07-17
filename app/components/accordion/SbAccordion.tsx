@@ -13,75 +13,10 @@ const SbAccordion: FC<AccordionProps> = ({
   folders,
   allowMultiple = false,
   endpoint,
-  initialLoadComplete = false, // Default to false
 }) => {
   let [extraHeight, setExtraHeight] = useState(150); // Start with 1000px extra
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
   let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  let [readyToLoad, setReadyToLoad] = useState(initialLoadComplete);
-
-  // Track which folders are actually visible in the viewport
-  const [foldersInViewport, setFoldersInViewport] = useState<Set<number>>(
-    new Set()
-  );
-  const viewportObserverRef = useRef<IntersectionObserver | null>(null);
-
-  // Update readyToLoad when initialLoadComplete changes
-  useEffect(() => {
-    if (initialLoadComplete && !readyToLoad) {
-      setReadyToLoad(true);
-    }
-  }, [initialLoadComplete, readyToLoad]);
-
-  // Set up viewport observer to prioritize loading visible folders
-  useEffect(() => {
-    // Clean up previous observer
-    if (viewportObserverRef.current) {
-      viewportObserverRef.current.disconnect();
-    }
-
-    // Create new observer for viewport tracking
-    viewportObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        const newInViewport = new Set<number>(foldersInViewport);
-
-        entries.forEach((entry) => {
-          const index = parseInt(
-            entry.target.getAttribute("data-folder-index") || "-1",
-            10
-          );
-
-          if (index >= 0) {
-            if (entry.isIntersecting) {
-              newInViewport.add(index);
-            } else {
-              newInViewport.delete(index);
-            }
-          }
-        });
-
-        setFoldersInViewport(newInViewport);
-      },
-      {
-        rootMargin: "200px", // Load items that are 200px away from viewport
-        threshold: 0.1, // When at least 10% is visible
-      }
-    );
-
-    // Add observed items
-    if (itemRefs.current.length > 0) {
-      itemRefs.current.forEach((el, index) => {
-        if (el) {
-          el.setAttribute("data-folder-index", index.toString());
-          viewportObserverRef.current?.observe(el);
-        }
-      });
-    }
-
-    return () => {
-      viewportObserverRef.current?.disconnect();
-    };
-  }, [folders]);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -141,18 +76,6 @@ const SbAccordion: FC<AccordionProps> = ({
     itemRefs.current[index] = el;
   };
 
-  // Determine if a folder should be ready to load based on priority
-  const shouldFolderLoad = (index: number) => {
-    // Always allow loading for open folders
-    if (openIndexes.includes(index)) return true;
-
-    // Higher priority: folders that are currently in viewport
-    if (foldersInViewport.has(index)) return true;
-
-    // Base readiness on general readyToLoad state
-    return readyToLoad;
-  };
-
   return (
     <div className="w-full overflow-y-hidden">
       {folders.map((folder, index) => {
@@ -165,7 +88,6 @@ const SbAccordion: FC<AccordionProps> = ({
             onClick={() => toggleItem(index)}
             passRef={passElementRef}
             endpoint={endpoint}
-            readyToLoad={shouldFolderLoad(index)} // Prioritize loading by folder
           />
         );
       })}
