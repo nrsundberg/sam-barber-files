@@ -91,6 +91,8 @@ export default function ({
                 isRow={true}
                 isAdmin={inAdmin}
                 width={width}
+                shouldLoad={shouldLoad}
+                onError={onError}
               />
             </div>
             <p className="ml-2 text-sm truncate min-w-0 flex-1">
