@@ -37,7 +37,6 @@ export default function VideoCarousel({
     loadedVideos,
     preloadedIndices,
     markVideoAsLoaded,
-    markVideoAsError,
   } = useVideo;
 
   const mediaCache = useMediaCache();
@@ -45,7 +44,6 @@ export default function VideoCarousel({
   const [localLoadedKeys, setLocalLoadedKeys] = useState<Set<string>>(
     new Set()
   );
-  const mediaRetryTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Define which media items should be preloaded based on current position
   const mediaToPreload = useMemo(() => {
@@ -130,49 +128,6 @@ export default function VideoCarousel({
       markVideoAsLoaded(fileKey, index);
     }
   };
-
-  // Handle media error event
-  const handleMediaError = (
-    index: number,
-    fileKey: string,
-    cacheKey: string
-  ) => {
-    // Update global cache
-    mediaCache.setMediaError(cacheKey);
-
-    // Also notify the global error tracking
-    markVideoAsError(fileKey, index);
-
-    // Clear any existing timeout for this item
-    if (mediaRetryTimeouts.current[fileKey]) {
-      clearTimeout(mediaRetryTimeouts.current[fileKey]);
-    }
-
-    // Schedule a retry with exponential backoff
-    const cacheStatus = mediaCache.getMediaStatus(cacheKey);
-    const attempts = cacheStatus?.attempts || 0;
-    const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
-
-    if (attempts < 5) {
-      mediaRetryTimeouts.current[fileKey] = setTimeout(() => {
-        mediaCache.clearMediaError(cacheKey);
-        setLocalLoadedKeys((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(fileKey);
-          return newSet;
-        });
-      }, delay);
-    }
-  };
-
-  // Clean up timeouts when unmounting
-  useEffect(() => {
-    return () => {
-      Object.values(mediaRetryTimeouts.current).forEach((timeoutId) => {
-        clearTimeout(timeoutId);
-      });
-    };
-  }, []);
 
   // No need to render modal if it's not open
   if (!isOpen) return null;
@@ -271,9 +226,12 @@ export default function VideoCarousel({
                               isLocked ? "blur-sm opacity-40" : ""
                             }`}
                             preload={
-                              shouldPreload && (shouldRetry || !hasErrorInCache)
-                                ? "auto"
-                                : "none"
+                              isCurrentMedia
+                                ? shouldPreload &&
+                                  (shouldRetry || !hasErrorInCache)
+                                  ? "auto"
+                                  : "none"
+                                : "metadata"
                             }
                             crossOrigin="anonymous"
                             onLoadedMetadata={() => {
@@ -287,9 +245,6 @@ export default function VideoCarousel({
                                 });
                               }
                             }}
-                            onError={() =>
-                              handleMediaError(index, fileKey, cacheKey)
-                            }
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
                           {isLocked && isCurrentMedia && (
@@ -312,14 +267,6 @@ export default function VideoCarousel({
                                 onLoad={() =>
                                   shouldPreload &&
                                   handleMediaLoaded(
-                                    index,
-                                    fileKey,
-                                    videoSources[index].posterCacheKey ||
-                                      cacheKey
-                                  )
-                                }
-                                onError={() =>
-                                  handleMediaError(
                                     index,
                                     fileKey,
                                     videoSources[index].posterCacheKey ||
@@ -364,9 +311,6 @@ export default function VideoCarousel({
                             onLoadedMetadata={() =>
                               handleMediaLoaded(index, fileKey, cacheKey)
                             }
-                            onError={() =>
-                              handleMediaError(index, fileKey, cacheKey)
-                            }
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
                         </div>
@@ -378,9 +322,6 @@ export default function VideoCarousel({
                               isLocked ? "blur-sm opacity-40" : ""
                             }`}
                             crossOrigin="anonymous"
-                            onError={() =>
-                              handleMediaError(index, fileKey, cacheKey)
-                            }
                             style={{ display: shouldRender ? "block" : "none" }}
                           />
                           {isLocked && isCurrentMedia && (
