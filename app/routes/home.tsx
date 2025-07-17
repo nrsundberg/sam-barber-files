@@ -3,7 +3,7 @@ import prisma from "~/db.server";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
-import { useState } from "react";
+import { useMemo } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 import { data } from "react-router";
@@ -22,13 +22,6 @@ export function meta() {
   ];
 }
 
-// export function scripts() {
-//   return [
-//     <script src="https://embed.laylo.com/laylo-sdk.js"></script>
-//   ]
-// }
-
-// NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
 export async function loader({}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
@@ -63,45 +56,49 @@ export async function loader({}: Route.LoaderArgs) {
 
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint] = loaderData;
-  let [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Memoize data to prevent unnecessary re-renders
+  const memoizedFavorites = useMemo(() => favorites, [favorites]);
+  const memoizedTrending = useMemo(() => trending, [trending]);
+  const memoizedFolders = useMemo(() => folders, [folders]);
 
   const useVideoFavorites = useVideoCarousel({
-    objects: favorites,
+    objects: memoizedFavorites,
     endpoint: cdnEndpoint,
   });
 
   const useVideoTrending = useVideoCarousel({
-    objects: trending,
+    objects: memoizedTrending,
     endpoint: cdnEndpoint,
   });
 
   return (
     <div className="min-h-screen mt-1">
       <div className={"mb-1 md:mb-4"}>
-        {favorites.length > 0 && (
+        {memoizedFavorites.length > 0 && (
           <HorizontalCarousel
             title="FAVORITES"
-            objects={favorites}
+            objects={memoizedFavorites}
             endpoint={cdnEndpoint}
             onItemClick={(index) => useVideoFavorites.openModal(index)}
           />
         )}
         <VideoCarousel
-          objects={favorites}
+          objects={memoizedFavorites}
           endpoint={cdnEndpoint}
           useVideo={useVideoFavorites}
         />
 
-        {trending.length > 0 && (
+        {memoizedTrending.length > 0 && (
           <HorizontalCarousel
             title="TRENDING"
-            objects={trending}
+            objects={memoizedTrending}
             endpoint={cdnEndpoint}
             onItemClick={(index) => useVideoTrending.openModal(index)}
           />
         )}
         <VideoCarousel
-          objects={trending}
+          objects={memoizedTrending}
           endpoint={cdnEndpoint}
           useVideo={useVideoTrending}
         />
@@ -114,30 +111,11 @@ export default function ({ loaderData }: Route.ComponentProps) {
         <p className="hidden sm:block text-center">TYPE</p>
       </div>
 
-      {/* Only pass initialLoadComplete to ensure accordions load after favorites/trending */}
       <SbAccordion
-        folders={folders}
+        folders={memoizedFolders}
         endpoint={cdnEndpoint}
         allowMultiple
-        initialLoadComplete={initialLoadComplete}
       />
-      {/* <div style={{ backgroundColor: "black" }}>
-        <iframe
-          id="laylo-drop-pIGZH"
-          frameBorder="0"
-          allowTransparency
-          style={{
-            width: "1px",
-            minWidth: "100%",
-            // maxWidth: "1000px",
-            // height: "600px", // Must set a height!
-            border: "none", // Optional for visual polish
-            overflow: "hidden",
-            backgroundColor: "black",
-          }}
-          src="https://embed.laylo.com?dropId=pIGZH&color=0c0c0c&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
-        />
-      </div> */}
     </div>
   );
 }

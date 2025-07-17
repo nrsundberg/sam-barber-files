@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useRef, useEffect, useState } from "react";
 import type { Object } from "@prisma/client";
 import { AudioLines, Lock } from "lucide-react";
-import { useMediaCache } from "~/contexts/MediaCacheContext";
 
-export function Thumbnail({
+export const Thumbnail = memo(function Thumbnail({
   object,
   endpoint,
   onClick,
@@ -20,57 +19,17 @@ export function Thumbnail({
   width?: number;
   isAdmin?: boolean;
 }) {
-  const mediaCache = useMediaCache();
-  const [isTallMedia, setIsTallMedia] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // For audio files, we don't need to load images
-  const isAudioFile = object.kind === "AUDIO";
-
-  // Generate cache keys for this object
   const thumbnailKey = object.posterKey || object.s3fileKey;
-  const cacheKey = `${endpoint}${thumbnailKey}`;
-
-  // Check cache status (skip for audio files)
-  const cacheStatus = isAudioFile
-    ? undefined
-    : mediaCache.getMediaStatus(cacheKey);
-
-  const [hasError, setHasError] = useState(
-    isAudioFile ? false : cacheStatus?.error === true
-  );
-
-  // Function to determine if media is extremely tall/vertical
-  const isExtremelyTall = (width: number, height: number) => {
-    return width / height < 0.6;
-  };
-
-  // Handle successful load
-  const handleLoad = (
-    e: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>
-  ) => {
-    const element = e.target as HTMLImageElement | HTMLVideoElement;
-
-    if (element instanceof HTMLImageElement) {
-      setIsTallMedia(
-        isExtremelyTall(element.naturalWidth, element.naturalHeight)
-      );
-    } else if (element instanceof HTMLVideoElement) {
-      setIsTallMedia(isExtremelyTall(element.videoWidth, element.videoHeight));
-    }
-
-    setHasError(false);
-    // Update global cache
-    mediaCache.setMediaLoaded(cacheKey);
-  };
-
-  // Determine what to render and when to trigger a load attempt
-  const shouldShowError = !isAudioFile && hasError;
-
-  // Generate the media URLs
   const mediaUrl = endpoint + thumbnailKey;
-  const posterUrl = object.posterKey ? endpoint + object.posterKey : undefined;
+  const posterUrl = object.posterKey
+    ? endpoint + object.posterKey
+    : object.kind === "VIDEO"
+      ? undefined // prevent fallback to .mov
+      : endpoint + object.s3fileKey;
 
-  // Calculate container classes
   const containerClasses = isRow
     ? `${isAdmin ? "w-16 h-16" : "w-24 h-24"} flex-shrink-0 relative`
     : "w-full h-full flex items-center justify-center relative";
@@ -79,135 +38,108 @@ export function Thumbnail({
     ? "w-full h-full flex items-center justify-center overflow-hidden relative"
     : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
 
+  const handleLoad = () => {
+    setIsLoaded(true);
+  };
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      if (imgRef.current.naturalWidth > 0) {
+        handleLoad();
+      }
+    }
+  }, [posterUrl, mediaUrl]);
+
+  const renderImg = (src: string, alt: string, blurOpacity: string) => (
+    <img
+      ref={imgRef}
+      src={src}
+      height={height}
+      width={width}
+      alt={alt}
+      onLoad={handleLoad}
+      className={`
+        object-contain max-h-full max-w-full
+        ${object.isLocked ? blurOpacity : ""}
+        ${isLoaded ? "opacity-100" : "opacity-100"}
+        transition-opacity duration-300
+      `}
+    />
+  );
+
   return (
     <div className={containerClasses} onClick={onClick}>
-      {!shouldShowError && (
-        <>
-          {object.posterKey ? (
-            <div className={mediaContainerClasses}>
-              <div
-                className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
-              >
-                <img
-                  src={posterUrl}
-                  height={height}
-                  width={width}
-                  className={`
-                    ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                    ${object.isLocked ? "blur-sm opacity-70" : ""}
-                    // IDK
-                    ${"opacity-100"}
-                    transition-opacity duration-300
-                  `}
-                  loading="lazy"
-                  onLoad={handleLoad}
-                  alt={object.fileName || "thumbnail"}
-                />
-                {object.isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                    <Lock className="text-white w-8 h-8 drop-shadow-md" />
-                  </div>
-                )}
+      <div className={mediaContainerClasses}>
+        {object.posterKey ? (
+          <div className="w-full h-full relative bg-black flex items-center justify-center">
+            {renderImg(
+              posterUrl!,
+              object.fileName || "thumbnail",
+              "blur-sm opacity-70"
+            )}
+            {object.isLocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                <Lock className="text-white w-8 h-8 drop-shadow-md" />
               </div>
-            </div>
-          ) : (
-            <div className={mediaContainerClasses}>
-              {object.kind === "AUDIO" ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  <AudioLines className="text-gray-400 w-12 h-12" />
-                  {object.isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
-                    </div>
-                  )}
-                </div>
-              ) : object.kind === "PHOTO" ? (
-                <div
-                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
-                >
-                  <img
-                    src={mediaUrl}
-                    loading="lazy"
-                    width={width}
-                    height={height}
-                    className={`
-                      ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                      ${object.isLocked ? "blur-sm opacity-40" : ""}
-                       // IDK
-                    ${"opacity-100"}
-                      transition-opacity duration-300
-                    `}
-                    onLoad={handleLoad}
-                    alt={object.fileName || "photo"}
-                  />
-                  {object.isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Video thumbnail
-                <div
-                  className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
-                >
-                  {object.posterKey ? (
-                    <img
-                      src={posterUrl}
-                      loading="lazy"
-                      width={width}
-                      height={height}
-                      className={`
-                        ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                        ${object.isLocked ? "blur-sm opacity-40" : ""}
-                           // IDK
-                    ${"opacity-100"}
-                        transition-opacity duration-300
-                      `}
-                      onLoad={handleLoad}
-                      alt={object.fileName || "video thumbnail"}
-                    />
-                  ) : (
-                    <video
-                      preload="metadata"
-                      className={`
-                        ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
-                        ${object.isLocked ? "blur-sm opacity-40" : ""}
-                        // IDK
-                    ${"opacity-100"}
-                        transition-opacity duration-300
-                      `}
-                      muted
-                      disablePictureInPicture
-                      disableRemotePlayback
-                      onLoadedMetadata={handleLoad}
-                      src={mediaUrl}
-                    ></video>
-                  )}
-                  {object.isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-20">
-                      <Lock className="text-white w-8 h-8 drop-shadow-md" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </div>
+        ) : object.kind === "AUDIO" ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <AudioLines className="text-gray-400 w-12 h-12" />
+            {object.isLocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                <Lock className="text-white w-8 h-8 drop-shadow-md" />
+              </div>
+            )}
+          </div>
+        ) : object.kind === "PHOTO" ? (
+          <div className="w-full h-full relative bg-black flex items-center justify-center">
+            {renderImg(
+              mediaUrl,
+              object.fileName || "photo",
+              "blur-sm opacity-40"
+            )}
+            {object.isLocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                <Lock className="text-white w-8 h-8 drop-shadow-md" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-full relative bg-black flex items-center justify-center">
+            {object.posterKey ? (
+              <>
+                {renderImg(
+                  posterUrl!,
+                  object.fileName || "video thumbnail",
+                  "blur-sm opacity-40"
+                )}
+              </>
+            ) : (
+              <video
+                preload="metadata"
+                className={`
+                  object-contain max-h-full max-w-full
+                  ${object.isLocked ? "blur-sm opacity-40" : ""}
+                  opacity-100 transition-opacity duration-300
+                `}
+                muted
+                disablePictureInPicture
+                disableRemotePlayback
+              >
+                <source src={mediaUrl} />
+              </video>
+            )}
+            {object.isLocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-opacity-20">
+                <Lock className="text-white w-8 h-8 drop-shadow-md" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-      {!isAudioFile && shouldShowError && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
-          {shouldShowError ? (
-            <div className="text-gray-400 text-xs text-center">
-              <span className="block">Error</span>
-              <span className="block">Loading</span>
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
-          )}
-        </div>
-      )}
+      {/* Optional: you could show a spinner or fallback for not-yet-loaded images */}
     </div>
   );
-}
+});

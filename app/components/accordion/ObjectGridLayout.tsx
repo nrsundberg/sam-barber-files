@@ -4,8 +4,9 @@ import { EyeOffIcon } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import { memo } from "react";
 
-export default function ({
+const ObjectGridLayout = memo(function ObjectGridLayout({
   object,
   onClick,
   endpoint,
@@ -89,4 +90,6 @@ export default function ({
       </div>
     </div>
   );
-}
+});
+
+export default ObjectGridLayout;
