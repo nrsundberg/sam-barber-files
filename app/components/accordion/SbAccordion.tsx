@@ -16,6 +16,7 @@ const SbAccordion: FC<AccordionProps> = ({
 }) => {
   let [extraHeight, setExtraHeight] = useState(150); // Start with 1000px extra
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
+  let [loadedIndexes, setLoadedIndexes] = useState<number[]>([]); // Track which items have been loaded
   let itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -56,6 +57,11 @@ const SbAccordion: FC<AccordionProps> = ({
           : [index];
 
       if (!isAlreadyOpen) {
+        // Mark this item as loaded when it's opened for the first time
+        setLoadedIndexes((prevLoaded) =>
+          prevLoaded.includes(index) ? prevLoaded : [...prevLoaded, index]
+        );
+
         requestAnimationFrame(() => {
           if (itemRefs.current[index]) {
             const item = itemRefs.current[index];
@@ -88,6 +94,7 @@ const SbAccordion: FC<AccordionProps> = ({
             onClick={() => toggleItem(index)}
             passRef={passElementRef}
             endpoint={endpoint}
+            readyToLoad={loadedIndexes.includes(index)} // Pass readyToLoad based on whether it's been opened
           />
         );
       })}
