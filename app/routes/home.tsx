@@ -75,18 +75,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
     endpoint: cdnEndpoint,
   });
 
-  // Flag to prioritize loading favorites and trending first
-  useEffect(() => {
-    if (!initialLoadComplete) {
-      // Set a small timeout to ensure the page has rendered first
-      const timer = setTimeout(() => {
-        setInitialLoadComplete(true);
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
   return (
     <div className="min-h-screen mt-1">
       <div className={"mb-1 md:mb-4"}>

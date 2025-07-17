@@ -46,76 +46,6 @@ export default function SbAccordionItem({
     setViewMode(view);
   };
 
-  // Load content when folder is open for the first time and app is ready
-  useEffect(() => {
-    if (isFolderOpen && !contentLoaded && readyToLoad) {
-      setContentLoaded(true);
-      setHasBeenLoaded(true);
-
-      // Calculate how many items to load initially based on folder size
-      const initialCount =
-        folder.objects.length > 50 ? 15 : Math.min(folder.objects.length, 25);
-      setVisibleRange({ start: 0, end: initialCount - 1 });
-    }
-  }, [isFolderOpen, contentLoaded, readyToLoad, folder.objects.length]);
-
-  // Set up scroll event listener to load more content as user scrolls
-  useEffect(() => {
-    if (!isFolderOpen || !contentLoaded) return;
-
-    const handleScroll = () => {
-      // Check if we're nearing the end of currently loaded items
-      if (parentRef.current) {
-        const scrollPosition = window.scrollY + window.innerHeight;
-        const parentBottom =
-          parentRef.current.getBoundingClientRect().bottom + window.scrollY;
-
-        // If we're within 1000px of the bottom of our current range, load more items
-        if (scrollPosition > parentBottom - 1000) {
-          setVisibleRange((prev) => {
-            const newEnd = Math.min(prev.end + 10, folder.objects.length - 1);
-            return { ...prev, end: newEnd };
-          });
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFolderOpen, contentLoaded, folder.objects.length]);
-
-  // Handle load error from child components
-  const handleLoadError = (objectId: string) => {
-    // Generate cache key for this object
-    const object = folder.objects.find((obj) => obj.id === objectId);
-    if (!object) return;
-
-    const thumbnailKey = object.posterKey || object.s3fileKey;
-    const cacheKey = `${endpoint}${thumbnailKey}`;
-
-    // The error is already tracked in the global cache by the Thumbnail component
-    // We just need to check if we should show the item based on retry attempts
-    const cacheStatus = mediaCache.getMediaStatus(cacheKey);
-
-    // The MediaCache and Thumbnail component handle retry logic automatically
-    // No need to duplicate that logic here
-  };
-
-  // Check if thumbnail should be loaded based on cache status
-  const shouldLoadThumbnail = (index: number, objectId: string) => {
-    // Always load all thumbnails for list view (they're smaller)
-    if (viewMode === DisplayStyle.LIST) return true;
-
-    // For grid view, check if within visible range
-    return index <= visibleRange.end;
-  };
-
-  // Calculate which items should be rendered
-  const itemsToRender =
-    isFolderOpen && contentLoaded
-      ? folder.objects.slice(0, visibleRange.end + 1)
-      : [];
-
   return (
     <div
       key={folder.id}
@@ -193,7 +123,7 @@ export default function SbAccordionItem({
           <>
             {viewMode == "LIST" ? (
               <div className="accordion-content">
-                {itemsToRender.map((object, objectIndex) => (
+                {folder.objects.map((object, objectIndex) => (
                   <ObjectRowLayout
                     key={object.id}
                     inAdmin={false}
@@ -202,21 +132,17 @@ export default function SbAccordionItem({
                     isLast={objectIndex === folder.objects.length - 1}
                     endpoint={endpoint}
                     width={200}
-                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
-                    onError={() => handleLoadError(object.id)}
                   />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 accordion-content">
-                {itemsToRender.map((object, objectIndex) => (
+                {folder.objects.map((object, objectIndex) => (
                   <ObjectGridLayout
                     key={object.id}
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}
                     endpoint={endpoint}
-                    shouldLoad={shouldLoadThumbnail(objectIndex, object.id)}
-                    onError={() => handleLoadError(object.id)}
                   />
                 ))}
               </div>

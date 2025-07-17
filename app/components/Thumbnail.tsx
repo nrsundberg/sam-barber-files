@@ -11,8 +11,6 @@ export function Thumbnail({
   height,
   width,
   isAdmin = false,
-  shouldLoad = false,
-  onError,
 }: {
   object: Object;
   endpoint: string;
@@ -21,16 +19,11 @@ export function Thumbnail({
   height?: number;
   width?: number;
   isAdmin?: boolean;
-  shouldLoad?: boolean;
-  onError?: () => void;
 }) {
   const mediaCache = useMediaCache();
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isTallMedia, setIsTallMedia] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const elementRef = useRef<HTMLDivElement>(null);
-
   // New state to track if we've initiated a load attempt for the current media
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
 
@@ -53,10 +46,8 @@ export function Thumbnail({
   useEffect(() => {
     if (isAudioFile || isInCache) {
       setIsLoaded(true);
-      setHasError(false);
       setHasAttemptedLoad(true); // Mark as attempted if already in cache
     } else if (isCacheError) {
-      setHasError(true);
       setIsLoaded(false);
       setHasAttemptedLoad(true); // Mark as attempted even on error limit
     } else {
@@ -64,24 +55,6 @@ export function Thumbnail({
       setHasAttemptedLoad(false);
     }
   }, [isAudioFile, isInCache, isCacheError, cacheAttempts]);
-
-  // Setup intersection observer for lazy loading (skip for audio)
-  useEffect(() => {
-    if (!elementRef.current || !shouldLoad || isInCache || isAudioFile) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" } // Start loading 100px before visible
-    );
-
-    observer.observe(elementRef.current);
-    return () => observer.disconnect();
-  }, [shouldLoad, isInCache, isAudioFile]);
 
   // Function to determine if media is extremely tall/vertical
   const isExtremelyTall = (width: number, height: number) => {
@@ -110,24 +83,7 @@ export function Thumbnail({
     mediaCache.setMediaLoaded(cacheKey);
   };
 
-  // Handle load error
-  const handleError = () => {
-    setHasError(true);
-    setIsLoaded(false);
-    setHasAttemptedLoad(true); // Mark as attempted even on error
-
-    // Update global cache
-    mediaCache.setMediaError(cacheKey);
-
-    // Call parent error handler
-    if (onError) {
-      onError();
-    }
-  };
-
   // Determine what to render and when to trigger a load attempt
-  const shouldRenderMediaContent =
-    isAudioFile || (shouldLoad && (isVisible || isInCache)) || isInCache;
   const shouldShowError = !isAudioFile && hasError;
 
   // Generate the media URLs
@@ -136,18 +92,9 @@ export function Thumbnail({
 
   // Only set src if we need to actually attempt a load and haven't already
   const mediaSrc =
-    shouldRenderMediaContent &&
-    !shouldShowError &&
-    !hasAttemptedLoad &&
-    !isInCache
-      ? mediaUrl
-      : undefined;
+    !shouldShowError && !hasAttemptedLoad && !isInCache ? mediaUrl : undefined;
   const posterSrc =
-    shouldRenderMediaContent &&
-    !shouldShowError &&
-    !hasAttemptedLoad &&
-    !isInCache &&
-    object.posterKey
+    !shouldShowError && !hasAttemptedLoad && !isInCache && object.posterKey
       ? posterUrl
       : undefined;
 
@@ -161,8 +108,8 @@ export function Thumbnail({
     : "aspect-video w-full h-full flex items-center justify-center overflow-hidden relative";
 
   return (
-    <div ref={elementRef} className={containerClasses} onClick={onClick}>
-      {shouldRenderMediaContent && !shouldShowError && (
+    <div className={containerClasses} onClick={onClick}>
+      {!shouldShowError && (
         <>
           {object.posterKey ? (
             <div className={mediaContainerClasses}>
@@ -181,7 +128,6 @@ export function Thumbnail({
                   `}
                   loading="lazy"
                   onLoad={handleLoad}
-                  onError={handleError}
                   alt={object.fileName || "thumbnail"}
                 />
                 {object.isLocked && (
@@ -218,7 +164,6 @@ export function Thumbnail({
                       transition-opacity duration-300
                     `}
                     onLoad={handleLoad}
-                    onError={handleError}
                     alt={object.fileName || "photo"}
                   />
                   {object.isLocked && (
@@ -245,7 +190,6 @@ export function Thumbnail({
                         transition-opacity duration-300
                       `}
                       onLoad={handleLoad}
-                      onError={handleError}
                       alt={object.fileName || "video thumbnail"}
                     />
                   ) : (
@@ -261,7 +205,6 @@ export function Thumbnail({
                       disablePictureInPicture
                       disableRemotePlayback
                       onLoadedMetadata={handleLoad}
-                      onError={handleError}
                       src={isInCache ? mediaUrl : mediaSrc}
                     ></video>
                   )}
@@ -277,20 +220,18 @@ export function Thumbnail({
         </>
       )}
 
-      {!isAudioFile &&
-        (!isLoaded || shouldShowError) &&
-        shouldRenderMediaContent && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
-            {shouldShowError ? (
-              <div className="text-gray-400 text-xs text-center">
-                <span className="block">Error</span>
-                <span className="block">Loading</span>
-              </div>
-            ) : (
-              <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
-            )}
-          </div>
-        )}
+      {!isAudioFile && (!isLoaded || shouldShowError) && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
+          {shouldShowError ? (
+            <div className="text-gray-400 text-xs text-center">
+              <span className="block">Error</span>
+              <span className="block">Loading</span>
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin" />
+          )}
+        </div>
+      )}
     </div>
   );
 }

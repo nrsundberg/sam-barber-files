@@ -10,15 +10,11 @@ export default function ({
   onClick,
   endpoint,
   width,
-  shouldLoad = false,
-  onError,
 }: {
   object: Object;
   onClick?: () => void;
   endpoint: string;
   width?: number;
-  shouldLoad?: boolean;
-  onError?: () => void;
 }) {
   return (
     <div
@@ -36,8 +32,6 @@ export default function ({
           endpoint={endpoint}
           isRow={false}
           width={width}
-          shouldLoad={shouldLoad}
-          onError={onError}
         />
 
         {object.hidden && (
