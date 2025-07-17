@@ -1,11 +1,9 @@
 import type { Route } from "./+types/positioning";
-import { listS3Objects } from "~/s3.server";
 import { getUserAndProtectRoute } from "~/utils.server";
 import prisma from "~/db.server";
 import { dataWithError, dataWithSuccess } from "remix-toast";
-import OrphanedDbObjects from "~/components/s3/OrphanedObjects";
 import { useState, useEffect } from "react";
-import { data, useSubmit } from "react-router";
+import { useSubmit } from "react-router";
 import {
   arrayMove,
   SortableContext,

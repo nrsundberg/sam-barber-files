@@ -3,7 +3,7 @@ import prisma from "~/db.server";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 import { data } from "react-router";
