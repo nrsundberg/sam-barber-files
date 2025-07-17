@@ -72,58 +72,64 @@ export default function ({ loaderData }: Route.ComponentProps) {
   });
 
   return (
-    <div className="min-h-screen mt-1">
-      <div className={"mb-1 md:mb-4"}>
-        {memoizedFavorites.length > 0 && (
-          <HorizontalCarousel
-            title="FAVORITES"
+    <div className="min-h-fit mt-1 flex flex-col">
+      <div className="flex-1">
+        <div className={"mb-1 md:mb-4"}>
+          {memoizedFavorites.length > 0 && (
+            <HorizontalCarousel
+              title="FAVORITES"
+              objects={memoizedFavorites}
+              endpoint={cdnEndpoint}
+              onItemClick={(index) => useVideoFavorites.openModal(index)}
+            />
+          )}
+          <VideoCarousel
             objects={memoizedFavorites}
             endpoint={cdnEndpoint}
-            onItemClick={(index) => useVideoFavorites.openModal(index)}
+            useVideo={useVideoFavorites}
           />
-        )}
-        <VideoCarousel
-          objects={memoizedFavorites}
-          endpoint={cdnEndpoint}
-          useVideo={useVideoFavorites}
-        />
 
-        {memoizedTrending.length > 0 && (
-          <HorizontalCarousel
-            title="TRENDING"
+          {memoizedTrending.length > 0 && (
+            <HorizontalCarousel
+              title="TRENDING"
+              objects={memoizedTrending}
+              endpoint={cdnEndpoint}
+              onItemClick={(index) => useVideoTrending.openModal(index)}
+            />
+          )}
+          <VideoCarousel
             objects={memoizedTrending}
             endpoint={cdnEndpoint}
-            onItemClick={(index) => useVideoTrending.openModal(index)}
+            useVideo={useVideoTrending}
           />
-        )}
-        <VideoCarousel
-          objects={memoizedTrending}
+        </div>
+
+        <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr]">
+          <p className="pl-[65px] text-start">NAME</p>
+          <p className="text-center">UPLOADED</p>
+          <p className="hidden sm:block text-center">SIZE</p>
+          <p className="hidden sm:block text-center">TYPE</p>
+        </div>
+
+        <SbAccordion
+          folders={memoizedFolders}
           endpoint={cdnEndpoint}
-          useVideo={useVideoTrending}
+          allowMultiple
         />
       </div>
 
-      <div className="w-full text-sm md:text-large px-1 md:px-4 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_.5fr_.5fr]">
-        <p className="pl-[65px] text-start">NAME</p>
-        <p className="text-center">UPLOADED</p>
-        <p className="hidden sm:block text-center">SIZE</p>
-        <p className="hidden sm:block text-center">TYPE</p>
-      </div>
-
-      <SbAccordion
-        folders={memoizedFolders}
-        endpoint={cdnEndpoint}
-        allowMultiple
-      />
-      {/* <iframe
-        id="laylo-drop-pIGZH"
-        frameBorder="0"
-        scrolling="no"
-        allow="web-share"
-        allowTransparency={true}
-        style={{ width: "1px", minWidth: "100%", maxWidth: "1000px" }}
-        src="https://embed.laylo.com?dropId=pIGZH&color=0c0c0c&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
-      ></iframe> */}
+      <footer className="mt-auto items-center">
+        <iframe
+          id="laylo-drop-pIGZH"
+          frameborder="0"
+          scrolling="no"
+          allow="web-share"
+          allowtransparency="true"
+          className="max-w-[1000px]"
+          style={{ width: "1px", maxWidth: "1000px", minWidth: "100%" }}
+          src="https://embed.laylo.com?dropId=pIGZH&color=0000ff&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
+        ></iframe>
+      </footer>
     </div>
   );
 }

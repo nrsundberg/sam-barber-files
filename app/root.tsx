@@ -55,11 +55,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        {/* <script
+        <script
           src="https://embed.laylo.com/laylo-sdk.js"
           crossOrigin="anonymous"
           async
-        /> */}
+        />
       </head>
       <body className="text-xs md:text-medium">
         <HeroUIProvider>
