@@ -21,11 +21,7 @@ export function Thumbnail({
   isAdmin?: boolean;
 }) {
   const mediaCache = useMediaCache();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
   const [isTallMedia, setIsTallMedia] = useState(false);
-  // New state to track if we've initiated a load attempt for the current media
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
 
   // For audio files, we don't need to load images
   const isAudioFile = object.kind === "AUDIO";
@@ -38,23 +34,10 @@ export function Thumbnail({
   const cacheStatus = isAudioFile
     ? undefined
     : mediaCache.getMediaStatus(cacheKey);
-  const isInCache = isAudioFile ? true : cacheStatus?.loaded === true;
-  const isCacheError = isAudioFile ? false : cacheStatus?.error === true;
-  const cacheAttempts = cacheStatus?.attempts || 0;
 
-  // Initialize from cache
-  useEffect(() => {
-    if (isAudioFile || isInCache) {
-      setIsLoaded(true);
-      setHasAttemptedLoad(true); // Mark as attempted if already in cache
-    } else if (isCacheError) {
-      setIsLoaded(false);
-      setHasAttemptedLoad(true); // Mark as attempted even on error limit
-    } else {
-      // Reset attempted load state if not in cache and not permanently errored
-      setHasAttemptedLoad(false);
-    }
-  }, [isAudioFile, isInCache, isCacheError, cacheAttempts]);
+  const [hasError, setHasError] = useState(
+    isAudioFile ? false : cacheStatus?.error === true
+  );
 
   // Function to determine if media is extremely tall/vertical
   const isExtremelyTall = (width: number, height: number) => {
@@ -75,10 +58,7 @@ export function Thumbnail({
       setIsTallMedia(isExtremelyTall(element.videoWidth, element.videoHeight));
     }
 
-    setIsLoaded(true);
     setHasError(false);
-    setHasAttemptedLoad(true); // Successfully loaded, mark as attempted
-
     // Update global cache
     mediaCache.setMediaLoaded(cacheKey);
   };
@@ -89,14 +69,6 @@ export function Thumbnail({
   // Generate the media URLs
   const mediaUrl = endpoint + thumbnailKey;
   const posterUrl = object.posterKey ? endpoint + object.posterKey : undefined;
-
-  // Only set src if we need to actually attempt a load and haven't already
-  const mediaSrc =
-    !shouldShowError && !hasAttemptedLoad && !isInCache ? mediaUrl : undefined;
-  const posterSrc =
-    !shouldShowError && !hasAttemptedLoad && !isInCache && object.posterKey
-      ? posterUrl
-      : undefined;
 
   // Calculate container classes
   const containerClasses = isRow
@@ -117,13 +89,14 @@ export function Thumbnail({
                 className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
               >
                 <img
-                  src={isInCache ? posterUrl : posterSrc}
+                  src={posterUrl}
                   height={height}
                   width={width}
                   className={`
                     ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                     ${object.isLocked ? "blur-sm opacity-70" : ""}
-                    ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                    // IDK
+                    ${"opacity-100"}
                     transition-opacity duration-300
                   `}
                   loading="lazy"
@@ -153,14 +126,15 @@ export function Thumbnail({
                   className={`w-full h-full relative ${isTallMedia ? "bg-black flex items-center justify-center" : ""}`}
                 >
                   <img
-                    src={isInCache ? mediaUrl : mediaSrc}
+                    src={mediaUrl}
                     loading="lazy"
                     width={width}
                     height={height}
                     className={`
                       ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                       ${object.isLocked ? "blur-sm opacity-40" : ""}
-                      ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                       // IDK
+                    ${"opacity-100"}
                       transition-opacity duration-300
                     `}
                     onLoad={handleLoad}
@@ -179,14 +153,15 @@ export function Thumbnail({
                 >
                   {object.posterKey ? (
                     <img
-                      src={isInCache ? posterUrl : posterSrc}
+                      src={posterUrl}
                       loading="lazy"
                       width={width}
                       height={height}
                       className={`
                         ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                         ${object.isLocked ? "blur-sm opacity-40" : ""}
-                        ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                           // IDK
+                    ${"opacity-100"}
                         transition-opacity duration-300
                       `}
                       onLoad={handleLoad}
@@ -198,14 +173,15 @@ export function Thumbnail({
                       className={`
                         ${isTallMedia ? "object-contain max-h-full max-w-full" : "object-cover absolute inset-0 w-full h-full"}
                         ${object.isLocked ? "blur-sm opacity-40" : ""}
-                        ${!isLoaded && !isInCache ? "opacity-0" : "opacity-100"}
+                        // IDK
+                    ${"opacity-100"}
                         transition-opacity duration-300
                       `}
                       muted
                       disablePictureInPicture
                       disableRemotePlayback
                       onLoadedMetadata={handleLoad}
-                      src={isInCache ? mediaUrl : mediaSrc}
+                      src={mediaUrl}
                     ></video>
                   )}
                   {object.isLocked && (
@@ -220,7 +196,7 @@ export function Thumbnail({
         </>
       )}
 
-      {!isAudioFile && (!isLoaded || shouldShowError) && (
+      {!isAudioFile && shouldShowError && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
           {shouldShowError ? (
             <div className="text-gray-400 text-xs text-center">
