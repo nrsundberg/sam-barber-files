@@ -4,21 +4,18 @@ import { EyeOffIcon } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import { memo } from "react";
 
-export default function ({
+const ObjectGridLayout = memo(function ObjectGridLayout({
   object,
   onClick,
   endpoint,
   width,
-  shouldLoad = false,
-  onError,
 }: {
   object: Object;
   onClick?: () => void;
   endpoint: string;
   width?: number;
-  shouldLoad?: boolean;
-  onError?: () => void;
 }) {
   return (
     <div
@@ -36,8 +33,6 @@ export default function ({
           endpoint={endpoint}
           isRow={false}
           width={width}
-          shouldLoad={shouldLoad}
-          onError={onError}
         />
 
         {object.hidden && (
@@ -95,4 +90,6 @@ export default function ({
       </div>
     </div>
   );
-}
+});
+
+export default ObjectGridLayout;
