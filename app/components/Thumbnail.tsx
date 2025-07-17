@@ -57,6 +57,7 @@ export const Thumbnail = memo(function Thumbnail({
       height={height}
       width={width}
       alt={alt}
+      // loading="lazy"
       onLoad={handleLoad}
       className={`
         object-contain max-h-full max-w-full

@@ -116,6 +116,15 @@ export default function ({ loaderData }: Route.ComponentProps) {
         endpoint={cdnEndpoint}
         allowMultiple
       />
+      {/* <iframe
+        id="laylo-drop-pIGZH"
+        frameBorder="0"
+        scrolling="no"
+        allow="web-share"
+        allowTransparency={true}
+        style={{ width: "1px", minWidth: "100%", maxWidth: "1000px" }}
+        src="https://embed.laylo.com?dropId=pIGZH&color=0c0c0c&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
+      ></iframe> */}
     </div>
   );
 }
