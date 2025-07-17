@@ -23,7 +23,6 @@ export function meta() {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true, hidden: false },
     orderBy: { favoritePosition: "asc" },
