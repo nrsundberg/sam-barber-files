@@ -9,7 +9,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import styles from "./app.css?url";
+import "./app.css";
 import { HeroUIProvider } from "@heroui/react";
 import { getToast } from "remix-toast";
 import { useEffect } from "react";
@@ -22,7 +22,6 @@ import { MediaCacheProvider } from "~/contexts/MediaCacheContext";
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: toastStyles },
-  { rel: "stylesheet", href: styles },
   {
     rel: "icon",
     href: "/favicon.svg",
@@ -55,11 +54,6 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <script
-          src="https://embed.laylo.com/laylo-sdk.js"
-          crossOrigin="anonymous"
-          async
-        />
       </head>
       <body className="text-xs md:text-medium">
         <HeroUIProvider>
@@ -87,7 +81,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
-  } else if (error && error instanceof Error) {
+  } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;
   }
