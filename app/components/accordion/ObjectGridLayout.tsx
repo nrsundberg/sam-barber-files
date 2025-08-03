@@ -1,9 +1,10 @@
 import { Link } from "react-router";
 import type { Object } from "@prisma/client";
-import { EyeOffIcon } from "lucide-react";
+import { EyeOffIcon, Star } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import { Tooltip } from "@heroui/react";
 
 export default function ({
   object,
@@ -12,6 +13,7 @@ export default function ({
   width,
   shouldLoad = false,
   onError,
+  personalFavoriteIds,
 }: {
   object: Object;
   onClick?: () => void;
@@ -19,6 +21,7 @@ export default function ({
   width?: number;
   shouldLoad?: boolean;
   onError?: () => void;
+  personalFavoriteIds: Set<string> | null;
 }) {
   return (
     <div
@@ -55,7 +58,25 @@ export default function ({
           {object.fileName || object.s3fileKey.split("/").pop()}
         </div>
 
-        <div className="grid justify-center items-center">
+        <div className="inline-flex gap-1 justify-center items-center">
+          {personalFavoriteIds ? (
+            <Tooltip
+              content={
+                personalFavoriteIds.has(object.id)
+                  ? "Remove from favorites"
+                  : "Add to favorites"
+              }
+              closeDelay={0}
+            >
+              <Star
+                className={`cursor-pointer ${personalFavoriteIds.has(object.id) ? "text-yellow-300" : ""}`}
+                // onClickCapture={(e) => updateObject("favorite", e)}
+              />
+            </Tooltip>
+          ) : (
+            <p>todo</p>
+            // <PopupRegisterOrLogin />
+          )}
           {/* Always show type button for locked objects */}
           {object.isLocked ? (
             <div className="inline-flex gap-2 bg-gray-700 px-1 md:px-3 md:py-1 text-xs rounded h-fit w-fit text-gray-400 md:group-hover:text-sb-restless">

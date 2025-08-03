@@ -7,6 +7,7 @@ export interface AccordionProps {
   allowMultiple?: boolean;
   endpoint: string;
   initialLoadComplete?: boolean; // Added to control loading priority
+  personalFavoriteSet: Set<string> | null;
 }
 
 const SbAccordion: FC<AccordionProps> = ({
@@ -14,6 +15,7 @@ const SbAccordion: FC<AccordionProps> = ({
   allowMultiple = false,
   endpoint,
   initialLoadComplete = false, // Default to false
+  personalFavoriteSet,
 }) => {
   let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
@@ -170,6 +172,7 @@ const SbAccordion: FC<AccordionProps> = ({
       {folders.map((folder, index) => {
         return (
           <SbAccordionItem
+            personalFavoriteSet={personalFavoriteSet}
             key={folder.id}
             index={index}
             folder={folder}

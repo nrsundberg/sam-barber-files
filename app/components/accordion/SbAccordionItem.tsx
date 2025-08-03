@@ -19,6 +19,7 @@ export interface AccordionItemProps {
   passRef: (el: any, key: number) => void;
   endpoint: string;
   readyToLoad?: boolean;
+  personalFavoriteSet: Set<string> | null;
 }
 
 export default function SbAccordionItem({
@@ -29,6 +30,7 @@ export default function SbAccordionItem({
   onClick,
   endpoint,
   readyToLoad = false,
+  personalFavoriteSet,
 }: AccordionItemProps) {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const mediaCache = useMediaCache();
@@ -195,6 +197,7 @@ export default function SbAccordionItem({
               <div className="accordion-content">
                 {itemsToRender.map((object, objectIndex) => (
                   <ObjectRowLayout
+                    personalFavoriteIds={personalFavoriteSet}
                     key={object.id}
                     inAdmin={false}
                     onClick={() => useVideo.openModal(objectIndex)}
@@ -211,6 +214,7 @@ export default function SbAccordionItem({
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 accordion-content">
                 {itemsToRender.map((object, objectIndex) => (
                   <ObjectGridLayout
+                    personalFavoriteIds={personalFavoriteSet}
                     key={object.id}
                     onClick={() => useVideo.openModal(objectIndex)}
                     object={object}

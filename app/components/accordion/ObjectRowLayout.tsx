@@ -4,6 +4,7 @@ import { ChevronLeft, EyeOffIcon, Lock, Star, TrendingUp } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
+import { Tooltip } from "@heroui/react";
 
 export default function ({
   object,
@@ -15,6 +16,7 @@ export default function ({
   width,
   shouldLoad = false,
   onError,
+  personalFavoriteIds,
 }: {
   object: Object;
   inAdmin: boolean;
@@ -25,6 +27,7 @@ export default function ({
   width?: number;
   shouldLoad?: boolean;
   onError?: () => void;
+  personalFavoriteIds: Set<string> | null;
 }) {
   let submit = useSubmit();
 
@@ -113,6 +116,24 @@ export default function ({
             {formatInTimeZone(object.createdDate, "UTC", "MM.dd.yyyy hh:mm a")}
           </p>
 
+          {personalFavoriteIds ? (
+            <Tooltip
+              content={
+                personalFavoriteIds.has(object.id)
+                  ? "Remove from favorites"
+                  : "Add to favorites"
+              }
+              closeDelay={0}
+            >
+              <Star
+                className={`${personalFavoriteIds.has(object.id) ? "text-yellow-300" : ""}`}
+                // onClickCapture={(e) => updateObject("favorite", e)}
+              />
+            </Tooltip>
+          ) : (
+            <p>todo</p>
+            // <PopupRegisterOrLogin />
+          )}
           {!object.isLocked && (
             <>
               <Link

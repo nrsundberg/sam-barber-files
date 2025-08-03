@@ -9,6 +9,7 @@ interface HorizontalCarouselProps {
   objects: Object[];
   endpoint: string;
   onItemClick: (index: number) => void;
+  personalFavoriteIds: Set<string> | null;
 }
 
 const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
@@ -16,6 +17,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   objects,
   endpoint,
   onItemClick,
+  personalFavoriteIds
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const mediaCache = useMediaCache();
@@ -204,6 +206,7 @@ const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
                   width={320}
                   shouldLoad={shouldItemLoad(index, object)}
                   onError={() => handleItemError(object.id)}
+                  personalFavoriteIds={personalFavoriteIds}
                 />
               </div>
             </div>

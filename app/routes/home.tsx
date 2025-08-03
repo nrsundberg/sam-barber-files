@@ -8,7 +8,7 @@ import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 import { data, Link } from "react-router";
 import { getOptionalUser } from "~/domain/utils/global-context";
-import { DisplayStyle, type Folder, type UserFavorite } from "@prisma/client";
+import { DisplayStyle } from "@prisma/client";
 import type { FolderWithObjects } from "~/types";
 
 export function meta() {
@@ -100,7 +100,12 @@ export default function ({ loaderData }: Route.ComponentProps) {
     }
   }, []);
 
-  let adjFolders = useMemo(() => {
+  let { adjFolders, favoritesSet } = useMemo(() => {
+    let favoritesSet = optionalUser && new Set<string>();
+    if (favoritesSet) {
+      userFavorites?.forEach((it) => favoritesSet.add(it.objectId));
+    }
+
     let favoriteFolder: FolderWithObjects = {
       id: "myFavorites",
       name: "My Favorites",
@@ -111,7 +116,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
       parentFolderId: null,
       defaultStyle: DisplayStyle.GRID,
     };
-    return [favoriteFolder, ...folders];
+    return { adjFolders: [favoriteFolder, ...folders], favoritesSet };
   }, [folders.length]);
 
   return (
@@ -124,6 +129,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               objects={favorites}
               endpoint={cdnEndpoint}
               onItemClick={(index) => useVideoFavorites.openModal(index)}
+              personalFavoriteIds={favoritesSet}
             />
           )}
           <VideoCarousel
@@ -138,6 +144,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
               objects={trending}
               endpoint={cdnEndpoint}
               onItemClick={(index) => useVideoTrending.openModal(index)}
+              personalFavoriteIds={favoritesSet}
             />
           )}
           <VideoCarousel
@@ -160,6 +167,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
           endpoint={cdnEndpoint}
           allowMultiple
           initialLoadComplete={initialLoadComplete}
+          personalFavoriteSet={favoritesSet}
         />
       </div>
       <footer className="mt-auto items-center">
