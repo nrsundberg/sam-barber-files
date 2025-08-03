@@ -337,7 +337,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                             onChange={(e) =>
                               setSelectedFolderId(e.target.value)
                             }
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700"
                           >
                             <option value="">-- Select a Folder --</option>
                             {folders.map((folder) => (
@@ -360,7 +360,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                                 e.target.value as ObjectKind
                               )
                             }
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700"
                             required
                           >
                             <option value="PHOTO">Photo</option>
@@ -429,7 +429,7 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                       <Form method="POST" encType="multipart/form-data">
                         <select
                           name="posterId"
-                          className="w-full p-2 border rounded mb-2"
+                          className="w-full p-2 border rounded bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700"
                           required
                           defaultValue={
                             photoObjects.find(
