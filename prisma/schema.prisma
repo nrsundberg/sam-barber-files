@@ -13,6 +13,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+  DEVELOPER
+}
+
+model User {
+  id          String           @id @default(cuid())
+  phoneNumber String           @unique
+  email       String?
+  name        String           @default("")
+  role        Role             @default(USER)
+  // Relations to junction tables
+  favorites   UserFavorite[]
+  watchLater  UserWatchLater[]
+  validCodes  ValidCodes[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ValidCodes {
+  id        String   @id @default(cuid())
+  otpCode   Int
+  sessionId String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuedAt  DateTime
+  expiresAt DateTime
+}
+
+// Junction table for favorites
+model UserFavorite {
+  id       String @id @default(cuid())
+  userId   String
+  objectId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  object Object @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([userId, objectId]) // Prevents duplicate favorites
+  @@index([userId]) // Optimize queries by user
+}
+
+// Junction table for watch later
+model UserWatchLater {
+  id       String @id @default(cuid())
+  userId   String
+  objectId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  object Object @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([userId, objectId]) // Prevents duplicates
+  @@index([userId]) // Optimize queries by user
+}
+
 // TODO will need to add some layout structure or model maybe keying off id from the Folder
 model Folder {
   id              String       @id @default(uuid())
@@ -32,23 +93,26 @@ model Folder {
 }
 
 model Object {
-  id               String     @id @default(uuid())
+  id               String           @id @default(uuid())
   fileName         String
   createdDate      DateTime
   hidden           Boolean
-  isFavorite       Boolean    @default(false)
-  isTrending       Boolean    @default(false)
+  isFavorite       Boolean          @default(false)
+  isTrending       Boolean          @default(false)
   // In Bytes
   size             Int
   kind             ObjectKind
   filePosition     Int
   trendingPosition Int?
   favoritePosition Int?
-  s3fileKey        String     @unique
+  s3fileKey        String           @unique
   posterKey        String?
-  folder           Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folder           Folder           @relation(fields: [folderId], references: [id], onDelete: Cascade)
   folderId         String
-  isLocked         Boolean    @default(false)
+  isLocked         Boolean          @default(false)
+  // Relations to junction tables
+  favoritedBy      UserFavorite[]
+  watchLaterBy     UserWatchLater[]
 }
 
 enum ObjectKind {

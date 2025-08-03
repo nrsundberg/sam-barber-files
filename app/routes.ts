@@ -13,7 +13,6 @@ export default [
 
   // Authentication routes
   route("login", "routes/auth/login.tsx"),
-  route("kinde-auth/:index", "routes/auth/kinde-auth.tsx"),
 
   // Data and resource routes
   // Protected by index loader in data route

@@ -15,7 +15,7 @@ import { getToast } from "remix-toast";
 import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
-import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
+// import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import SbNavbar from "./components/SbNavbar";
 import { MediaCacheProvider } from "~/contexts/MediaCacheContext";
 
@@ -30,10 +30,10 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let { getUser } = await getKindeSession(request);
+  // let { getUser } = await getKindeSession(request);
   const { toast, headers } = await getToast(request);
   // Important to pass in the headers so the toast is cleared properly
-  return data({ toast, user: await getUser() }, { headers });
+  return data({ toast, user: null }, { headers });
 }
 
 // export function Layout({
