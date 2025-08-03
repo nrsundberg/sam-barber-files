@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import type { Object as DbObject } from "@prisma/client";
 import type { S3Object } from "~/types";
 import { formatBytes, formatDate } from "~/utils";
-import { Form, useActionData, useSubmit } from "react-router";
+import { Form, Link, useActionData, useSubmit } from "react-router";
 
 interface OrphanedDbObjectsProps {
   dbObjects: DbObject[];
@@ -79,7 +79,24 @@ const OrphanedDbObjects = ({
   return (
     <div className="w-full mx-auto p-4 flex flex-col lg:grid lg:grid-cols-2 lg:gap-4">
       <div>
-        <h1 className="text-2xl font-bold mb-6">Orphaned Database Objects</h1>
+        <div className="inline-flex gap-2">
+          <h1 className="text-2xl font-bold mb-6">Orphaned Database Objects</h1>
+          <Link className="border-1 border-gray-400 p-1 h-fit" to={"/admin"}>
+            Admin Home
+          </Link>
+          <Link
+            className="border-1 border-gray-400 p-1 h-fit"
+            to={"/admin/fileBrowser"}
+          >
+            Show AWS Files
+          </Link>
+          <Link
+            className="border-1 border-gray-400 p-1 h-fit"
+            to={"/admin/orderTrendingAndFavorite"}
+          >
+            Trending & Favorite
+          </Link>
+        </div>
         <p className="mb-4 text-gray-600">
           This view shows database objects that reference S3 files which no
           longer exist.

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import type { S3Object } from "~/types";
 import type { Object as DbObject, Object, ObjectKind } from "@prisma/client";
-import { Form, useActionData } from "react-router";
+import { Form, Link, useActionData } from "react-router";
 import { formatBytes, formatDate } from "~/utils";
+import { Divider } from "@heroui/react";
 
 interface S3AssetManagerProps {
   files: S3Object[];
@@ -113,7 +114,24 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
   return (
     <div className="w-full mx-auto p-4 flex flex-col lg:grid lg:grid-cols-2 lg:gap-4">
       <div>
-        <h1 className="text-2xl font-bold mb-6">S3 Asset Manager</h1>
+        <div className="inline-flex gap-2">
+          <h1 className="text-2xl font-bold mb-6">S3 Asset Manager</h1>
+          <Link className="border-1 border-gray-400 p-1 h-fit" to={"/admin"}>
+            Admin Home
+          </Link>
+          <Link
+            className="border-1 border-gray-400 p-1 h-fit"
+            to={"/admin/fileCheck"}
+          >
+            Check AWS Links
+          </Link>
+          <Link
+            className="border-1 border-gray-400 p-1 h-fit"
+            to={"/admin/orderTrendingAndFavorite"}
+          >
+            Trending & Favorite
+          </Link>
+        </div>
 
         {/* Search and filters */}
         <div className="flex flex-wrap gap-4 mb-6">

@@ -3,7 +3,7 @@ import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 import prisma from "~/db.server";
 import { dataWithError, dataWithSuccess } from "remix-toast";
 import { useState, useEffect } from "react";
-import { useSubmit } from "react-router";
+import { Link, useSubmit } from "react-router";
 import {
   arrayMove,
   SortableContext,
@@ -89,7 +89,24 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Positioning Management</h1>
+      <div className="inline-flex gap-2">
+        <h1 className="text-2xl font-bold mb-6">Positioning Management</h1>
+        <Link className="border-1 border-gray-400 p-1 h-fit" to={"/admin"}>
+          Admin Home
+        </Link>
+        <Link
+          className="border-1 border-gray-400 p-1 h-fit"
+          to={"/admin/fileCheck"}
+        >
+          Check AWS Links
+        </Link>
+        <Link
+          className="border-1 border-gray-400 p-1 h-fit"
+          to={"/admin/fileBrowser"}
+        >
+          Show AWS Files
+        </Link>
+      </div>
 
       {/* Tab Navigation */}
       <div className="mb-6 border-b border-gray-200">
