@@ -3,11 +3,13 @@ import prisma from "~/db.server";
 import SbAccordion from "~/components/accordion/SbAccordion";
 import { cdnEndpoint } from "~/s3.server";
 import VideoCarousel from "~/components/carousel/VideoCarousel";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 import { data, Link } from "react-router";
 import { getOptionalUser } from "~/domain/utils/global-context";
+import { DisplayStyle, type Folder, type UserFavorite } from "@prisma/client";
+import type { FolderWithObjects } from "~/types";
 
 export function meta() {
   return [
@@ -25,7 +27,15 @@ export function meta() {
 
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
 export async function loader({ request }: Route.LoaderArgs) {
-  // NOTE: limited to five in each
+  let user = getOptionalUser();
+
+  let userFavorites =
+    user &&
+    prisma.userFavorite.findMany({
+      where: { userId: user.id },
+      include: { object: true },
+    });
+
   let favorites = prisma.object.findMany({
     where: { isFavorite: true, hidden: false },
     orderBy: { favoritePosition: "asc" },
@@ -50,7 +60,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     favorites,
     trending,
     cdnEndpoint,
-    getOptionalUser(),
+    user,
+    userFavorites,
   ]);
 
   // Add cache control headers (30 minutes cache)
@@ -63,7 +74,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let [folders, favorites, trending, cdnEndpoint, optionalUser] = loaderData;
+  let [folders, favorites, trending, cdnEndpoint, optionalUser, userFavorites] =
+    loaderData;
   let [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const useVideoFavorites = useVideoCarousel({
@@ -87,6 +99,20 @@ export default function ({ loaderData }: Route.ComponentProps) {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  let adjFolders = useMemo(() => {
+    let favoriteFolder: FolderWithObjects = {
+      id: "myFavorites",
+      name: "My Favorites",
+      folderPosition: 1,
+      hidden: false,
+      createdDate: userFavorites?.at(0)?.addedAt ?? new Date(),
+      objects: userFavorites?.map((it) => it.object) ?? [],
+      parentFolderId: null,
+      defaultStyle: DisplayStyle.GRID,
+    };
+    return [favoriteFolder, ...folders];
+  }, [folders.length]);
 
   return (
     <div className="min-h-fit mt-1 flex flex-col">
@@ -130,7 +156,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
         {/* Only pass initialLoadComplete to ensure accordions load after favorites/trending */}
         <SbAccordion
-          folders={folders}
+          folders={adjFolders}
           endpoint={cdnEndpoint}
           allowMultiple
           initialLoadComplete={initialLoadComplete}
