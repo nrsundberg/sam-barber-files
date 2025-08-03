@@ -23,7 +23,7 @@ export function meta() {
 }
 
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
-export async function loader({}: Route.LoaderArgs) {
+export async function loader({request}: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true, hidden: false },

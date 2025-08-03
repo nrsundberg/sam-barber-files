@@ -2,11 +2,11 @@ import type { User } from "@prisma/client";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Session, unstable_MiddlewareFunction } from "react-router";
 import { getAuthSessionFromContext } from "~/domain/auth/auth.server";
-import { getUserByEmail } from "~/domain/auth/user.server";
+import { getUserByPhoneNumber } from "~/domain/auth/user.server";
 
 type GlobalStorage = {
   authSession: Session;
-  user: Pick<User, "email" | "id"> | null;
+  user: User | null;
 };
 
 const globalStorage = new AsyncLocalStorage<GlobalStorage>();
@@ -44,7 +44,9 @@ export const globalStorageMiddleware: unstable_MiddlewareFunction<
 > = async ({ context }, next) => {
   const authSession = getAuthSessionFromContext(context);
   const userData = authSession.get("user");
-  const user = userData?.email ? await getUserByEmail(userData.email) : null;
+  const user = userData?.phoneNumber
+    ? await getUserByPhoneNumber(userData.phoneNumber)
+    : null;
   return new Promise((resolve) => {
     globalStorage.run(
       {

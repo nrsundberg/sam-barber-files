@@ -1,77 +1,78 @@
+import prisma from "~/db.server";
+import { getAuthSession } from "~/domain/utils/global-context";
 
-export async function getUserByEmail(email: string) {
-  const user = await db.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-    },
+export type NewUserData = {
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  state?: string;
+  signUpToLaylo: boolean;
+};
+
+export async function getUserByPhoneNumber(phoneNumber: string) {
+  const user = await prisma.user.findUnique({
+    where: { phoneNumber },
   });
   return user;
 }
 
 export async function registerUser(userData: NewUserData) {
-  const existingUser = await getUserByEmail(userData.email);
+  const existingUser = await getUserByPhoneNumber(userData.phoneNumber);
   // User already exists, return an error
   if (existingUser) {
     return {
       errors: {
-        email: {
-          message: "Email already exists",
+        phoneNumber: {
+          message: "User with phone number already exists",
           type: "custom",
         },
       },
     };
   }
 
+  let layloSignedUp = false;
+
+  if (userData.signUpToLaylo) {
+    // TODO send laylo request
+  }
+
   // Create a new user
-  const newUser = await db.user.create({
+  const newUser = await prisma.user.create({
     data: {
+      phoneNumber: userData.phoneNumber,
       email: userData.email,
-      password: {
-        create: {
-          hash: hash("sha256", userData.password),
-        },
-      },
+      signedUpForLaylo: layloSignedUp,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
     },
   });
 
   const authSession = getAuthSession();
   authSession.set("user", {
     id: newUser.id,
-    email: newUser.email,
+    phoneNumber: newUser.phoneNumber,
   });
   return {
     errors: null,
   };
 }
 
-export async function loginUser(loginData: UserLoginData) {
-  const userExists = await getUserByEmail(loginData.email);
+export async function loginUser(phoneNumber: string) {
+  const userExists = await getUserByPhoneNumber(phoneNumber);
   if (!userExists) {
+    await registerUser({
+      phoneNumber,
+      signUpToLaylo: false,
+      firstName: "",
+      lastName: "",
+    });
+
     return {
       errors: {
-        email: {
-          message: "This email does not exist",
-        },
-      },
-    };
-  }
-
-  const loggedInUser = await db.user.findUnique({
-    where: {
-      email: loginData.email,
-      password: {
-        hash: hash("sha256", loginData.password),
-      },
-    },
-  });
-
-  if (!loggedInUser) {
-    return {
-      errors: {
-        email: {
-          message: "This password is incorrect",
+        phoneNumber: {
+          createdUser: true,
+          message: "This number does not exist",
         },
       },
     };
@@ -79,8 +80,8 @@ export async function loginUser(loginData: UserLoginData) {
 
   const authSession = getAuthSession();
   authSession.set("user", {
-    email: loggedInUser.email,
-    id: loggedInUser.id,
+    id: userExists.id,
+    phoneNumber: userExists.phoneNumber,
   });
   return {
     errors: null,

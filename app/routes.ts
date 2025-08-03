@@ -14,6 +14,8 @@ export default [
   // Authentication routes
   route("login", "routes/auth/login.tsx"),
 
+  route("user", "routes/user.tsx"),
+
   // Data and resource routes
   // Protected by index loader in data route
   route("data", "routes/data/index.ts", [

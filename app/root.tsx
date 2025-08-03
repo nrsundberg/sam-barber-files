@@ -6,6 +6,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type unstable_MiddlewareFunction,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -18,6 +19,11 @@ import toastStyles from "react-toastify/ReactToastify.css?url";
 // import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import SbNavbar from "./components/SbNavbar";
 import { MediaCacheProvider } from "~/contexts/MediaCacheContext";
+import {
+  getOptionalUser,
+  globalStorageMiddleware,
+} from "~/domain/utils/global-context";
+import { authSessionMiddleware } from "~/domain/auth/auth.server";
 
 // Add the toast stylesheet
 export const links: Route.LinksFunction = () => [
@@ -29,8 +35,15 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+export const unstable_middleware: unstable_MiddlewareFunction<Response>[] = [
+  authSessionMiddleware,
+  globalStorageMiddleware,
+];
+
 export async function loader({ request }: Route.LoaderArgs) {
-  // let { getUser } = await getKindeSession(request);
+  let user = getOptionalUser();
+
+  console.log("user", user);
   const { toast, headers } = await getToast(request);
   // Important to pass in the headers so the toast is cleared properly
   return data({ toast, user: null }, { headers });
