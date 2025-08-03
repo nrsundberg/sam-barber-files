@@ -22,7 +22,8 @@ import { convertToUTCDateTime, formatBytes } from "~/utils";
 import { now } from "@internationalized/date";
 import { dataWithError, dataWithSuccess } from "remix-toast";
 import OrderFolders from "~/components/dnd/OrderFolders";
-import { getUserAndProtectRoute } from "~/utils.server";
+import { getUser } from "~/domain/utils/global-context";
+import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 
 // Don't need SEO or dynamic header for admin route
 export function meta() {
@@ -33,7 +34,8 @@ export function meta() {
 // Loader to bring in existing folders
 // NOTE: this does not includes nested objects and will want to bring them in
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   return prisma.folder.findMany({
     orderBy: { folderPosition: "asc" },

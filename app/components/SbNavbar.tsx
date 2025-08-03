@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 import RotatingBanner from "./RotatingBanner";
-import type { KindeUser } from "@kinde-oss/kinde-remix-sdk/types";
 import { Tooltip } from "@heroui/react";
 import ScrollToTopButton from "./ScrollToTop";
+import { Role, type User } from "@prisma/client";
 
-export default function ({ user }: { user: KindeUser | null }) {
+export default function ({ user }: { user: User | null }) {
   return (
     <header className="sticky top-0 z-50 border-b-2 border-white bg-opacity-100 overflow-hidden bg-black">
       <RotatingBanner />
@@ -13,7 +13,7 @@ export default function ({ user }: { user: KindeUser | null }) {
           SAM BARBER FILES
         </Link>
         <nav className="inline-flex gap-2">
-          {user && (
+          {user && user.role === Role.ADMIN && (
             <>
               <Tooltip content={"This only shows for logged in sessions"}>
                 <Link to={"/admin"} className="font-bold border-2 p-2 rounded">

@@ -16,7 +16,6 @@ import { getToast } from "remix-toast";
 import { useEffect } from "react";
 import { ToastContainer, toast as notify } from "react-toastify";
 import toastStyles from "react-toastify/ReactToastify.css?url";
-// import { getKindeSession } from "@kinde-oss/kinde-remix-sdk";
 import SbNavbar from "./components/SbNavbar";
 import { MediaCacheProvider } from "~/contexts/MediaCacheContext";
 import {
@@ -42,11 +41,9 @@ export const unstable_middleware: unstable_MiddlewareFunction<Response>[] = [
 
 export async function loader({ request }: Route.LoaderArgs) {
   let user = getOptionalUser();
-
-  console.log("user", user);
   const { toast, headers } = await getToast(request);
   // Important to pass in the headers so the toast is cleared properly
-  return data({ toast, user: null }, { headers });
+  return data({ toast, user }, { headers });
 }
 
 // export function Layout({
@@ -68,11 +65,6 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <script
-          src="https://embed.laylo.com/laylo-sdk.js"
-          crossOrigin="anonymous"
-          async
-        />
       </head>
       <body className="text-xs md:text-medium">
         <HeroUIProvider>

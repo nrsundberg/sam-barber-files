@@ -6,7 +6,8 @@ import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState, useEffect } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
-import { data } from "react-router";
+import { data, Link } from "react-router";
+import { getOptionalUser } from "~/domain/utils/global-context";
 
 export function meta() {
   return [
@@ -23,7 +24,7 @@ export function meta() {
 }
 
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
-export async function loader({request}: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   // NOTE: limited to five in each
   let favorites = prisma.object.findMany({
     where: { isFavorite: true, hidden: false },
@@ -44,7 +45,13 @@ export async function loader({request}: Route.LoaderArgs) {
     },
   });
 
-  const result = await Promise.all([folders, favorites, trending, cdnEndpoint]);
+  const result = await Promise.all([
+    folders,
+    favorites,
+    trending,
+    cdnEndpoint,
+    getOptionalUser(),
+  ]);
 
   // Add cache control headers (30 minutes cache)
   return data(result, {
@@ -56,7 +63,7 @@ export async function loader({request}: Route.LoaderArgs) {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let [folders, favorites, trending, cdnEndpoint] = loaderData;
+  let [folders, favorites, trending, cdnEndpoint, optionalUser] = loaderData;
   let [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const useVideoFavorites = useVideoCarousel({
@@ -130,16 +137,25 @@ export default function ({ loaderData }: Route.ComponentProps) {
         />
       </div>
       <footer className="mt-auto items-center">
-        <iframe
-          id="laylo-drop-pIGZH"
-          frameborder="0"
-          scrolling="no"
-          allow="web-share"
-          allowtransparency="true"
-          className="max-w-[1000px]"
-          style={{ width: "1px", maxWidth: "1000px", minWidth: "100%" }}
-          src="https://embed.laylo.com?dropId=pIGZH&color=0000ff&minimal=false&theme=dark&background=solid&customTitle=Get%20notified%20when%20new%20content%20drops"
-        ></iframe>
+        {optionalUser ? (
+          optionalUser.signedUpForLaylo ? (
+            <Link to={"/user"}>View Profile</Link>
+          ) : (
+            <div className="inline-flex w-full justify-between px-10">
+              <Link to={"/user"} className="underline text-blue-500">
+                View Profile
+              </Link>
+              <Link to={"signup/laylo"} className="underline text-blue-500">
+                Get notified when new content drops
+              </Link>
+            </div>
+          )
+        ) : (
+          <p>
+            Sign up to get notified when new content drops and save your
+            favorite content
+          </p>
+        )}
       </footer>
     </div>
   );
