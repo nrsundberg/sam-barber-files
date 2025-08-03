@@ -1,11 +1,9 @@
 import type { Route } from "./+types/positioning";
-import { listS3Objects } from "~/s3.server";
-import { getUserAndProtectRoute } from "~/utils.server";
+import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 import prisma from "~/db.server";
 import { dataWithError, dataWithSuccess } from "remix-toast";
-import OrphanedDbObjects from "~/components/s3/OrphanedObjects";
 import { useState, useEffect } from "react";
-import { data, useSubmit } from "react-router";
+import { useSubmit } from "react-router";
 import {
   arrayMove,
   SortableContext,
@@ -15,13 +13,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { closestCenter, DndContext } from "@dnd-kit/core";
 import type { Object } from "@prisma/client";
+import { getUser } from "~/domain/utils/global-context";
 
 export function meta() {
   return [{ title: "Positioning - Admin Panel" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   // Fetch trending and favorites objects
   const [trending, favorites] = await Promise.all([
@@ -39,7 +39,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
+
   const formData = await request.json();
 
   const { type, reorderedObjects } = formData;

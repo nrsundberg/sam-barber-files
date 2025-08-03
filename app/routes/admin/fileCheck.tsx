@@ -1,16 +1,18 @@
 import type { Route } from "./+types/fileBrowser";
 import { listS3Objects } from "~/s3.server";
-import { getUserAndProtectRoute } from "~/utils.server";
+import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 import prisma from "~/db.server";
 import { dataWithError } from "remix-toast";
 import OrphanedDbObjects from "~/components/s3/OrphanedObjects";
+import { getUser } from "~/domain/utils/global-context";
 
 export function meta() {
   return [{ title: "Orphaned Objects - Admin Panel" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   // Get all S3 files
   let s3Files = await listS3Objects();
@@ -32,7 +34,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   // Verify authentication
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   let formData = await request.formData();
   let action = formData.get("action") as string;

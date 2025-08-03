@@ -1,19 +1,20 @@
 import type { Route } from "./+types/fileBrowser";
 import { listS3Objects } from "~/s3.server";
-import { getUserAndProtectRoute } from "~/utils.server";
 import prisma from "~/db.server";
 import S3AssetManager from "~/components/s3/S3AssetManagement";
 import { dataWithError } from "remix-toast";
 import { zfd } from "zod-form-data";
-import { object, z } from "zod";
-import { ObjectKind } from "@prisma/client";
+import { z } from "zod";
+import { getUser } from "~/domain/utils/global-context";
+import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 
 export function meta() {
   return [{ title: "File Browser - Admin Panel" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   // Get all S3 files
   let s3Files = await listS3Objects();
@@ -46,7 +47,8 @@ const createOrUpdateObject = zfd.formData({
 
 export async function action({ request }: Route.ActionArgs) {
   // Verify authentication
-  let user = await getUserAndProtectRoute(request);
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   let formData = await request.formData();
   let action = formData.get("action") as string;
