@@ -212,7 +212,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
   }, [folders.length, fetcher.state]);
 
   return (
-    <div className="min-h-fit mt-1 flex flex-col">
+    <div className="min-h-fit mt-1 flex flex-col bg-black">
       {featuredAudio && (
         <AudioWavePlayer
           audioSrc={encodeURI(cdnEndpoint + featuredAudio.object.s3fileKey)}
@@ -272,12 +272,12 @@ export default function ({ loaderData }: Route.ComponentProps) {
           personalFavoriteSet={favoritesSet}
         />
       </div>
-      <footer className="mt-auto items-center">
+      <footer className="mt-auto items-center text-center bg-black">
         {optionalUser ? (
           optionalUser.signedUpForLaylo ? (
             <Link to={"/user"}>View Profile</Link>
           ) : (
-            <div className="inline-flex w-full justify-between px-10">
+            <div className="flex-col w-full gap-2">
               <Link to={"/user"} className="underline text-blue-500">
                 View Profile
               </Link>

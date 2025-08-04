@@ -9,6 +9,8 @@ import {
   verifyPhoneNumber,
 } from "~/domain/utils/sbf-client.server";
 import { PhoneInput } from "~/components/PhoneInput";
+import RequestCodeButton from "~/components/RequestCodeButton";
+import { useEffect, useState } from "react";
 
 export function meta() {
   return [
@@ -70,6 +72,23 @@ export default function () {
   let fetcher = useFetcher();
   let otpFetcher = useFetcher();
 
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const interval = setInterval(() => {
+        setCooldown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (fetcher.state == "idle" && fetcher.data) {
+      setCooldown(60);
+    }
+  }, [fetcher.state, fetcher.data]);
+
   const validateCode = (code: string) => {
     let formData = new FormData();
     formData.set("phoneNumber", fetcher.data?.phoneNumber);
@@ -82,7 +101,7 @@ export default function () {
   };
 
   return (
-    <div className="w-full flex-col flex items-center justify-center">
+    <div className="w-full flex-col flex items-center justify-center bg-black">
       <p className="text-2xl font-semibold mb-3">Sam Barber Files</p>
       <fetcher.Form
         method="POST"
@@ -91,8 +110,16 @@ export default function () {
       >
         <p>Phone Number</p>
         <PhoneInput defaultCountry="US" name="phoneNumber" international />
-        <Button type="submit" color="primary" className="mt-2">
-          Request Code
+        <Button
+          type="submit"
+          disabled={cooldown > 0}
+          className={`mt-2 px-4 py-2 rounded ${
+            cooldown > 0
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          } text-white transition`}
+        >
+          {cooldown > 0 ? `Request new code in ${cooldown}s` : "Request Code"}
         </Button>
       </fetcher.Form>
       {fetcher.data && (
