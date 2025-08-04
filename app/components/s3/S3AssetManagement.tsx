@@ -1,17 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
 import type { S3Object } from "~/types";
-import type { Object as DbObject, Object, ObjectKind } from "@prisma/client";
+import {
+  ObjectKind,
+  type Object as DbObject,
+  type FeaturedAudio,
+  type Object,
+} from "@prisma/client";
 import { Form, Link, useActionData } from "react-router";
 import { formatBytes, formatDate } from "~/utils";
-import { Divider } from "@heroui/react";
 
 interface S3AssetManagerProps {
   files: S3Object[];
   dbObjects: DbObject[];
   folders: { id: string; name: string }[];
+  featuredAudio: FeaturedAudio | null;
 }
 
-const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
+const S3AssetManager = ({
+  files,
+  dbObjects,
+  folders,
+  featuredAudio,
+}: S3AssetManagerProps) => {
   let [selectedFile, setSelectedFile] = useState<S3Object | null>(null);
   let [linkedObject, setLinkedObject] = useState<Object | null>(null);
   let [selectedFolderId, setSelectedFolderId] = useState<string>("");
@@ -468,6 +478,32 @@ const S3AssetManager = ({ files, dbObjects, folders }: S3AssetManagerProps) => {
                       No audio or video objects available to set a poster for.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Long audio image section */}
+              {linkedObject?.kind === ObjectKind.AUDIO && (
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-2">Floating Audio</h3>
+
+                  <Form method="POST" encType={"multipart/form-data"}>
+                    <input
+                      hidden
+                      readOnly
+                      name="objectId"
+                      value={linkedObject?.id}
+                    />
+                    <input hidden readOnly name="action" value="setLong" />
+                    <button
+                      type="submit"
+                      disabled={featuredAudio?.objectId === linkedObject.id}
+                      className={`${featuredAudio?.objectId === linkedObject.id ? "bg-green-300" : "bg-red-500"} md:hover:bg-blue-600 text-black font-bold py-2 px-4 rounded`}
+                    >
+                      {featuredAudio?.objectId === linkedObject.id
+                        ? "Is Current Feature"
+                        : "Set as featured audio"}
+                    </button>
+                  </Form>
                 </div>
               )}
             </div>

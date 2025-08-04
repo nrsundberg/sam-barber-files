@@ -114,6 +114,16 @@ model Object {
   // Relations to junction tables
   favoritedBy      UserFavorite[]
   watchLaterBy     UserWatchLater[]
+  featuredAudio    FeaturedAudio?
+}
+
+model FeaturedAudio {
+  id String @id @default(uuid())
+
+  objectId String @unique
+  object   Object @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
 }
 
 enum ObjectKind {

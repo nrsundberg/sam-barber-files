@@ -156,25 +156,28 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
     }
   }, [folderFetcher.state, folderFetcher.data]);
 
-  // File state to take
+// File state to take
   // TODO this should be a form that triggers an upload and returns the file key through actionData
   let [file, setFile] = useState<File | null>(null);
 
   return (
     <div className="p-6 bg-black min-h-screen text-white">
-      <div className="inline-flex gap-2">
+      <div className="inline-flex gap-2 h-fit">
         <h1 className="text-3xl font-bold">ADMIN PANEL</h1>
-        <Link className="border-1 border-gray-400 p-1" to={"/admin/fileCheck"}>
+        <Link
+          className="border-1 border-gray-400 p-1 h-fit"
+          to={"/admin/fileCheck"}
+        >
           Check AWS Links
         </Link>
         <Link
-          className="border-1 border-gray-400 p-1"
+          className="border-1 border-gray-400 p-1 h-fit"
           to={"/admin/fileBrowser"}
         >
           Show AWS Files
         </Link>
         <Link
-          className="border-1 border-gray-400 p-1"
+          className="border-1 border-gray-400 p-1 h-fit"
           to={"/admin/orderTrendingAndFavorite"}
         >
           Trending & Favorite

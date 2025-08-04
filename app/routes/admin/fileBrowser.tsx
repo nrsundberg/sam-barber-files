@@ -17,20 +17,22 @@ export async function loader({ request }: Route.LoaderArgs) {
   await getUserAndProtectRouteToAdminOrDeveloper(user);
 
   // Get all S3 files
-  let s3Files = await listS3Objects();
-
   // Get all database objects
-  let dbObjects = await prisma.object.findMany();
-
   // Get all folders for the folder selection dropdown
-  let folders = await prisma.folder.findMany({
-    select: { id: true, name: true },
-  });
+  let [s3Files, dbObjects, folders, featuredAudio] = await Promise.all([
+    listS3Objects(),
+    prisma.object.findMany(),
+    prisma.folder.findMany({
+      select: { id: true, name: true },
+    }),
+    prisma.featuredAudio.findFirst(),
+  ]);
 
   return {
     s3Files,
     dbObjects,
     folders,
+    featuredAudio,
   };
 
   // return listS3Objects();
@@ -135,6 +137,12 @@ export async function action({ request }: Route.ActionArgs) {
         return { error: true, message: "Failed to set poster image." };
       }
     }
+    case "setLong": {
+      let objectId = formData.get("objectId") as string;
+      await prisma.featuredAudio.deleteMany();
+      await prisma.featuredAudio.create({ data: { objectId: objectId } });
+      return null;
+    }
   }
   return dataWithError(
     { error: true, message: "Invalid action." },
@@ -143,9 +151,14 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let { s3Files, dbObjects, folders } = loaderData;
+  let { s3Files, dbObjects, folders, featuredAudio } = loaderData;
 
   return (
-    <S3AssetManager files={s3Files} dbObjects={dbObjects} folders={folders} />
+    <S3AssetManager
+      files={s3Files}
+      dbObjects={dbObjects}
+      folders={folders}
+      featuredAudio={featuredAudio}
+    />
   );
 }

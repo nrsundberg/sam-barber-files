@@ -152,7 +152,7 @@ export function Thumbnail({
     if (onError) {
       onError();
     }
-  };
+};
 
   // Determine what to render
   const shouldRenderMedia =

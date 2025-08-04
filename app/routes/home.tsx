@@ -12,13 +12,12 @@ import {
   useFetcher,
   type ShouldRevalidateFunction,
 } from "react-router";
-import { getOptionalUser, getUser } from "~/domain/utils/global-context";
-import { DisplayStyle, type Object, type UserFavorite } from "@prisma/client";
+import { getOptionalUser } from "~/domain/utils/global-context";
+import { DisplayStyle, type Object } from "@prisma/client";
 import type { FolderWithObjects } from "~/types";
-import { object, z } from "zod";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
-import { request } from "http";
-import { connected } from "process";
+import { AudioWavePlayer } from "~/components/Floating AudioPlayer";
 
 export function meta() {
   return [
@@ -37,7 +36,7 @@ export function meta() {
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
 export async function loader({}: Route.LoaderArgs) {
   let user = getOptionalUser();
-  console.log("loader");
+
   let userFavorites =
     user &&
     prisma.userFavorite.findMany({
@@ -71,6 +70,7 @@ export async function loader({}: Route.LoaderArgs) {
     cdnEndpoint,
     user,
     userFavorites,
+    prisma.featuredAudio.findFirst({ include: { object: true } }),
   ]);
 
   // Add cache control headers (30 minutes cache)
@@ -123,8 +123,15 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({ formMethod }) => {
 };
 
 export default function ({ loaderData }: Route.ComponentProps) {
-  let [folders, favorites, trending, cdnEndpoint, optionalUser, userFavorites] =
-    loaderData;
+  let [
+    folders,
+    favorites,
+    trending,
+    cdnEndpoint,
+    optionalUser,
+    userFavorites,
+    featuredAudio,
+  ] = loaderData;
   let [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   let fetcher = useFetcher({ key: "personal" });
@@ -206,6 +213,14 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-fit mt-1 flex flex-col">
+      {featuredAudio && (
+        <AudioWavePlayer
+          audioSrc={encodeURI(cdnEndpoint + featuredAudio.object.s3fileKey)}
+          // audioSrc={encodeURI(
+          // "http://localhost:9001/sam-barber-files/001/04 Man of the Year Mix 1.mp3"
+          // )}
+        />
+      )}
       <div className="flex-1">
         <div className={"mb-1 md:mb-4"}>
           {favorites.length > 0 && (
