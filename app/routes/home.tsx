@@ -216,10 +216,6 @@ export default function ({ loaderData }: Route.ComponentProps) {
       {featuredAudio && (
         <AudioWavePlayer
           audioSrc={encodeURI(cdnEndpoint + featuredAudio.object.s3fileKey)}
-          // TODO delete me
-          // audioSrc={encodeURI(
-          // "http://localhost:9001/sam-barber-files/001/04 Man of the Year Mix 1.mp3"
-          // )}
         />
       )}
       <div className="flex-1">
@@ -275,7 +271,9 @@ export default function ({ loaderData }: Route.ComponentProps) {
       <footer className="mt-auto items-center text-center bg-black">
         {optionalUser ? (
           optionalUser.signedUpForLaylo ? (
-            <Link to={"/user"}>View Profile</Link>
+            <Link to={"/user"} className="underline text-blue-500">
+              View Profile
+            </Link>
           ) : (
             <div className="flex-col w-full gap-2">
               <Link to={"/user"} className="underline text-blue-500">
