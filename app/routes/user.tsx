@@ -5,10 +5,15 @@ import {
 } from "~/domain/utils/global-context";
 import type { Route } from "./+types/user";
 import { Button, Checkbox, Input } from "@heroui/react";
-import { Form, type unstable_MiddlewareFunction } from "react-router";
+import {
+  Form,
+  useFetcher,
+  type unstable_MiddlewareFunction,
+} from "react-router";
 import prisma from "~/db.server";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
+import { subToLaylo } from "~/domain/utils/sbf-client.server";
 
 export function meta() {
   return [
@@ -37,20 +42,39 @@ const updateSchema = zfd.formData({
 
 export async function action({ request }: Route.LoaderArgs) {
   let user = getUser();
-  let { firstName, lastName, email } = updateSchema.parse(
-    await request.formData()
-  );
+  switch (request.method) {
+    case "POST": {
+      let { firstName, lastName, email } = updateSchema.parse(
+        await request.formData()
+      );
 
-  let updatedUser = await prisma.user.update({
-    where: { id: user.id },
-    data: { firstName, lastName, email },
-  });
+      let updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { firstName, lastName, email },
+      });
 
-  return { updatedUser };
+      return { updatedUser };
+    }
+    case "PATCH": {
+      let resp = subToLaylo(user.phoneNumber);
+      let updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { signedUpForLaylo: true },
+      });
+
+      return { updatedUser };
+    }
+  }
 }
 
 export default function ({ loaderData }: Route.ComponentProps) {
   let { user } = loaderData;
+
+  let fetcher = useFetcher();
+
+  const subToLaylo = () => {
+    return fetcher.submit(new FormData(), { method: "PATCH" });
+  };
 
   return (
     <div className="flex flex-col w-full items-center">
@@ -73,15 +97,34 @@ export default function ({ loaderData }: Route.ComponentProps) {
           />
           <p>Phone Number: {user.phoneNumber}</p>
           {user.signedUpForLaylo ? (
-            <Checkbox isSelected={true} />
+            <div className="inline-flex">
+              <Checkbox isSelected={true} />
+              <p className="font-bold text-md">Signed up for drop updates</p>
+            </div>
           ) : (
             <div className="inline-flex">
-              <Checkbox onSelect={() => console.log("signup laylo")} />
+              <Checkbox onChange={subToLaylo} />
               <p className="font-bold text-md">
                 Get notified when new content drops
               </p>
             </div>
           )}
+          <p>
+            By signing up you agree to Laylo's{" "}
+            <a
+              className={"underline text-blue-500"}
+              href="https://docs.laylo.com/en/articles/6497431-terms-of-service"
+            >
+              terms and conditions
+            </a>{" "}
+            and{" "}
+            <a
+              className={"underline text-blue-500"}
+              href="https://docs.laylo.com/en/articles/6497219-privacy-and-gdpr-policy"
+            >
+              privacy policy
+            </a>
+          </p>
           <Button color="primary" type="submit">
             Update Information
           </Button>
