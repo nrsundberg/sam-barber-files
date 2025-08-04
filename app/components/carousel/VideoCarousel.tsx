@@ -7,6 +7,7 @@ import { type UseVideoCarouselReturn } from "./useVideoCarousel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { globalMediaCache, useMediaCache } from "~/contexts/MediaCacheContext";
 import { Link } from "react-router";
+import { authSessionMiddleware } from "~/domain/auth/auth.server";
 
 interface VideoCarouselProps {
   objects: Object[];
@@ -286,6 +287,9 @@ export default function VideoCarousel({
                                   timestamp: Date.now(),
                                 });
                               }
+                            }}
+                            onPlay={() => {
+                              window?.pauseAudioPlayer?.();
                             }}
                             onError={() =>
                               handleMediaError(index, fileKey, cacheKey)

@@ -20,6 +20,7 @@ export const AudioWavePlayer = ({ audioSrc = "" }) => {
     const audio = new Audio();
     audio.volume = volume;
     audio.loop = true;
+    audio.id = "longAudio";
 
     // Handle errors
     audio.addEventListener("error", (e) => {
