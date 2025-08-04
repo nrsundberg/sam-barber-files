@@ -13,6 +13,7 @@ export default [
 
   // Authentication routes
   route("login", "routes/auth/login.tsx"),
+  route("logout", "routes/auth/logout.ts"),
 
   route("user", "routes/user.tsx"),
 

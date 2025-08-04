@@ -1,6 +1,40 @@
 import axios from "axios";
+import twilio from "twilio";
 
 const layloKey = process.env.LAYLO_KEY;
+const twilioSid = process.env.TWILIO_SID;
+const twilioToken = process.env.TWILIO_TOKEN;
+
+const twilioClient = twilio(twilioSid, twilioToken);
+
+export const verifyPhoneNumber = async (phoneNumber: string) => {
+  try {
+    await twilioClient.verify.v2
+      .services("VAfeb04b2b2e0d6d6546e0bac917b4b3ae")
+      .verifications.create({ to: "+12185139917", channel: "sms" });
+  } catch (e: any) {
+    console.error(e);
+  }
+};
+
+export const verifyOtpCode = async (
+  phoneNumber: string,
+  otpCode: string
+): Promise<boolean> => {
+  try {
+    let resp = await twilioClient.verify.v2
+      .services("VAfeb04b2b2e0d6d6546e0bac917b4b3ae")
+      .verificationChecks.create({
+        to: phoneNumber,
+        code: otpCode,
+      });
+
+    return resp.status == "approved";
+  } catch (e: any) {
+    console.error(e);
+    return false;
+  }
+};
 
 export const subToLaylo = async (phoneNumber: string) => {
   let url = "https://laylo.com/api/graphql";

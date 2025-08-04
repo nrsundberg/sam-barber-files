@@ -216,6 +216,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
       {featuredAudio && (
         <AudioWavePlayer
           audioSrc={encodeURI(cdnEndpoint + featuredAudio.object.s3fileKey)}
+          // TODO delete me
           // audioSrc={encodeURI(
           // "http://localhost:9001/sam-barber-files/001/04 Man of the Year Mix 1.mp3"
           // )}

@@ -35,16 +35,6 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model ValidCodes {
-  id          String   @id @default(cuid())
-  otpCode     Int
-  phoneNumber String
-  issuedAt    DateTime
-  expiresAt   DateTime
-
-  @@unique([otpCode, phoneNumber])
-}
-
 // Junction table for favorites
 model UserFavorite {
   id       String @id @default(cuid())

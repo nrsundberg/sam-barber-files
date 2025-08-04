@@ -89,5 +89,7 @@ export async function loginUser(phoneNumber: string) {
 }
 
 export async function signoutUser() {
+  const authSession = getAuthSession();
+  authSession.unset("user");
   return null;
 }

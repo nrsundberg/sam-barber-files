@@ -13,21 +13,21 @@ export default function ({ user }: { user: User | null }) {
           SAM BARBER FILES
         </Link>
         <nav className="inline-flex gap-2">
-          {user && user.role === Role.ADMIN && (
+          {user && (
             <>
-              <Tooltip content={"This only shows for logged in sessions"}>
-                <Link to={"/admin"} className="font-bold border-2 p-2 rounded">
-                  Admin Panel
-                </Link>
-              </Tooltip>
-              <Tooltip content={"This only shows for logged in sessions"}>
-                <Link
-                  to={"/kinde-auth/logout"}
-                  className="font-bold border-2 p-2 rounded"
-                >
-                  Logout
-                </Link>
-              </Tooltip>
+              {user.role === Role.ADMIN && (
+                <Tooltip content={"This only shows for logged in sessions"}>
+                  <Link
+                    to={"/admin"}
+                    className="font-bold border-2 p-2 rounded"
+                  >
+                    Admin Panel
+                  </Link>
+                </Tooltip>
+              )}
+              <Link to={"/logout"} className="font-bold border-2 p-2 rounded">
+                Logout
+              </Link>
             </>
           )}
           <ScrollToTopButton />

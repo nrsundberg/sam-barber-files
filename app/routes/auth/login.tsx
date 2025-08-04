@@ -5,6 +5,10 @@ import { zfd } from "zod-form-data";
 import z from "zod";
 import prisma from "~/db.server";
 import { loginUser } from "~/domain/auth/user.server";
+import {
+  verifyOtpCode,
+  verifyPhoneNumber,
+} from "~/domain/utils/sbf-client.server";
 
 export function meta() {
   return [
@@ -30,7 +34,7 @@ const requestCodeSchema = zfd.formData({
 
 const loginSchema = zfd.formData({
   phoneNumber: z.string(),
-  otpCode: z.coerce.number(),
+  otpCode: z.string(),
 });
 
 export async function action({ request }: Route.ActionArgs) {
@@ -38,35 +42,13 @@ export async function action({ request }: Route.ActionArgs) {
   switch (request.method) {
     case "POST": {
       let { phoneNumber } = requestCodeSchema.parse(formData);
-      // TODO hit twillio with phone number
-      let otpCode = 435123;
-      let date = new Date();
-      await prisma.validCodes.create({
-        data: {
-          otpCode: otpCode,
-          phoneNumber,
-          issuedAt: date,
-          expiresAt: new Date(date.getTime() + 5 * 60 * 1000),
-        },
-      });
-
+      await verifyPhoneNumber("+12185139917");
       return { phoneNumber };
     }
     case "PATCH": {
       let { phoneNumber, otpCode } = loginSchema.parse(formData);
-      let match = await prisma.validCodes.delete({
-        where: {
-          otpCode_phoneNumber: {
-            otpCode,
-            phoneNumber,
-          },
-        },
-      });
-      if (match) {
-        let expired = match.expiresAt < new Date();
-        if (expired) {
-          return { invalid: true };
-        }
+      let approved = await verifyOtpCode(phoneNumber, otpCode);
+      if (approved) {
         const { errors: loginErrors } = await loginUser(phoneNumber);
 
         if (loginErrors?.phoneNumber?.createdUser) {
@@ -75,7 +57,6 @@ export async function action({ request }: Route.ActionArgs) {
           return { invalid: true };
         }
 
-        // todo set cookie
         let searchParams = new URL(request.url).searchParams;
         let redirectTo = searchParams.get("redirectTo");
         throw redirect(redirectTo ?? "/");
