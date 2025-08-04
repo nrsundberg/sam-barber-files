@@ -1,5 +1,6 @@
 import prisma from "~/db.server";
 import { getAuthSession } from "~/domain/utils/global-context";
+import { subToLaylo } from "~/domain/utils/sbf-client.server";
 
 export type NewUserData = {
   phoneNumber: string;
@@ -34,7 +35,8 @@ export async function registerUser(userData: NewUserData) {
   let layloSignedUp = false;
 
   if (userData.signUpToLaylo) {
-    // TODO send laylo request
+    await subToLaylo(userData.phoneNumber)
+    layloSignedUp = true
   }
 
   // Create a new user
