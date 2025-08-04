@@ -1,10 +1,11 @@
-import { Link } from "react-router";
+import { Link, useFetcher, useSubmit } from "react-router";
 import type { Object } from "@prisma/client";
 import { EyeOffIcon, Star } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
 import { Tooltip } from "@heroui/react";
+import { useEffect, useState } from "react";
 
 export default function ({
   object,
@@ -23,6 +24,23 @@ export default function ({
   onError?: () => void;
   personalFavoriteIds: Set<string> | null;
 }) {
+  let fetcher = useFetcher({ key: "personal" });
+  let [isFav, setIsFav] = useState(personalFavoriteIds?.has(object.id));
+
+  const updatePersonalFavorite = (toSet: boolean) => {
+    let formData = new FormData();
+    formData.set("objectId", object.id);
+    formData.set("isFavorite", toSet.toString());
+
+    setIsFav(toSet);
+
+    return fetcher.submit(formData, {
+      method: "POST",
+      encType: "multipart/form-data",
+      preventScrollReset: true,
+    });
+  };
+
   return (
     <div
       key={object.id}
@@ -61,16 +79,12 @@ export default function ({
         <div className="inline-flex gap-1 justify-center items-center">
           {personalFavoriteIds ? (
             <Tooltip
-              content={
-                personalFavoriteIds.has(object.id)
-                  ? "Remove from favorites"
-                  : "Add to favorites"
-              }
+              content={isFav ? "Remove from favorites" : "Add to favorites"}
               closeDelay={0}
             >
               <Star
-                className={`cursor-pointer ${personalFavoriteIds.has(object.id) ? "text-yellow-300" : ""}`}
-                // onClickCapture={(e) => updateObject("favorite", e)}
+                className={`cursor-pointer outline-none ${isFav ? "text-yellow-300" : ""}`}
+                onClickCapture={(e) => updatePersonalFavorite(!isFav)}
               />
             </Tooltip>
           ) : (

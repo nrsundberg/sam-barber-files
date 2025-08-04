@@ -22,6 +22,6 @@ export default [
     route("reorder/:type", "routes/data/reorder.ts"),
     route("edit/object/:objectId/:actionType", "routes/data/editObject.ts"),
     route("edit/folder/:folderId/:actionType", "routes/data/editFolder.ts"),
-    route("download/:fileId", "routes/data/download.ts"),
   ]),
+  route("data/download/:fileId", "routes/data/download.ts"),
 ] satisfies RouteConfig;

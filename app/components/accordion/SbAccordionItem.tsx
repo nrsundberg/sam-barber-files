@@ -10,6 +10,7 @@ import ObjectGridLayout from "./ObjectGridLayout";
 import { DisplayStyle } from "@prisma/client";
 import { Switch } from "@heroui/react";
 import { useMediaCache } from "~/contexts/MediaCacheContext";
+import { useFetcher } from "react-router";
 
 export interface AccordionItemProps {
   index: number;
@@ -113,10 +114,7 @@ export default function SbAccordionItem({
   };
 
   // Calculate which items should be rendered
-  const itemsToRender =
-    isFolderOpen && contentLoaded
-      ? folder.objects.slice(0, visibleRange.end + 1)
-      : [];
+  const itemsToRender = isFolderOpen && contentLoaded ? folder.objects : [];
 
   return (
     <div

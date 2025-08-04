@@ -1,11 +1,9 @@
-import prisma from "~/db.server";
+import { getUserAndProtectRouteToAdminOrDeveloper } from "~/utils.server";
 import type { Route } from "./+types/index";
-import { redirectWithError } from "remix-toast";
+import { getUser } from "~/domain/utils/global-context";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  let user = await prisma.user.findUnique({ where: { id: "2185139917" } });
-  if (user === null) {
-    return redirectWithError("/", "Not permitted to view");
-  }
+  let user = getUser();
+  await getUserAndProtectRouteToAdminOrDeveloper(user);
   return null;
 }

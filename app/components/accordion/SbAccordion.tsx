@@ -7,6 +7,7 @@ export interface AccordionProps {
   allowMultiple?: boolean;
   endpoint: string;
   initialLoadComplete?: boolean; // Added to control loading priority
+  personalFolder: FolderWithObjects | null;
   personalFavoriteSet: Set<string> | null;
 }
 
@@ -16,6 +17,7 @@ const SbAccordion: FC<AccordionProps> = ({
   endpoint,
   initialLoadComplete = false, // Default to false
   personalFavoriteSet,
+  personalFolder,
 }) => {
   let [extraHeight, setExtraHeight] = useState(1000); // Start with 1000px extra
   let [openIndexes, setOpenIndexes] = useState<number[]>([]);
@@ -166,21 +168,33 @@ const SbAccordion: FC<AccordionProps> = ({
     // Base readiness on general readyToLoad state
     return readyToLoad;
   };
-
+  // console.log(personalFolder?.objects.length);
   return (
     <div className="w-full overflow-y-hidden">
+      {personalFolder && (
+        <SbAccordionItem
+          personalFavoriteSet={personalFavoriteSet}
+          index={0}
+          folder={personalFolder}
+          isFolderOpen={openIndexes.includes(0)}
+          onClick={() => toggleItem(0)}
+          passRef={passElementRef}
+          endpoint={endpoint}
+          readyToLoad={shouldFolderLoad(0)} // Prioritize loading by folder
+        />
+      )}
       {folders.map((folder, index) => {
         return (
           <SbAccordionItem
             personalFavoriteSet={personalFavoriteSet}
             key={folder.id}
-            index={index}
+            index={index + 1}
             folder={folder}
-            isFolderOpen={openIndexes.includes(index)}
-            onClick={() => toggleItem(index)}
+            isFolderOpen={openIndexes.includes(index + 1)}
+            onClick={() => toggleItem(index + 1)}
             passRef={passElementRef}
             endpoint={endpoint}
-            readyToLoad={shouldFolderLoad(index)} // Prioritize loading by folder
+            readyToLoad={shouldFolderLoad(index + 1)} // Prioritize loading by folder
           />
         );
       })}

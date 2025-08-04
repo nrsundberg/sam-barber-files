@@ -6,10 +6,19 @@ import VideoCarousel from "~/components/carousel/VideoCarousel";
 import { useState, useEffect, useMemo } from "react";
 import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
-import { data, Link } from "react-router";
-import { getOptionalUser } from "~/domain/utils/global-context";
-import { DisplayStyle } from "@prisma/client";
+import {
+  data,
+  Link,
+  useFetcher,
+  type ShouldRevalidateFunction,
+} from "react-router";
+import { getOptionalUser, getUser } from "~/domain/utils/global-context";
+import { DisplayStyle, type Object, type UserFavorite } from "@prisma/client";
 import type { FolderWithObjects } from "~/types";
+import { object, z } from "zod";
+import { zfd } from "zod-form-data";
+import { request } from "http";
+import { connected } from "process";
 
 export function meta() {
   return [
@@ -26,9 +35,9 @@ export function meta() {
 }
 
 // NOTE: Revolving banner in the top of the page -- start black and on scroll go and turn white
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({}: Route.LoaderArgs) {
   let user = getOptionalUser();
-
+  console.log("loader");
   let userFavorites =
     user &&
     prisma.userFavorite.findMany({
@@ -73,10 +82,52 @@ export async function loader({ request }: Route.LoaderArgs) {
   });
 }
 
+const updateFavSchema = zfd.formData({
+  objectId: z.string(),
+  isFavorite: z.string(),
+});
+
+export async function action({ request }: Route.ActionArgs) {
+  let user = getOptionalUser();
+  if (user == null) {
+    return null;
+  }
+
+  let data = updateFavSchema.parse(await request.formData());
+
+  if (data.isFavorite === "true") {
+    await prisma.userFavorite.create({
+      data: { userId: user.id, objectId: data.objectId },
+    });
+    return {
+      objectId: data.objectId,
+      remove: false,
+      object: await prisma.object.findUnique({ where: { id: data.objectId } }),
+    };
+  } else {
+    await prisma.userFavorite.delete({
+      where: { userId_objectId: { userId: user.id, objectId: data.objectId } },
+    });
+    return { objectId: data.objectId, remove: true };
+  }
+}
+
+export const shouldRevalidate: ShouldRevalidateFunction = ({ formMethod }) => {
+  // Check if your action specifically said not to revalidate
+  if (formMethod === "POST") {
+    return false;
+  }
+
+  // Default behavior
+  return true;
+};
+
 export default function ({ loaderData }: Route.ComponentProps) {
   let [folders, favorites, trending, cdnEndpoint, optionalUser, userFavorites] =
     loaderData;
   let [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  let fetcher = useFetcher({ key: "personal" });
 
   const useVideoFavorites = useVideoCarousel({
     objects: favorites,
@@ -100,24 +151,58 @@ export default function ({ loaderData }: Route.ComponentProps) {
     }
   }, []);
 
-  let { adjFolders, favoritesSet } = useMemo(() => {
-    let favoritesSet = optionalUser && new Set<string>();
-    if (favoritesSet) {
-      userFavorites?.forEach((it) => favoritesSet.add(it.objectId));
-    }
+  let [favoritesSet, setFavoriteSet] = useState<Set<string> | null>(null);
+  let [personalFolder, setPersonalFolder] = useState<FolderWithObjects | null>(
+    null
+  );
 
-    let favoriteFolder: FolderWithObjects = {
-      id: "myFavorites",
-      name: "My Favorites",
-      folderPosition: 1,
-      hidden: false,
-      createdDate: userFavorites?.at(0)?.addedAt ?? new Date(),
-      objects: userFavorites?.map((it) => it.object) ?? [],
-      parentFolderId: null,
-      defaultStyle: DisplayStyle.GRID,
-    };
-    return { adjFolders: [favoriteFolder, ...folders], favoritesSet };
-  }, [folders.length]);
+  useEffect(() => {
+    if (fetcher.state == "idle") {
+      if (optionalUser === null) {
+        setFavoriteSet(null);
+        setPersonalFolder(null);
+        return;
+      }
+      let favoritesSetTemp = favoritesSet
+        ? new Set([...favoritesSet])
+        : new Set<string>();
+      let objects: Object[] =
+        personalFolder?.objects ?? userFavorites?.map((it) => it.object) ?? [];
+
+      if (fetcher.data?.remove === false) {
+        if (fetcher.data.object) {
+          objects.push(fetcher.data.object);
+          favoritesSetTemp.add(fetcher.data.object.id);
+        }
+      } else {
+        favoritesSetTemp.delete(fetcher.data?.objectId);
+        objects = objects.filter(
+          (it: Object) => it.id !== fetcher.data?.objectId
+        );
+      }
+
+      (personalFolder?.objects ?? userFavorites)?.forEach((it: any) => {
+        if (it.object && it.object?.id !== fetcher.data?.objectId) {
+          objects.push(it.object);
+          favoritesSetTemp.add(it.object.id);
+        }
+      });
+
+      let favoriteFolder: FolderWithObjects = {
+        id: "myFavorites",
+        name: "My Favorites",
+        folderPosition: 1,
+        hidden: false,
+        createdDate: userFavorites?.at(0)?.addedAt ?? new Date(),
+        objects,
+        parentFolderId: null,
+        defaultStyle: DisplayStyle.GRID,
+      };
+
+      setPersonalFolder({ ...favoriteFolder });
+      setFavoriteSet(favoritesSetTemp);
+    }
+  }, [folders.length, fetcher.state]);
 
   return (
     <div className="min-h-fit mt-1 flex flex-col">
@@ -163,7 +248,8 @@ export default function ({ loaderData }: Route.ComponentProps) {
 
         {/* Only pass initialLoadComplete to ensure accordions load after favorites/trending */}
         <SbAccordion
-          folders={adjFolders}
+          personalFolder={personalFolder}
+          folders={folders}
           endpoint={cdnEndpoint}
           allowMultiple
           initialLoadComplete={initialLoadComplete}
