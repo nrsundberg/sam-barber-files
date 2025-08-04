@@ -3,7 +3,6 @@ import { redirect, useFetcher } from "react-router";
 import type { Route } from "./+types/login";
 import { zfd } from "zod-form-data";
 import z from "zod";
-import prisma from "~/db.server";
 import { loginUser } from "~/domain/auth/user.server";
 import {
   verifyOtpCode,
@@ -42,7 +41,7 @@ export async function action({ request }: Route.ActionArgs) {
   switch (request.method) {
     case "POST": {
       let { phoneNumber } = requestCodeSchema.parse(formData);
-      await verifyPhoneNumber("+12185139917");
+      await verifyPhoneNumber(phoneNumber);
       return { phoneNumber };
     }
     case "PATCH": {
@@ -81,13 +80,18 @@ export default function () {
     });
   };
 
-  console.log(fetcher.data);
   return (
     <div className="w-full flex-col flex items-center justify-center">
-      <p>Sam Barber Files User Login...</p>
-      <fetcher.Form method="POST" encType={"multipart/form-data"}>
+      <p className="text-2xl font-semibold">Sam Barber Files</p>
+      <fetcher.Form
+        method="POST"
+        className="text-center"
+        encType={"multipart/form-data"}
+      >
         <Input name="phoneNumber" />
-        <Button type="submit">Request Code</Button>
+        <Button type="submit" color="primary" className="mt-2">
+          Request Code
+        </Button>
       </fetcher.Form>
       {fetcher.data && (
         <div>

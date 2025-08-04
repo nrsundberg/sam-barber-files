@@ -287,10 +287,10 @@ export default function ({ loaderData }: Route.ComponentProps) {
             </div>
           )
         ) : (
-          <p>
+          <a href="/login" className="text-blue-500 underline">
             Sign up to get notified when new content drops and save your
             favorite content
-          </p>
+          </a>
         )}
       </footer>
     </div>

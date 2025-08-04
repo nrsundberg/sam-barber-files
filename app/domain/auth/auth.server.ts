@@ -5,6 +5,10 @@ import {
   type unstable_MiddlewareFunction,
 } from "react-router";
 import { unstable_createSessionMiddleware as sessionMiddleware } from "remix-utils/middleware/session";
+import invariant from "tiny-invariant";
+
+const secretCookie = process.env.SESH_SECRET 
+invariant(secretCookie)
 
 const authSessionStorage = createCookieSessionStorage({
   cookie: {
@@ -12,7 +16,9 @@ const authSessionStorage = createCookieSessionStorage({
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 1 week
+    secure: true,
+    secrets: [secretCookie],
+    maxAge: 60 * 60 * 24 * 31, // 1 month
   },
 });
 
