@@ -8,6 +8,7 @@ import { useVideoCarousel } from "~/components/carousel/useVideoCarousel";
 import HorizontalCarousel from "~/components/carousel/HorizontalCarousel";
 import {
   data,
+  Form,
   Link,
   useFetcher,
   type ShouldRevalidateFunction,
@@ -275,12 +276,17 @@ export default function ({ loaderData }: Route.ComponentProps) {
               View Profile
             </Link>
           ) : (
-            <div className="flex-col w-full gap-2">
+            <div className="flex flex-col w-full gap-4">
+              <Form action="/user" navigate={false} method="PATCH">
+                <button
+                  type="submit"
+                  className="cursor-pointer underline text-blue-500"
+                >
+                  Get notified when new content drops
+                </button>
+              </Form>
               <Link to={"/user"} className="underline text-blue-500">
                 View Profile
-              </Link>
-              <Link to={"signup/laylo"} className="underline text-blue-500">
-                Get notified when new content drops
               </Link>
             </div>
           )

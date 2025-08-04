@@ -35,8 +35,7 @@ export async function registerUser(userData: NewUserData) {
   let layloSignedUp = false;
 
   if (userData.signUpToLaylo) {
-    await subToLaylo(userData.phoneNumber)
-    layloSignedUp = true
+    layloSignedUp = await subToLaylo(userData.phoneNumber);
   }
 
   // Create a new user

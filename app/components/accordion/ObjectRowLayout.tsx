@@ -157,8 +157,11 @@ export default function ({
               />
             </Tooltip>
           ) : (
-            <p>todo</p>
-            // <PopupRegisterOrLogin />
+            <Tooltip content={"Sign up to save to favorites"} closeDelay={0}>
+              <Link to={"/login"}>
+                <Star className={`cursor-pointer outline-none`} />
+              </Link>
+            </Tooltip>
           )}
           {!object.isLocked && (
             <>

@@ -7,13 +7,17 @@ const twilioToken = process.env.TWILIO_TOKEN;
 
 const twilioClient = twilio(twilioSid, twilioToken);
 
-export const verifyPhoneNumber = async (phoneNumber: string) => {
+export const verifyPhoneNumber = async (
+  phoneNumber: string
+): Promise<boolean> => {
   try {
     await twilioClient.verify.v2
       .services("VAfeb04b2b2e0d6d6546e0bac917b4b3ae")
-      .verifications.create({ to: "+12185139917", channel: "sms" });
+      .verifications.create({ to: phoneNumber, channel: "sms" });
+    return true;
   } catch (e: any) {
     console.error(e);
+    return false;
   }
 };
 
@@ -36,7 +40,7 @@ export const verifyOtpCode = async (
   }
 };
 
-export const subToLaylo = async (phoneNumber: string) => {
+export const subToLaylo = async (phoneNumber: string): Promise<boolean> => {
   let url = "https://laylo.com/api/graphql";
 
   const mutation = `
@@ -64,13 +68,12 @@ export const subToLaylo = async (phoneNumber: string) => {
       },
       { headers }
     );
-    console.log("User added successfully:", response.data);
-    return response.data;
+    return true;
   } catch (error: any) {
     console.error(
       "Error adding user:",
       error?.response?.data || error?.message
     );
-    throw error;
+    return false;
   }
 };

@@ -1,11 +1,11 @@
-import { Link, useFetcher, useSubmit } from "react-router";
+import { Link, useFetcher } from "react-router";
 import type { Object } from "@prisma/client";
 import { EyeOffIcon, Star } from "lucide-react";
 import { Thumbnail } from "../Thumbnail";
 import { formatBytes } from "~/utils";
 import { formatInTimeZone } from "date-fns-tz";
 import { Tooltip } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function ({
   object,
@@ -88,8 +88,11 @@ export default function ({
               />
             </Tooltip>
           ) : (
-            <p>todo</p>
-            // <PopupRegisterOrLogin />
+            <Tooltip content={"Sign up to save to favorites"} closeDelay={0}>
+              <Link to={"/login"}>
+                <Star className={`cursor-pointer outline-none`} />
+              </Link>
+            </Tooltip>
           )}
           {/* Always show type button for locked objects */}
           {object.isLocked ? (

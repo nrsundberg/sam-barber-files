@@ -1,19 +1,12 @@
-import {
-  getAuthSession,
-  getUser,
-  globalStorageMiddleware,
-} from "~/domain/utils/global-context";
+import { getUser } from "~/domain/utils/global-context";
 import type { Route } from "./+types/user";
 import { Button, Checkbox, Input } from "@heroui/react";
-import {
-  Form,
-  useFetcher,
-  type unstable_MiddlewareFunction,
-} from "react-router";
+import { Form, redirect, useFetcher } from "react-router";
 import prisma from "~/db.server";
 import { zfd } from "zod-form-data";
 import { z } from "zod";
 import { subToLaylo } from "~/domain/utils/sbf-client.server";
+import { dataWithSuccess } from "remix-toast";
 
 export function meta() {
   return [
@@ -44,6 +37,9 @@ export async function action({ request }: Route.LoaderArgs) {
   let user = getUser();
   switch (request.method) {
     case "POST": {
+      let firstEntry = new URL(request.url).searchParams
+        .get("signup")
+        ?.toString();
       let { firstName, lastName, email } = updateSchema.parse(
         await request.formData()
       );
@@ -53,16 +49,24 @@ export async function action({ request }: Route.LoaderArgs) {
         data: { firstName, lastName, email },
       });
 
+      if (firstEntry == "true") {
+        return redirect("/");
+      }
+
       return { updatedUser };
     }
     case "PATCH": {
-      let resp = subToLaylo(user.phoneNumber);
-      let updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: { signedUpForLaylo: true },
-      });
+      let resp = await subToLaylo(user.phoneNumber);
+      if (resp) {
+        let updatedUser = await prisma.user.update({
+          where: { id: user.id },
+          data: { signedUpForLaylo: true },
+        });
 
-      return { updatedUser };
+        return dataWithSuccess(updatedUser, "Signed up for text updates");
+      } else {
+        return { user };
+      }
     }
   }
 }
@@ -77,7 +81,7 @@ export default function ({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="flex flex-col w-full items-center">
+    <div className="flex flex-col w-full items-center bg-black">
       <Form encType={"multipart/form-data"} method="POST">
         <div className="w-[400px] mt-10 gap-3 flex-col flex">
           <Input

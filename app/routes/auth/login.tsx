@@ -44,8 +44,14 @@ export async function action({ request }: Route.ActionArgs) {
   switch (request.method) {
     case "POST": {
       let { phoneNumber } = requestCodeSchema.parse(formData);
-      await verifyPhoneNumber(phoneNumber);
-      return { phoneNumber };
+      if (phoneNumber.length < 6) {
+        return null;
+      }
+      let gotCode = await verifyPhoneNumber(phoneNumber);
+      if (gotCode) {
+        return { phoneNumber };
+      }
+      return null;
     }
     case "PATCH": {
       let { phoneNumber, otpCode } = loginSchema.parse(formData);
@@ -102,7 +108,9 @@ export default function () {
 
   return (
     <div className="w-full flex-col flex items-center justify-center bg-black">
-      <p className="text-2xl font-semibold mb-3">Sam Barber Files</p>
+      <p className="text-2xl font-semibold">Sam Barber Files</p>
+      <p className="font-semibold mb-3">Login/Sign Up</p>
+
       <fetcher.Form
         method="POST"
         className="text-center"
