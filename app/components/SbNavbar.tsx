@@ -13,7 +13,7 @@ export default function ({ user }: { user: User | null }) {
           SAM BARBER FILES
         </Link>
         <nav className="inline-flex gap-2">
-          {user && (
+          {user ? (
             <>
               {user.role === Role.ADMIN && (
                 <Tooltip content={"This only shows for logged in sessions"}>
@@ -29,6 +29,10 @@ export default function ({ user }: { user: User | null }) {
                 Logout
               </Link>
             </>
+          ) : (
+            <Link to={"/login"} className="font-bold border-2 p-2 rounded">
+              Login
+            </Link>
           )}
           <ScrollToTopButton />
         </nav>

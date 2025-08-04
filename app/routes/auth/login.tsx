@@ -1,4 +1,4 @@
-import { Button, Input, InputOtp } from "@heroui/react";
+import { Button, InputOtp } from "@heroui/react";
 import { redirect, useFetcher } from "react-router";
 import type { Route } from "./+types/login";
 import { zfd } from "zod-form-data";
@@ -8,6 +8,7 @@ import {
   verifyOtpCode,
   verifyPhoneNumber,
 } from "~/domain/utils/sbf-client.server";
+import { PhoneInput } from "~/components/PhoneInput";
 
 export function meta() {
   return [
@@ -82,13 +83,14 @@ export default function () {
 
   return (
     <div className="w-full flex-col flex items-center justify-center">
-      <p className="text-2xl font-semibold">Sam Barber Files</p>
+      <p className="text-2xl font-semibold mb-3">Sam Barber Files</p>
       <fetcher.Form
         method="POST"
         className="text-center"
         encType={"multipart/form-data"}
       >
-        <Input name="phoneNumber" />
+        <p>Phone Number</p>
+        <PhoneInput defaultCountry="US" name="phoneNumber" international />
         <Button type="submit" color="primary" className="mt-2">
           Request Code
         </Button>
