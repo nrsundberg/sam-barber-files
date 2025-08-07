@@ -51,7 +51,6 @@ model Object {
   folderId         String
   isLocked         Boolean    @default(false)
   linkTo           String?
-  miscString       String?
 }
 
 enum ObjectKind {
