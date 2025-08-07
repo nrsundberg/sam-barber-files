@@ -401,10 +401,21 @@ export default function VideoCarousel({
                   <div className="sm:col-span-1">
                     <h3 className="text-sm sm:text-lg font-bold truncate">
                       {currentObject.fileName}
+
                       {currentObject.isLocked && (
                         <Lock className="inline-block ml-1 w-4 h-4" />
                       )}
                     </h3>
+                    <p>
+                      {currentObject.linkTo && currentObject.linkTo !== "" && (
+                        <Link
+                          to={currentObject.linkTo}
+                          className="underline text-blue-500 font-bold text-lg"
+                        >
+                          Link to Drop
+                        </Link>
+                      )}
+                    </p>
                     <p className="text-xs sm:text-sm">
                       {formatInTimeZone(
                         currentObject.createdDate,

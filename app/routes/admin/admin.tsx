@@ -55,6 +55,7 @@ const uploadFileSchema = zfd.formData({
   folderId: z.string(),
   kind: z.custom<ObjectKind>(),
   createdDate: z.string(),
+  linkTo: z.string().optional(),
 });
 
 export async function action({ request }: Route.ActionArgs) {
@@ -78,7 +79,7 @@ export async function action({ request }: Route.ActionArgs) {
     // Upload file -- this could be multiple files?
     case "PATCH":
       try {
-        let { file, folderId, kind, hide, createdDate } =
+        let { file, folderId, kind, hide, createdDate, linkTo } =
           uploadFileSchema.parse(formData);
         if (!file || !folderId) {
           return dataWithError(
@@ -101,6 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
             kind,
             s3fileKey: "",
             folderId,
+            linkTo: linkTo && linkTo !== "" ? linkTo : null,
           },
         });
 
@@ -299,6 +301,7 @@ export default function ({ loaderData, params }: Route.ComponentProps) {
                 isRequired
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
+              <Input name="linkTo" label="Link to" />
 
               {file && (
                 <Input

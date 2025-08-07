@@ -19,7 +19,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Renamed File", ok: true },
-        "File Renamed",
+        "File Renamed"
       );
 
     case "move":
@@ -42,7 +42,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithSuccess(
         { action: "Changed Date", ok: true },
-        "Date Updated",
+        "Date Updated"
       );
 
     case "toggleHidden":
@@ -54,7 +54,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
       return dataWithInfo(
         { action: "File vis changed", ok: true },
-        hidden ? "File marked as hidden" : "Folder made visible",
+        hidden ? "File marked as hidden" : "Folder made visible"
       );
 
     case "delete":
@@ -62,8 +62,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: objectId },
       });
       return dataWithWarning(
-        { action: "Deleted Folder", ok: true },
-        "Folder Deleted",
+        { action: "Deleted File", ok: true },
+        "Folder File"
       );
 
     case "favorite":

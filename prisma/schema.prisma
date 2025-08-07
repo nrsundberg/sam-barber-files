@@ -49,6 +49,7 @@ model Object {
   folder           Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
   folderId         String
   isLocked         Boolean    @default(false)
+  linkTo           String?
 }
 
 enum ObjectKind {

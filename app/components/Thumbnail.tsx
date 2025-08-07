@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Object } from "@prisma/client";
 import { AudioLines, Lock } from "lucide-react";
 import { useMediaCache } from "~/contexts/MediaCacheContext";
+import { Link } from "react-router";
 
 export function Thumbnail({
   object,
